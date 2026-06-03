@@ -1086,9 +1086,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ═══ AI INPUT — VOICE & IMAGE ═══
 
-let voiceRecog = null;
-let isRecording = false;
-
 // ── Kategoris dari dbOpts untuk konteks AI ──
 function getKatListForAI() {
   const kats = dbOpts.kategoris || [];
@@ -1176,7 +1173,7 @@ Jenis default: Pengeluaran kecuali jelas disebutkan pemasukan/income/gaji/terima
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-api-key': window.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
@@ -1192,108 +1189,7 @@ Jenis default: Pengeluaran kecuali jelas disebutkan pemasukan/income/gaji/terima
 }
 
 // ── VOICE NOTE ──
-function toggleVoice() {
-  if (isRecording) {
-    stopVoice();
-  } else {
-    startVoice();
-  }
-}
-
-function startVoice() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    toast('❌ Browser tidak support voice recognition', 'err');
-    return;
-  }
-
-  voiceRecog = new SpeechRecognition();
-  voiceRecog.lang = 'id-ID';
-  voiceRecog.continuous = false;
-  voiceRecog.interimResults = true;
-
-  const btn = document.getElementById('voiceBtn');
-  const status = document.getElementById('aiStatus');
-  const spin = document.getElementById('aiSpin');
-  const statusText = document.getElementById('aiStatusText');
-  const transcript = document.getElementById('aiTranscript');
-
-  btn.classList.add('recording');
-  btn.querySelector('.ai-btn-lbl').textContent = 'Stop';
-  status.style.display = 'block';
-  spin.style.display = 'none';
-  statusText.textContent = '🎤 Mendengarkan...';
-  transcript.style.display = 'none';
-  isRecording = true;
-
-  let finalText = '';
-
-  voiceRecog.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
-      else interim += e.results[i][0].transcript;
-    }
-    transcript.style.display = 'block';
-    transcript.textContent = finalText + interim;
-  };
-
-  voiceRecog.onend = async () => {
-    isRecording = false;
-    btn.classList.remove('recording');
-    btn.querySelector('.ai-btn-lbl').textContent = 'Voice Note';
-
-    if (!finalText.trim()) {
-      statusText.textContent = '⚠️ Tidak ada suara terdeteksi';
-      setTimeout(() => { status.style.display = 'none'; }, 2500);
-      return;
-    }
-
-    // Proses dengan AI
-    btn.classList.add('loading');
-    spin.style.display = 'block';
-    statusText.textContent = '🤖 AI membaca...';
-
-    try {
-      const result = await parseWithClaude(
-        `Transaksi dari voice: "${finalText}". Parse ke format JSON.`
-      );
-      applyAIResult(result);
-      btn.classList.remove('loading');
-      btn.classList.add('success');
-      spin.style.display = 'none';
-      statusText.textContent = '✅ Berhasil diisi otomatis!';
-      transcript.textContent = `"${finalText}"`;
-      setTimeout(() => {
-        btn.classList.remove('success');
-        status.style.display = 'none';
-      }, 3500);
-    } catch (e) {
-      btn.classList.remove('loading');
-      spin.style.display = 'none';
-      statusText.textContent = '⚠️ AI gagal parse. Isi manual.';
-      transcript.textContent = `"${finalText}"`;
-      console.error('Voice AI error:', e);
-    }
-  };
-
-  voiceRecog.onerror = (e) => {
-    isRecording = false;
-    btn.classList.remove('recording');
-    btn.querySelector('.ai-btn-lbl').textContent = 'Voice Note';
-    statusText.textContent = '❌ Error: ' + e.error;
-    spin.style.display = 'none';
-    setTimeout(() => { status.style.display = 'none'; }, 2500);
-  };
-
-  voiceRecog.start();
-}
-
-function stopVoice() {
-  if (voiceRecog) voiceRecog.stop();
-}
-
-// ── IMAGE / FOTO STRUK ──
+// ── IMAGE / UPLOAD GAMBAR ──
 async function handleImageInput(input) {
   const file = input.files[0];
   if (!file) return;
