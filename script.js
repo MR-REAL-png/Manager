@@ -1,4 +1,4 @@
-const VERCEL_URL='https://manager-khaki-ten.vercel.app';
+const API_URL='https://manager-khaki-ten.vercel.app'; // Vercel → Supabase
 const LOGO_URL='https://raw.githubusercontent.com/MR-REAL-png/Manager/main/logo.png';
 const MOS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -129,12 +129,12 @@ function openInputModal(){
 
 // ═══ API ═══
 async function apiPost(action,body){
-  const res=await fetch(`${VERCEL_URL}/api/sheets?action=${action}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const res=await fetch(`${API_URL}/api/sheets?action=${action}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal simpan')}
   return await res.json();
 }
 async function apiPut(action,body){
-  const res=await fetch(`${VERCEL_URL}/api/sheets?action=${action}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const res=await fetch(`${API_URL}/api/sheets?action=${action}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal update')}
   return await res.json();
 }
@@ -142,7 +142,7 @@ async function sheetsAppend(values){return apiPost('append',{values})}
 async function sheetsUpdate(id,values){return apiPut('update',{id,values})}
 
 async function fetchAllData(){
-  const res=await fetch(`${VERCEL_URL}/api/sheets?action=get`);
+  const res=await fetch(`${API_URL}/api/sheets?action=get`);
   if(!res.ok)throw new Error('Gagal ambil data: '+res.status);
   const json=await res.json();
   if(!json.success)throw new Error(json.error||'Gagal ambil data');
@@ -232,6 +232,8 @@ async function loadDashboard(){
   document.getElementById('d-masuk').textContent='⌛';
   document.getElementById('d-keluar').textContent='⌛';
   document.getElementById('budgetList').innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
+  const _bmon=document.getElementById('budgetMonitor');if(_bmon)_bmon.style.display='none';
+  const _bmonLbl=document.getElementById('bmonSecLbl');if(_bmonLbl)_bmonLbl.style.display='none';
   try{
     if(!allRows.length)allRows=await fetchAllData();
     const{startDate,endDate}=getActivePeriodResolved();
@@ -299,43 +301,90 @@ function renderChartKat(byCat){
       cutout:'52%',
       animation:{animateRotate:true,duration:1000,easing:'easeOutQuart'},
       plugins:{
-        legend:{
-          position:'bottom',
-          align:'start',
-          labels:{
-            boxWidth:8,boxHeight:8,
-            font:{size:10.5,family:'DM Sans'},
-            color:legendColor,
-            padding:6,
-            textAlign:'left',
-            // 3 kolom: paksa maxWidth agar Chart.js wrapping per 3 item
-            maxWidth: Math.floor(ctx.canvas.parentElement?.offsetWidth/3)||100,
-            generateLabels(chart){
-              const ds=chart.data.datasets[0];
-              return chart.data.labels.map((lbl,i)=>({
-                text:`${lbl.length>11?lbl.slice(0,10)+'…':lbl} ${Math.round(ds.data[i]/total*100)}%`,
-                fillStyle:CHART_COLORS[i%CHART_COLORS.length],
-                strokeStyle:'transparent',lineWidth:0,index:i,hidden:false
-              }));
-            }
-          }
-        },
-        tooltip:{callbacks:{label:c=>` ${c.label}: ${rp(c.raw)} (${Math.round(c.raw/total*100)}%)`}}
+        legend:{display:false},
+                tooltip:{callbacks:{label:c=>` ${c.label}: ${rp(c.raw)} (${Math.round(c.raw/total*100)}%)`}}
       }
     }
   });
+  // Custom HTML legend — 3 kolom rata kiri
+  const legEl=document.getElementById('chartLegend');
+  if(legEl){
+    const isOc=document.documentElement.getAttribute('data-theme')==='ocean';
+    const lgColor=isOc?'#B8DEFF':'#E2D9FF';
+    legEl.innerHTML=byCat.map((k,i)=>{
+      const pct=Math.round(k.nominal/total*100);
+      const lbl=k.kategori.length>12?k.kategori.slice(0,11)+'…':k.kategori;
+      const col=CHART_COLORS[i%CHART_COLORS.length];
+      return`<div class="cl-item"><div class="cl-dot" style="background:${col}"></div><span class="cl-txt" style="color:${lgColor}">${lbl} ${pct}%</span></div>`;
+    }).join('');
+  }
+
 }
 
 function renderBudget(byCat){
   const el=document.getElementById('budgetList');
-  if(!byCat.length){el.innerHTML='<div class="empty"><div class="ei">✅</div><p>Belum ada pengeluaran</p></div>';return}
+  if(!byCat.length){el.innerHTML='<div class="empty"><div class="ei">✅</div><p>Belum ada pengeluaran</p></div>';renderBudgetMonitor([]);return}
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
-  el.innerHTML=byCat.map((k,i)=>{
+  // Toggle Semua/Ringkas
+  const btn=document.getElementById('btnToggleView');
+  if(btn)btn.classList.toggle('on',komposisiRingkas);
+  let tampil=byCat;
+  if(komposisiRingkas&&byCat.length>5){
+    const top5=byCat.slice(0,5);
+    const lainNom=byCat.slice(5).reduce((s,k)=>s+k.nominal,0);
+    tampil=[...top5,{kategori:'📦 Lainnya',nominal:lainNom}];
+  }
+  el.innerHTML=tampil.map((k,i)=>{
     const pct=total>0?Math.round(k.nominal/total*100):0;
     const cls=pct>=30?'bud-over':pct>=15?'bud-warn':'bud-ok';
     return`<div class="bud-item" style="animation-delay:${i*0.05}s"><div class="bud-top"><span class="bud-name">${k.kategori}</span><span class="bud-pct">${pct}%</span></div><div class="bud-bar"><div class="bud-fill ${cls}" style="width:0%" data-w="${pct}"></div></div><div class="bud-amts"><span>${rpShort(k.nominal)}</span><span>dari ${rpShort(total)}</span></div></div>`;
   }).join('');
   setTimeout(()=>{el.querySelectorAll('.bud-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
+  renderBudgetMonitor(byCat);
+}
+
+function toggleKomposisiView(){
+  komposisiRingkas=!komposisiRingkas;
+  // Re-render dengan data terakhir
+  const byKat=groupBy(allRows.filter(r=>{
+    const{startDate,endDate}=getActivePeriodResolved();
+    const sd=new Date(startDate);sd.setHours(0,0,0,0);
+    const ed=new Date(endDate);ed.setHours(23,59,59,999);
+    const d=new Date(r.tanggal);
+    return d>=sd&&d<=ed&&r.jenis==='Pengeluaran';
+  }),'kategori');
+  const byKatArr=Object.entries(byKat).map(([k,v])=>({kategori:k,nominal:v.reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
+  renderBudget(byKatArr);
+}
+
+function renderBudgetMonitor(byCat){
+  const el=document.getElementById('budgetMonitor');
+  const secLbl=document.getElementById('bmonSecLbl');
+  if(!el||!secLbl)return;
+  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  const items=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
+    const budget=budgets[k.kategori];
+    const pct=Math.min(Math.round(k.nominal/budget*100),999);
+    const cls=pct>=100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
+    const barW=Math.min(pct,100);
+    const over=pct>=100;
+    return{k,budget,pct,cls,barW,over};
+  });
+  if(!items.length){el.style.display='none';secLbl.style.display='none';return}
+  secLbl.style.display='';el.style.display='flex';
+  el.innerHTML=items.map(({k,budget,pct,cls,barW,over},i)=>`
+    <div class="bmon-item" style="animation-delay:${i*0.05}s">
+      <div class="bmon-top">
+        <span class="bmon-name">${k.kategori}</span>
+        <span class="bmon-pct" style="color:${pct>=100?'var(--red)':pct>=alertPct?'#fbbf24':'var(--grn)'">${pct}%${pct>=100?' 🚨':pct>=alertPct?' ⚠️':' ✅'}</span>
+      </div>
+      <div class="bmon-bar"><div class="bmon-fill ${cls}" style="width:0%" data-w="${barW}"></div></div>
+      <div class="bmon-amts">
+        <span class="${over?'over':''}">${rpShort(k.nominal)} terpakai</span>
+        <span>dari ${rpShort(budget)}</span>
+      </div>
+    </div>`).join('');
+  setTimeout(()=>{el.querySelectorAll('.bmon-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
 }
 
 // ═══ DATA ═══
@@ -725,7 +774,7 @@ async function doDelete(){
     const ri=Number(document.getElementById('editRow').value);
     document.getElementById('eLoad').style.display='flex';
     try{
-      const res=await fetch(`${VERCEL_URL}/api/sheets?action=delete`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:ri})});
+      const res=await fetch(`${API_URL}/api/sheets?action=delete`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:ri})});
       if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal hapus')}
       toast('🗑️ Dihapus','ok');closeOv(null,'ovEdit');allRows=[];loadData()
     }
@@ -761,7 +810,7 @@ function openSettModal(type){
       body.innerHTML=`
         <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
         ${kats.map(k=>{
-          const id='bgt_'+btoa(k).replace(/[^a-zA-Z0-9]/g,'');
+          const id='bgt_'+i;
           const val=budgets[k]||'';
           return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" placeholder="Rp — tidak ada limit" value="${val}" min="0"></div>`;
         }).join('')}
@@ -879,7 +928,7 @@ async function saveSettModal(){
   }
   if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('✅ Nama diperbarui','ok')}}
   else if(settModalType==='anggaran'){
-    (dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income')).forEach(k=>{const el=document.getElementById('bgt_'+btoa(k).replace(/[^a-zA-Z0-9]/g,''));if(el&&el.value)budgets[k]=Number(el.value);else if(el&&!el.value)delete budgets[k]});localStorage.setItem('mm_budgets',JSON.stringify(budgets));toast('✅ Anggaran disimpan','ok')}
+    (dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income')).forEach((k,i)=>{const el=document.getElementById('bgt_'+i);if(el&&el.value)budgets[k]=Number(el.value);else if(el&&!el.value)delete budgets[k]});localStorage.setItem('mm_budgets',JSON.stringify(budgets));toast('✅ Anggaran disimpan','ok')}
   else if(settModalType==='alertpct'){const val=Number(document.getElementById('alertPctInput').value);if(val>=50&&val<=100){alertPct=val;document.getElementById('alertPctLabel').textContent=`${alertPct}% dari anggaran`;saveSettingsStorage();toast('✅ Batas diperbarui','ok')}}
   else if(settModalType==='periode'){
     const from=document.getElementById('periodeFrom')?.value;
