@@ -272,8 +272,8 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .month-col-lbl{font-size:0.52rem;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px}
 .month-col-val{font-size:0.78rem;font-weight:800;color:#fff}
 /* METODE */
-.metode-hero{border-radius:20px;padding:16px;margin-bottom:12px;background:linear-gradient(135deg,rgba(6,78,59,0.7),rgba(6,95,70,0.7),rgba(4,120,87,0.7));box-shadow:0 8px 32px rgba(4,120,87,0.3);overflow:hidden;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1)}
-[data-theme="ocean"] .metode-hero{background:linear-gradient(135deg,rgba(10,74,140,0.6),rgba(16,96,184,0.6),rgba(30,124,218,0.6));box-shadow:0 8px 24px rgba(16,96,184,0.3);border-color:rgba(255,255,255,0.15)}
+.metode-hero{border-radius:20px;padding:16px;margin-bottom:12px;background:rgba(255,255,255,0.06);box-shadow:0 8px 32px rgba(0,0,0,0.2);overflow:hidden;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12)}
+[data-theme="ocean"] .metode-hero{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.15)}
 .metode-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
 .metode-card{background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 6px;text-align:center;border:1px solid rgba(255,255,255,0.15)}
 .metode-ico{font-size:1.2rem;margin-bottom:4px}
@@ -496,15 +496,8 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 <div id="pg-dashboard" class="page on">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px">
     <div><div class="pg-title">Dashboard</div><div class="pg-sub">Monitoring Keuangan</div></div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <div class="period-sel">
-        <select class="spill" id="dashBulan" onchange="loadDashboard()">
-          <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
-        </select>
-        <select class="spill" id="dashTahun" onchange="loadDashboard()">
-          <option>2024</option><option>2025</option><option>2026</option><option>2027</option><option>2028</option>
-        </select>
-      </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="dashPeriodLabel" style="font-family:var(--ffd);font-size:1rem;font-weight:700;color:#fff"></div>
       <button class="refresh-btn" onclick="doRefresh()">🔄</button>
     </div>
   </div>
@@ -787,10 +780,9 @@ function parseTanggal(raw) {
 
 // ═══ PERIOD ═══
 function getEffective25(year,month){
-  const d=new Date(year,month,25);
+  const d=new Date(year,month,24);
   const dow=d.getDay();
-  if(dow===6) d.setDate(24);
-  else if(dow===0) d.setDate(23);
+  if(dow===6) d.setDate(23);
   return d;
 }
 function getActivePeriod(){
@@ -901,7 +893,14 @@ async function fetchDBOptions(){
       if(r.metode&&!r.metode.includes('Cash'))banks.push(r.metode);
       if(r.kategori)kategoris.push(r.kategori);
     });
-    dbOpts={banks:[...new Set(banks)],kategoris:[...new Set(kategoris)].sort(),metodes:['Cash','Transfer','QRIS'],jenis:['Pemasukan','Pengeluaran']};
+    const customKats=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');
+    const customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
+    dbOpts={
+      banks:[...new Set([...banks,...customBanks])],
+      kategoris:[...new Set([...kategoris,...customKats])].sort(),
+      metodes:['Cash','Transfer','QRIS'],
+      jenis:['Pemasukan','Pengeluaran']
+    };
     fillBank('inBank','');fillBank('eBank','');
   }catch(e){console.error('fetchDBOptions:',e)}
 }
@@ -946,7 +945,10 @@ function doRefresh(){
 
 // ═══ DASHBOARD ═══
 async function loadDashboard(){
-  const b=document.getElementById('dashBulan').value,t=document.getElementById('dashTahun').value;
+  const now=new Date();
+  const b=MOS[now.getMonth()],t=String(now.getFullYear());
+  const lbl=document.getElementById('dashPeriodLabel');
+  if(lbl)lbl.textContent=`${b} ${t}`;
   document.getElementById('d-kas').textContent='⌛';
   document.getElementById('d-masuk').textContent='⌛';
   document.getElementById('d-keluar').textContent='⌛';
@@ -1069,9 +1071,10 @@ function renderBudget(byCat){
 
 // ═══ DATA ═══
 async function loadData(){
-  document.getElementById('dataList').innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
   try{
-    if(!allRows.length)allRows=await fetchAllData();
+    if(allRows.length){renderCards(allRows);return}
+    document.getElementById('dataList').innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+    allRows=await fetchAllData();
     renderCards(allRows);
   }catch(e){toast('❌ Gagal load data: '+e.message,'err');console.error(e)}
 }
@@ -1450,44 +1453,37 @@ function loadSettings(){
 function openSettModal(type){
   settModalType=type;
   const title=document.getElementById('settModalTitle'),body=document.getElementById('settModalBody');
-  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
   if(type==='nama'){title.textContent='✏️ Ubah Nama';const cur=document.getElementById('settUsername').textContent;body.innerHTML=`<div class="fr"><label>Nama Baru</label><input class="fi" type="text" id="settNamaInput" value="${cur}" placeholder="Nama kamu"></div>`}
   else if(type==='anggaran'){
     title.textContent='💰 Anggaran per Kategori';
-    const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
-    const kats=dbOpts.kategoris.filter(k=>!k.toLowerCase().includes('income'));
-    body.innerHTML=`
-      <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
-      ${kats.map(k=>{
-        const id='bgt_'+btoa(k).replace(/[^a-zA-Z0-9]/g,'');
-        const val=budgets[k]||'';
-        return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" placeholder="Rp — tidak ada limit" value="${val}" min="0"></div>`;
-      }).join('')}
-      <div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:0.7rem;color:var(--grn);margin-top:4px">
-        💡 Budget akan muncul di notifikasi jika pengeluaran melebihi batas.
-      </div>`;
+    body.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+    document.getElementById('ovSett').classList.add('open');
+    const renderAnggaran=()=>{
+      const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+      const kats=dbOpts.kategoris.filter(k=>!k.toLowerCase().includes('income'));
+      if(!kats.length){body.innerHTML='<div class="empty"><div class="ei">🏷️</div><p>Belum ada kategori</p></div>';return}
+      body.innerHTML=`
+        <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
+        ${kats.map(k=>{
+          const id='bgt_'+btoa(k).replace(/[^a-zA-Z0-9]/g,'');
+          const val=budgets[k]||'';
+          return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" placeholder="Rp — tidak ada limit" value="${val}" min="0"></div>`;
+        }).join('')}
+        <div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:0.7rem;color:var(--grn);margin-top:4px">
+          💡 Budget akan muncul di notifikasi jika pengeluaran melebihi batas.
+        </div>`;
+    };
+    if(allRows.length){fetchDBOptions().then(renderAnggaran)}
+    else{fetchAllData().then(r=>{allRows=r;return fetchDBOptions()}).then(renderAnggaran).catch(()=>{body.innerHTML='<div class="empty"><div class="ei">⚠️</div><p>Gagal memuat data</p></div>'})}
+    return;
   }
   else if(type==='rekening'){
     title.textContent='🏦 Kelola Rekening';
-    body.innerHTML=`
-      <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px">Rekening dari data transaksi. Tambah dengan input transaksi baru.</p>
-      <div style="display:flex;flex-direction:column;gap:4px" id="rekeningList">
-        ${dbOpts.banks.map(b=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--glass);border:1px solid var(--bdr);border-radius:10px"><span style="font-size:0.82rem;color:#fff;font-weight:600">${b}</span><span style="font-size:0.68rem;color:var(--tx3)">dari data</span></div>`).join('')}
-      </div>
-      <div style="margin-top:10px;padding:10px 12px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);border-radius:10px;font-size:0.7rem;color:var(--blu)">
-        💡 Rekening baru otomatis muncul saat kamu input transaksi dengan rekening baru.
-      </div>`;
+    renderRekeningModal();
   }
   else if(type==='kategori'){
     title.textContent='🏷️ Kelola Kategori';
-    body.innerHTML=`
-      <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px">Kategori dari data transaksi (${dbOpts.kategoris.length} kategori).</p>
-      <div style="display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto">
-        ${dbOpts.kategoris.map(k=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--glass);border:1px solid var(--bdr);border-radius:10px"><span style="font-size:0.82rem;color:#fff;font-weight:600">${k}</span></div>`).join('')}
-      </div>
-      <div style="margin-top:10px;padding:10px 12px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);border-radius:10px;font-size:0.7rem;color:var(--blu)">
-        💡 Kategori baru otomatis muncul saat kamu input transaksi dengan kategori baru.
-      </div>`;
+    renderKategoriModal();
   }
   else if(type==='alertpct'){title.textContent='⚠️ Batas Peringatan';body.innerHTML=`<div class="fr"><label>Persentase (%)</label><input class="fi" type="number" id="alertPctInput" value="${alertPct}" min="50" max="100"></div>`}
   else if(type==='katrata'){
@@ -1500,13 +1496,137 @@ function openSettModal(type){
     title.textContent='📅 Setting Periode';
     const ps=JSON.parse(localStorage.getItem('mm_periode')||'{}');
     const sd=ps.startDate||'',ed=ps.endDate||'';
-    body.innerHTML=`<p style="font-size:0.75rem;color:var(--tx2);margin-bottom:8px;line-height:1.5">Set periode manual. Kosongkan untuk pakai sistem otomatis (25 ke 25). Jika pilih Sabtu/Minggu otomatis mundur ke Jumat.</p>
+    body.innerHTML=`<p style="font-size:0.75rem;color:var(--tx2);margin-bottom:8px;line-height:1.5">Set periode manual. Kosongkan untuk pakai sistem otomatis (24 ke 24). Jika pilih Sabtu/Minggu otomatis mundur ke Jumat.</p>
       <div class="fr"><label>Tanggal Mulai</label><input class="fi" type="date" id="periodeStart" value="${sd}" onchange="autoFriday('periodeStart')"></div>
       <div class="fr"><label>Tanggal Selesai</label><input class="fi" type="date" id="periodeEnd" value="${ed}" onchange="autoFriday('periodeEnd')"></div>
       <button style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1.5px solid var(--red);background:var(--red-bg);color:var(--red);font-size:0.76rem;font-weight:700;cursor:pointer;width:100%" onclick="resetPeriode()">🔄 Reset ke Otomatis</button>`;
   }
   else if(type==='password'){title.textContent='🔐 Ubah Password Admin';body.innerHTML=`<div class="fr"><label>Password Lama</label><input class="fi" type="password" id="passOld"></div><div class="fr"><label>Password Baru</label><input class="fi" type="password" id="passNew"></div><div class="fr"><label>Konfirmasi</label><input class="fi" type="password" id="passConf"></div>`}
   document.getElementById('ovSett').classList.add('open');
+}
+
+function getCustomKats(){return JSON.parse(localStorage.getItem('mm_custom_kats')||'[]')}
+function getCustomBanks(){return JSON.parse(localStorage.getItem('mm_custom_banks')||'[]')}
+function getHiddenKats(){return JSON.parse(localStorage.getItem('mm_hidden_kats')||'[]')}
+function getHiddenBanks(){return JSON.parse(localStorage.getItem('mm_hidden_banks')||'[]')}
+
+function renderKategoriModal(){
+  const body=document.getElementById('settModalBody');
+  const customKats=getCustomKats();
+  const hiddenKats=getHiddenKats();
+  const fromData=dbOpts.kategoris||[];
+  const allKats=[...new Set([...fromData,...customKats])];
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:8px">${allKats.length} kategori tersedia.</p>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <input class="fi" type="text" id="newKatInput" placeholder="Tambah kategori baru..." style="flex:1">
+      <button onclick="addCustomKat()" style="padding:0 14px;height:40px;border-radius:var(--rsm);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">➕ Tambah</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto" id="katListBody">
+      ${allKats.map(k=>{
+        const isCustom=customKats.includes(k);
+        const isHidden=hiddenKats.includes(k);
+        return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--glass);border:1px solid var(--bdr);border-radius:10px;opacity:${isHidden?0.45:1}">
+          <span style="font-size:0.82rem;color:#fff;font-weight:600;flex:1">${k}${isCustom?'<span style="font-size:0.55rem;color:var(--ac);margin-left:6px;font-weight:800">CUSTOM</span>':''}</span>
+          <div style="display:flex;gap:5px">
+            <button onclick="toggleHideKat('${k.replace(/'/g,"\\'")}',${isHidden})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--glass);color:var(--tx2);font-size:0.62rem;cursor:pointer">${isHidden?'👁️ Tampil':'🙈 Sembunyikan'}</button>
+            ${isCustom?`<button onclick="deleteCustomKat('${k.replace(/'/g,"\\'")}') " style="padding:3px 8px;border-radius:6px;border:1px solid var(--red);background:var(--red-bg);color:var(--red);font-size:0.62rem;cursor:pointer">🗑️</button>`:''}
+          </div>
+        </div>`}).join('')}
+    </div>
+    <div style="margin-top:8px;padding:8px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,248,0.2);border-radius:8px;font-size:0.7rem;color:var(--blu)">
+      💡 Kategori dari transaksi tidak bisa dihapus, hanya bisa disembunyikan.
+    </div>`;
+}
+
+function renderRekeningModal(){
+  const body=document.getElementById('settModalBody');
+  const customBanks=getCustomBanks();
+  const hiddenBanks=getHiddenBanks();
+  const fromData=dbOpts.banks||[];
+  const allBanks=[...new Set([...fromData,...customBanks])];
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:8px">${allBanks.length} rekening tersedia.</p>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <input class="fi" type="text" id="newBankInput" placeholder="Tambah rekening baru..." style="flex:1">
+      <button onclick="addCustomBank()" style="padding:0 14px;height:40px;border-radius:var(--rsm);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">➕ Tambah</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto" id="bankListBody">
+      ${allBanks.map(b=>{
+        const isCustom=customBanks.includes(b);
+        const isHidden=hiddenBanks.includes(b);
+        return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--glass);border:1px solid var(--bdr);border-radius:10px;opacity:${isHidden?0.45:1}">
+          <span style="font-size:0.82rem;color:#fff;font-weight:600;flex:1">${b}${isCustom?'<span style="font-size:0.55rem;color:var(--ac);margin-left:6px;font-weight:800">CUSTOM</span>':''}</span>
+          <div style="display:flex;gap:5px">
+            <button onclick="toggleHideBank('${b.replace(/'/g,"\\'")}',${isHidden})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--glass);color:var(--tx2);font-size:0.62rem;cursor:pointer">${isHidden?'👁️ Tampil':'🙈 Sembunyikan'}</button>
+            ${isCustom?`<button onclick="deleteCustomBank('${b.replace(/'/g,"\\'")}') " style="padding:3px 8px;border-radius:6px;border:1px solid var(--red);background:var(--red-bg);color:var(--red);font-size:0.62rem;cursor:pointer">🗑️</button>`:''}
+          </div>
+        </div>`}).join('')}
+    </div>
+    <div style="margin-top:8px;padding:8px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,248,0.2);border-radius:8px;font-size:0.7rem;color:var(--blu)">
+      💡 Rekening dari transaksi tidak bisa dihapus, hanya bisa disembunyikan.
+    </div>`;
+}
+
+function addCustomKat(){
+  const inp=document.getElementById('newKatInput');
+  const val=inp.value.trim();
+  if(!val){toast('⚠️ Nama kategori kosong','err');return}
+  const custom=getCustomKats();
+  const all=[...dbOpts.kategoris,...custom];
+  if(all.some(k=>k.toLowerCase()===val.toLowerCase())){toast('⚠️ Kategori sudah ada','err');return}
+  custom.push(val);
+  localStorage.setItem('mm_custom_kats',JSON.stringify(custom));
+  dbOpts.kategoris=[...new Set([...dbOpts.kategoris,...custom])].sort();
+  toast('✅ Kategori ditambahkan','ok');
+  renderKategoriModal();
+}
+
+function deleteCustomKat(kat){
+  let custom=getCustomKats().filter(k=>k!==kat);
+  localStorage.setItem('mm_custom_kats',JSON.stringify(custom));
+  dbOpts.kategoris=dbOpts.kategoris.filter(k=>k!==kat||!getCustomKats().includes(k));
+  dbOpts.kategoris=[...new Set([...(allRows.map(r=>r.kategori).filter(Boolean)),...custom])].sort();
+  toast('🗑️ Kategori dihapus','ok');
+  renderKategoriModal();
+}
+
+function toggleHideKat(kat,isHidden){
+  let hidden=getHiddenKats();
+  if(isHidden)hidden=hidden.filter(k=>k!==kat);
+  else hidden.push(kat);
+  localStorage.setItem('mm_hidden_kats',JSON.stringify(hidden));
+  renderKategoriModal();
+}
+
+function addCustomBank(){
+  const inp=document.getElementById('newBankInput');
+  const val=inp.value.trim();
+  if(!val){toast('⚠️ Nama rekening kosong','err');return}
+  const custom=getCustomBanks();
+  const all=[...dbOpts.banks,...custom];
+  if(all.some(b=>b.toLowerCase()===val.toLowerCase())){toast('⚠️ Rekening sudah ada','err');return}
+  custom.push(val);
+  localStorage.setItem('mm_custom_banks',JSON.stringify(custom));
+  dbOpts.banks=[...new Set([...dbOpts.banks,...custom])];
+  toast('✅ Rekening ditambahkan','ok');
+  renderRekeningModal();
+}
+
+function deleteCustomBank(bank){
+  let custom=getCustomBanks().filter(b=>b!==bank);
+  localStorage.setItem('mm_custom_banks',JSON.stringify(custom));
+  dbOpts.banks=[...new Set([...(allRows.map(r=>r.metode).filter(b=>b&&!b.includes('Cash'))),...custom])];
+  toast('🗑️ Rekening dihapus','ok');
+  renderRekeningModal();
+}
+
+function toggleHideBank(bank,isHidden){
+  let hidden=getHiddenBanks();
+  if(isHidden)hidden=hidden.filter(b=>b!==bank);
+  else hidden.push(bank);
+  localStorage.setItem('mm_hidden_banks',JSON.stringify(hidden));
+  renderRekeningModal();
 }
 
 function saveSettModal(){
@@ -1674,8 +1794,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   updateClock();loadTheme();loadSettings();initLogo();
   document.getElementById('inTgl').value=getLocalDate();syncBulan('in');
   const now=new Date();
-  document.getElementById('dashBulan').value=MOS[now.getMonth()];
-  document.getElementById('dashTahun').value=String(now.getFullYear());
   document.getElementById('rekapTahun').value=String(now.getFullYear());
   // Set target form defaults
   const tgtFrom=document.getElementById('tgtFrom');
