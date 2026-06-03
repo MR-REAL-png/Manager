@@ -12,7 +12,7 @@ let chartKat=null,chartTab=null,chartRekap=null,chartMetode=null,chartKal=null;
 let toastT,avgDetailData=null;
 let kalYear=new Date().getFullYear(),kalMonth=new Date().getMonth();
 let settModalType='';
-let notifEnabled=true,alertPct=80,adminPassword=ADMIN_PASS_DEFAULT,komposisiRingkas=false;
+let notifEnabled=true,alertPct=80,adminPassword=ADMIN_PASS_DEFAULT,komposisiRingkas=true;
 
 // ═══ PARSE TANGGAL ═══
 function parseTanggal(raw) {
@@ -327,7 +327,7 @@ function renderBudget(byCat){
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
   // Toggle Semua/Ringkas
   const btn=document.getElementById('btnToggleView');
-  if(btn)btn.classList.toggle('on',komposisiRingkas);
+  if(btn){btn.classList.toggle('on',komposisiRingkas);btn.textContent=komposisiRingkas?'📋 Semua':'🔢 Ringkas';}
   let tampil=byCat;
   if(komposisiRingkas&&byCat.length>5){
     const top5=byCat.slice(0,5);
