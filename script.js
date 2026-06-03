@@ -114,6 +114,19 @@ function initOceanParticles(){
 function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('drawerOverlay').classList.add('open')}
 function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawerOverlay').classList.remove('open')}
 
+// ═══ INPUT MODAL ═══
+function openInputModal(){
+  document.getElementById('inTgl').value=getLocalDate();syncBulan('in');
+  document.getElementById('inJenis').value='';
+  document.getElementById('inKat').innerHTML='<option value="">— Pilih Jenis dulu —</option>';
+  document.getElementById('inNom').value='';
+  document.getElementById('inMetode').value='';
+  fillBank('inBank','');
+  document.getElementById('inKet').value='';
+  renderQuickKat();
+  document.getElementById('ovInput').classList.add('open');
+}
+
 // ═══ API ═══
 async function apiPost(action,body){
   const res=await fetch(`${VERCEL_URL}/api/sheets?action=${action}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -261,12 +274,13 @@ function renderChartKat(byCat){
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
   const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
   const bdrCol=isOcean?'rgba(10,74,140,0.6)':'rgba(15,12,41,0.6)';
-  const legendColor='rgba(255,255,255,0.92)';
+  // Warna legend kontras: lebih terang di cosmic, biru muda di ocean
+  const legendColor=isOcean?'#B8DEFF':'#E2D9FF';
   const plugin={id:'rdg',afterDraw(chart){
     const{ctx:c,chartArea:ca}=chart;if(!ca)return;
     const cx=(ca.left+ca.right)/2,cy=(ca.top+ca.bottom)/2;
     c.save();c.textAlign='center';c.textBaseline='middle';
-    c.fillStyle='rgba(255,255,255,0.5)';c.font=`500 11px 'DM Sans',sans-serif`;c.fillText('Total',cx,cy-14);
+    c.fillStyle=isOcean?'rgba(184,222,255,0.6)':'rgba(226,217,255,0.6)';c.font=`500 11px 'DM Sans',sans-serif`;c.fillText('Total',cx,cy-14);
     c.fillStyle='rgba(255,255,255,0.95)';c.font=`bold 20px 'Playfair Display',serif`;c.fillText((total/1e6).toFixed(1)+'jt',cx,cy+10);
     c.restore();
   }};
@@ -292,12 +306,14 @@ function renderChartKat(byCat){
             boxWidth:8,boxHeight:8,
             font:{size:10.5,family:'DM Sans'},
             color:legendColor,
-            padding:8,
+            padding:6,
             textAlign:'left',
+            // 3 kolom: paksa maxWidth agar Chart.js wrapping per 3 item
+            maxWidth: Math.floor(ctx.canvas.parentElement?.offsetWidth/3)||100,
             generateLabels(chart){
               const ds=chart.data.datasets[0];
               return chart.data.labels.map((lbl,i)=>({
-                text:`${lbl.length>13?lbl.slice(0,12)+'…':lbl}  ${Math.round(ds.data[i]/total*100)}%`,
+                text:`${lbl.length>11?lbl.slice(0,10)+'…':lbl} ${Math.round(ds.data[i]/total*100)}%`,
                 fillStyle:CHART_COLORS[i%CHART_COLORS.length],
                 strokeStyle:'transparent',lineWidth:0,index:i,hidden:false
               }));
@@ -326,19 +342,15 @@ function renderBudget(byCat){
 async function loadData(){
   const el=document.getElementById('dataList');
   try{
-    if(allRows.length){
-      renderCards(allRows);
-      syncFilterBulan();
-      return;
-    }
-    // Tampilkan skeleton saat fetching
+    // Selalu tampilkan skeleton dulu (animasi konsisten dengan menu lain)
     el.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
-    allRows=await fetchAllData();
+    if(!allRows.length)allRows=await fetchAllData();
+    await new Promise(r=>setTimeout(r,120));
     renderCards(allRows);
     syncFilterBulan();
   }catch(e){
-    el.innerHTML='<div class="empty"><div class="ei">⚠️</div><p>Gagal memuat data</p></div>';
-    toast('❌ Gagal load data: '+e.message,'err');console.error(e);
+    el.innerHTML='<div class="empty"><div class="ei">\u26a0\ufe0f</div><p>Gagal memuat data</p></div>';
+    toast('\u274c Gagal load data: '+e.message,'err');console.error(e);
   }
 }
 
@@ -745,7 +757,7 @@ function openSettModal(type){
     const renderAnggaran=()=>{
       const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
       const kats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
-      if(!kats.length){body.innerHTML='<div class="empty"><div class="ei">🏷️</div><p>Belum ada kategori</p></div>';return}
+      if(!kats.length){body.innerHTML='<div class="empty"><div class="ei">🏷️</div><p>Belum ada kategori.<br>Tambahkan transaksi pengeluaran dulu.</p></div>';return}
       body.innerHTML=`
         <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
         ${kats.map(k=>{
@@ -757,13 +769,20 @@ function openSettModal(type){
           💡 Budget akan muncul di notifikasi jika pengeluaran melebihi batas.
         </div>`;
     };
-    // Fix: pastikan fetchDBOptions selesai sebelum renderAnggaran
-    fetchDBOptions().then(()=>renderAnggaran()).catch(()=>{
-      body.innerHTML='<div class="empty"><div class="ei">⚠️</div><p>Gagal memuat data</p></div>';
-    });
+    // Pastikan data & kategori ter-load sebelum render
+    (async()=>{
+      try{
+        if(!allRows.length)allRows=await fetchAllData();
+        await fetchDBOptions();
+        renderAnggaran();
+      }catch(e){
+        body.innerHTML='<div class="empty"><div class="ei">⚠️</div><p>Gagal memuat data.<br>Coba refresh dulu.</p></div>';
+        console.error('anggaran modal error:',e);
+      }
+    })();
     return;
   }
-  else if(type==='rekening'){
+    else if(type==='rekening'){
     title.textContent='🏦 Kelola Rekening';
     renderRekeningModal();
   }
