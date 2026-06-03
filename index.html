@@ -112,9 +112,17 @@
     </div>
   </div>
   <div class="sec-lbl">Pengeluaran per Kategori</div>
-  <div class="chart-card"><div class="chart-wrap"><canvas id="chartKat"></canvas></div></div>
-  <div class="sec-lbl">Komposisi</div>
+  <div class="chart-card">
+    <div class="chart-wrap"><canvas id="chartKat"></canvas></div>
+    <div class="chart-legend" id="chartLegend"></div>
+  </div>
+  <div class="komposisi-hd">
+    <div class="sec-lbl" style="margin:0;flex:1">Komposisi</div>
+    <button class="toggle-view-btn" id="btnToggleView" onclick="toggleKomposisiView()">📋 Semua</button>
+  </div>
   <div id="budgetList" class="bud-list"><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div></div>
+  <div class="sec-lbl" id="bmonSecLbl" style="display:none">Budget Monitor</div>
+  <div id="budgetMonitor" class="bmon-list" style="display:none"></div>
 </div>
 
 <!-- DATA -->
