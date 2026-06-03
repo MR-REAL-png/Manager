@@ -2,6 +2,9 @@
   "name": "money-manager",
   "version": "1.0.0",
   "description": "SE_REAL Money Manager",
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0"
   }
