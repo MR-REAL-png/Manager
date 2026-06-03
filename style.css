@@ -56,7 +56,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .hdr-menu-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all .2s;flex-shrink:0}
 .hdr-menu-btn span{display:block;width:16px;height:2px;background:#fff;border-radius:2px}
 .hdr-menu-btn:active{transform:scale(0.93)}
-.brand-ico{width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(255,255,255,0.3);background:#1a1640}
+.brand-ico{width:32px;height:32px;border-radius:0;overflow:visible;flex-shrink:0;border:none;background:transparent}
 .brand-ico img{width:100%;height:100%;object-fit:cover;mix-blend-mode:screen;filter:brightness(1.2) contrast(1.1)}
 .brand-name{font-family:var(--ffd);font-size:0.92rem;font-weight:700;background:linear-gradient(90deg,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 [data-theme="ocean"] .brand-name{background:none;-webkit-text-fill-color:#fff}
@@ -73,7 +73,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .drawer-title{font-family:var(--ffd);font-size:1rem;color:#fff;font-weight:700}
 .drawer-close{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem}
 .drawer-profile{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:10px;flex-shrink:0}
-.drawer-avatar{width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(255,255,255,0.2);background:#1a1640;display:flex;align-items:center;justify-content:center}
+.drawer-avatar{width:44px;height:44px;border-radius:0;overflow:visible;flex-shrink:0;border:none;background:transparent;display:flex;align-items:center;justify-content:center}
 .drawer-avatar img{width:100%;height:100%;object-fit:cover;mix-blend-mode:screen}
 .drawer-username{font-weight:700;font-size:0.88rem;color:#fff}
 .drawer-subtitle{font-size:0.62rem;color:var(--tx3);margin-top:2px}
