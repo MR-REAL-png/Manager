@@ -268,6 +268,28 @@
   <div class="modal">
     <div class="modal-hd"><h3>➕ Input Transaksi</h3><button class="modal-x" onclick="closeOv(null,'ovInput')">✕</button></div>
     <div class="modal-bd">
+      <!-- AI INPUT ZONE -->
+      <div class="ai-input-zone">
+        <div class="ai-zone-title">✨ Input Cepat dengan AI</div>
+        <div class="ai-zone-btns">
+          <button class="ai-btn" id="voiceBtn" onclick="toggleVoice()">
+            <span class="ai-btn-ico">🎤</span>
+            <span class="ai-btn-lbl">Voice Note</span>
+          </button>
+          <button class="ai-btn" id="imgBtn" onclick="document.getElementById('imgInput').click()">
+            <span class="ai-btn-ico">📷</span>
+            <span class="ai-btn-lbl">Foto Struk</span>
+          </button>
+        </div>
+        <input type="file" id="imgInput" accept="image/*" capture="environment" style="display:none" onchange="handleImageInput(this)">
+        <div class="ai-status" id="aiStatus" style="display:none">
+          <div class="ai-status-inner">
+            <div class="spin" id="aiSpin" style="display:none"></div>
+            <span id="aiStatusText"></span>
+          </div>
+          <div class="ai-transcript" id="aiTranscript" style="display:none"></div>
+        </div>
+      </div>
       <div id="quickKatWrap" style="display:none"><div class="qk-lbl">⚡ Terakhir dipakai</div><div class="qk-list" id="quickKatList"></div></div>
       <div class="fr-2"><div class="fr"><label>📅 Tanggal</label><input class="fi" type="date" id="inTgl" onchange="syncBulan('in')"></div><div class="fr"><label>📆 Bulan</label><input class="fi ro" type="text" id="inBulan" readonly></div></div>
       <div class="fr"><label>🔄 Jenis</label><select class="fs" id="inJenis" onchange="onJenisChange('in')"><option value="">— Pilih Jenis —</option><option>Pemasukan</option><option>Pengeluaran</option></select></div>
