@@ -12,7 +12,7 @@ let chartKat=null,chartTab=null,chartRekap=null,chartMetode=null,chartKal=null;
 let toastT,avgDetailData=null;
 let kalYear=new Date().getFullYear(),kalMonth=new Date().getMonth();
 let settModalType='';
-let notifEnabled=true,alertPct=80,adminPassword=ADMIN_PASS_DEFAULT;
+let notifEnabled=true,alertPct=80,adminPassword=ADMIN_PASS_DEFAULT,komposisiRingkas=false;
 
 // ═══ PARSE TANGGAL ═══
 function parseTanggal(raw) {
@@ -809,7 +809,7 @@ function openSettModal(type){
       if(!kats.length){body.innerHTML='<div class="empty"><div class="ei">🏷️</div><p>Belum ada kategori.<br>Tambahkan transaksi pengeluaran dulu.</p></div>';return}
       body.innerHTML=`
         <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
-        ${kats.map(k=>{
+        ${kats.map((k,i)=>{
           const id='bgt_'+i;
           const val=budgets[k]||'';
           return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" placeholder="Rp — tidak ada limit" value="${val}" min="0"></div>`;
