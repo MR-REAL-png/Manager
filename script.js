@@ -1135,7 +1135,10 @@ function applyAIResult(data) {
   }
 }
 
-// ── Panggil Claude API untuk parse teks ──
+// ══ GEMINI API KEY — ganti dengan key kamu ══
+const GEMINI_API_KEY = 'GANTI_DENGAN_API_KEY_KAMU';
+
+// ── Panggil Gemini API untuk parse gambar struk ──
 async function parseWithClaude(prompt, imageBase64 = null) {
   const today = getLocalDate();
   const katList = getKatListForAI();
@@ -1158,32 +1161,25 @@ Pilih kategori yang paling cocok dari daftar di atas. Jika tidak ada yang cocok,
 Tanggal hari ini: ${today}. Jika tidak ada tanggal di input, gunakan tanggal hari ini.
 Jenis default: Pengeluaran kecuali jelas disebutkan pemasukan/income/gaji/terima.`;
 
-  const messages = [];
+  const parts = [];
   if (imageBase64) {
-    messages.push({
-      role: 'user',
-      content: [
-        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
-        { type: 'text', text: 'Baca struk/nota ini dan ekstrak data transaksinya.' }
-      ]
-    });
+    parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageBase64 } });
+    parts.push({ text: 'Baca struk/nota ini dan ekstrak data transaksinya. ' + systemPrompt });
   } else {
-    messages.push({ role: 'user', content: prompt });
+    parts.push({ text: systemPrompt + '\n\n' + prompt });
   }
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': window.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system: systemPrompt,
-      messages
-    })
-  });
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts }] })
+    }
+  );
 
   const data = await res.json();
-  const text = (data.content || []).map(b => b.text || '').join('').trim();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   const clean = text.replace(/```json|```/g, '').trim();
   return JSON.parse(clean);
 }
@@ -1194,53 +1190,43 @@ async function handleImageInput(input) {
   const file = input.files[0];
   if (!file) return;
 
+  const overlay = document.getElementById('scanOverlay');
+  const preview = document.getElementById('scanPreview');
+  const statusText = document.getElementById('scanStatusText');
   const btn = document.getElementById('imgBtn');
-  const status = document.getElementById('aiStatus');
-  const spin = document.getElementById('aiSpin');
-  const statusText = document.getElementById('aiStatusText');
-  const transcript = document.getElementById('aiTranscript');
 
-  btn.classList.add('loading');
-  status.style.display = 'block';
-  spin.style.display = 'block';
+  // Tampilkan preview gambar + animasi scan
+  const objectUrl = URL.createObjectURL(file);
+  preview.src = objectUrl;
+  overlay.style.display = 'block';
   statusText.textContent = '📷 Memproses gambar...';
-  transcript.style.display = 'none';
+  btn.disabled = true;
 
   try {
-    // Resize + compress gambar
     const base64 = await resizeImageToBase64(file, 800);
-
-    spin.style.display = 'block';
     statusText.textContent = '🤖 AI membaca struk...';
 
     const result = await parseWithClaude(null, base64);
     applyAIResult(result);
 
-    btn.classList.remove('loading');
-    btn.classList.add('success');
-    spin.style.display = 'none';
+    statusText.textContent = '✅ Struk berhasil dibaca!';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      URL.revokeObjectURL(objectUrl);
+    }, 1800);
 
     const desc = [];
-    if (result.nominal) desc.push(`Rp ${Number(result.nominal).toLocaleString('id-ID')}`);
+    if (result.nominal) desc.push('Rp ' + Number(result.nominal).toLocaleString('id-ID'));
     if (result.kategori) desc.push(result.kategori);
-    if (result.keterangan) desc.push(result.keterangan);
+    toast('✅ ' + (desc.join(' · ') || 'Data terdeteksi'), 'ok');
 
-    statusText.textContent = '✅ Struk berhasil dibaca!';
-    transcript.style.display = 'block';
-    transcript.textContent = desc.join(' · ') || 'Data terdeteksi';
-
-    setTimeout(() => {
-      btn.classList.remove('success');
-      status.style.display = 'none';
-    }, 4000);
   } catch (e) {
-    btn.classList.remove('loading');
-    spin.style.display = 'none';
     statusText.textContent = '⚠️ Gagal baca gambar. Isi manual.';
+    setTimeout(() => { overlay.style.display = 'none'; }, 2500);
     console.error('Image AI error:', e);
   }
 
-  // reset input agar bisa upload gambar yang sama lagi
+  btn.disabled = false;
   input.value = '';
 }
 
