@@ -1136,7 +1136,7 @@ function applyAIResult(data) {
 }
 
 // ══ GEMINI API KEY — ganti dengan key kamu ══
-const GEMINI_API_KEY = 'GANTI_DENGAN_API_KEY_KAMU';
+const GEMINI_API_KEY = 'AQ.Ab8RN6KEbHAabcnlVocLzq1_Ol_09EOmkZjOV_qM1N1hktqEqQ';
 
 // ── Panggil Gemini API untuk parse gambar struk ──
 async function parseWithClaude(prompt, imageBase64 = null) {
