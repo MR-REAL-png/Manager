@@ -376,7 +376,7 @@ function renderBudgetMonitor(byCat){
     <div class="bmon-item" style="animation-delay:${i*0.05}s">
       <div class="bmon-top">
         <span class="bmon-name">${k.kategori}</span>
-        <span class="bmon-pct" style="color:${pct>=100?'var(--red)':pct>=alertPct?'#fbbf24':'var(--grn)'">${pct}%${pct>=100?' 🚨':pct>=alertPct?' ⚠️':' ✅'}</span>
+        <span class="bmon-pct" style="color:${pct>=100?`var(--red)`:pct>=alertPct?`#fbbf24`:`var(--grn)`}">${pct}%${pct>=100?` 🚨`:pct>=alertPct?` ⚠️`:` ✅`}</span>
       </div>
       <div class="bmon-bar"><div class="bmon-fill ${cls}" style="width:0%" data-w="${barW}"></div></div>
       <div class="bmon-amts">
