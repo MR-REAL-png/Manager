@@ -1083,3 +1083,292 @@ document.addEventListener('DOMContentLoaded',()=>{
   updatePeriodUI();
   fetchDBOptions().then(()=>loadDashboard());
 });
+
+// ═══ AI INPUT — VOICE & IMAGE ═══
+
+let voiceRecog = null;
+let isRecording = false;
+
+// ── Kategoris dari dbOpts untuk konteks AI ──
+function getKatListForAI() {
+  const kats = dbOpts.kategoris || [];
+  return kats.length ? kats.join(', ') : 'Makanan, Transport, Belanja, Hiburan, Kesehatan, Tabungan';
+}
+
+// ── Set nilai form dari hasil AI ──
+function applyAIResult(data) {
+  // tanggal
+  if (data.tanggal) {
+    const tglEl = document.getElementById('inTgl');
+    if (tglEl) { tglEl.value = data.tanggal; syncBulan('in'); }
+  }
+  // jenis
+  if (data.jenis && ['Pemasukan','Pengeluaran'].includes(data.jenis)) {
+    document.getElementById('inJenis').value = data.jenis;
+    onJenisChange('in');
+  }
+  // kategori (set setelah jenis diisi)
+  if (data.kategori) {
+    setTimeout(() => {
+      const sel = document.getElementById('inKat');
+      if (!sel) return;
+      // cari match (case-insensitive)
+      const opts = [...sel.options].map(o => o.value);
+      const match = opts.find(o => o.toLowerCase().includes(data.kategori.toLowerCase()))
+                  || opts.find(o => data.kategori.toLowerCase().includes(o.toLowerCase()));
+      if (match) sel.value = match;
+    }, 120);
+  }
+  // nominal
+  if (data.nominal && Number(data.nominal) > 0) {
+    document.getElementById('inNom').value = Number(data.nominal);
+  }
+  // metode
+  if (data.metode) {
+    const metEl = document.getElementById('inMetode');
+    if (metEl) {
+      const opts = ['Cash','Transfer','QRIS'];
+      const match = opts.find(o => o.toLowerCase() === data.metode.toLowerCase());
+      if (match) { metEl.value = match; onMetodeChange('in'); }
+    }
+  }
+  // keterangan
+  if (data.keterangan) {
+    document.getElementById('inKet').value = data.keterangan;
+  }
+}
+
+// ── Panggil Claude API untuk parse teks ──
+async function parseWithClaude(prompt, imageBase64 = null) {
+  const today = getLocalDate();
+  const katList = getKatListForAI();
+
+  const systemPrompt = `Kamu adalah asisten keuangan yang membantu membaca transaksi keuangan dari teks atau gambar struk/nota.
+Ekstrak informasi transaksi dan kembalikan HANYA JSON valid tanpa backtick, tanpa teks lain.
+
+Format JSON:
+{
+  "tanggal": "YYYY-MM-DD atau null",
+  "jenis": "Pemasukan atau Pengeluaran",
+  "kategori": "nama kategori",
+  "nominal": angka_tanpa_format,
+  "metode": "Cash atau Transfer atau QRIS atau null",
+  "keterangan": "keterangan singkat"
+}
+
+Daftar kategori yang tersedia: ${katList}
+Pilih kategori yang paling cocok dari daftar di atas. Jika tidak ada yang cocok, tulis nama kategori yang sesuai.
+Tanggal hari ini: ${today}. Jika tidak ada tanggal di input, gunakan tanggal hari ini.
+Jenis default: Pengeluaran kecuali jelas disebutkan pemasukan/income/gaji/terima.`;
+
+  const messages = [];
+  if (imageBase64) {
+    messages.push({
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
+        { type: 'text', text: 'Baca struk/nota ini dan ekstrak data transaksinya.' }
+      ]
+    });
+  } else {
+    messages.push({ role: 'user', content: prompt });
+  }
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages
+    })
+  });
+
+  const data = await res.json();
+  const text = (data.content || []).map(b => b.text || '').join('').trim();
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+// ── VOICE NOTE ──
+function toggleVoice() {
+  if (isRecording) {
+    stopVoice();
+  } else {
+    startVoice();
+  }
+}
+
+function startVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    toast('❌ Browser tidak support voice recognition', 'err');
+    return;
+  }
+
+  voiceRecog = new SpeechRecognition();
+  voiceRecog.lang = 'id-ID';
+  voiceRecog.continuous = false;
+  voiceRecog.interimResults = true;
+
+  const btn = document.getElementById('voiceBtn');
+  const status = document.getElementById('aiStatus');
+  const spin = document.getElementById('aiSpin');
+  const statusText = document.getElementById('aiStatusText');
+  const transcript = document.getElementById('aiTranscript');
+
+  btn.classList.add('recording');
+  btn.querySelector('.ai-btn-lbl').textContent = 'Stop';
+  status.style.display = 'block';
+  spin.style.display = 'none';
+  statusText.textContent = '🎤 Mendengarkan...';
+  transcript.style.display = 'none';
+  isRecording = true;
+
+  let finalText = '';
+
+  voiceRecog.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    transcript.style.display = 'block';
+    transcript.textContent = finalText + interim;
+  };
+
+  voiceRecog.onend = async () => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.querySelector('.ai-btn-lbl').textContent = 'Voice Note';
+
+    if (!finalText.trim()) {
+      statusText.textContent = '⚠️ Tidak ada suara terdeteksi';
+      setTimeout(() => { status.style.display = 'none'; }, 2500);
+      return;
+    }
+
+    // Proses dengan AI
+    btn.classList.add('loading');
+    spin.style.display = 'block';
+    statusText.textContent = '🤖 AI membaca...';
+
+    try {
+      const result = await parseWithClaude(
+        `Transaksi dari voice: "${finalText}". Parse ke format JSON.`
+      );
+      applyAIResult(result);
+      btn.classList.remove('loading');
+      btn.classList.add('success');
+      spin.style.display = 'none';
+      statusText.textContent = '✅ Berhasil diisi otomatis!';
+      transcript.textContent = `"${finalText}"`;
+      setTimeout(() => {
+        btn.classList.remove('success');
+        status.style.display = 'none';
+      }, 3500);
+    } catch (e) {
+      btn.classList.remove('loading');
+      spin.style.display = 'none';
+      statusText.textContent = '⚠️ AI gagal parse. Isi manual.';
+      transcript.textContent = `"${finalText}"`;
+      console.error('Voice AI error:', e);
+    }
+  };
+
+  voiceRecog.onerror = (e) => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.querySelector('.ai-btn-lbl').textContent = 'Voice Note';
+    statusText.textContent = '❌ Error: ' + e.error;
+    spin.style.display = 'none';
+    setTimeout(() => { status.style.display = 'none'; }, 2500);
+  };
+
+  voiceRecog.start();
+}
+
+function stopVoice() {
+  if (voiceRecog) voiceRecog.stop();
+}
+
+// ── IMAGE / FOTO STRUK ──
+async function handleImageInput(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const btn = document.getElementById('imgBtn');
+  const status = document.getElementById('aiStatus');
+  const spin = document.getElementById('aiSpin');
+  const statusText = document.getElementById('aiStatusText');
+  const transcript = document.getElementById('aiTranscript');
+
+  btn.classList.add('loading');
+  status.style.display = 'block';
+  spin.style.display = 'block';
+  statusText.textContent = '📷 Memproses gambar...';
+  transcript.style.display = 'none';
+
+  try {
+    // Resize + compress gambar
+    const base64 = await resizeImageToBase64(file, 800);
+
+    spin.style.display = 'block';
+    statusText.textContent = '🤖 AI membaca struk...';
+
+    const result = await parseWithClaude(null, base64);
+    applyAIResult(result);
+
+    btn.classList.remove('loading');
+    btn.classList.add('success');
+    spin.style.display = 'none';
+
+    const desc = [];
+    if (result.nominal) desc.push(`Rp ${Number(result.nominal).toLocaleString('id-ID')}`);
+    if (result.kategori) desc.push(result.kategori);
+    if (result.keterangan) desc.push(result.keterangan);
+
+    statusText.textContent = '✅ Struk berhasil dibaca!';
+    transcript.style.display = 'block';
+    transcript.textContent = desc.join(' · ') || 'Data terdeteksi';
+
+    setTimeout(() => {
+      btn.classList.remove('success');
+      status.style.display = 'none';
+    }, 4000);
+  } catch (e) {
+    btn.classList.remove('loading');
+    spin.style.display = 'none';
+    statusText.textContent = '⚠️ Gagal baca gambar. Isi manual.';
+    console.error('Image AI error:', e);
+  }
+
+  // reset input agar bisa upload gambar yang sama lagi
+  input.value = '';
+}
+
+// ── Resize gambar sebelum kirim ke API ──
+function resizeImageToBase64(file, maxSize = 800) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > h && w > maxSize) { h = h * maxSize / w; w = maxSize; }
+        else if (h > maxSize) { w = w * maxSize / h; h = maxSize; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+        resolve(base64);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
