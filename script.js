@@ -1,0 +1,1079 @@
+const SHEET_ID='1bjeestIs-wvjxQtmkrLuf39KNOssgzHMTkC4xpTBzzY';
+const API_KEY='AIzaSyDN0LxmvCi3HVWM7BcW9GF8vDmc0CqWDRg';
+const ADMIN_PASS_DEFAULT='sheril';
+const SHEET_DATA='DATA',SHEET_DB='DATABASE',SHEET_SUMMARY='SUMMARY';
+const VERCEL_URL='https://manager-khaki-ten.vercel.app';
+const LOGO_URL='https://raw.githubusercontent.com/MR-REAL-png/Manager/main/logo.png';
+const MOS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const CHART_COLORS=['#a78bfa','#f472b6','#60a5fa','#fb923c','#34d399','#818cf8','#fbbf24','#4ade80','#f87171','#e879f9','#38bdf8','#a3e635'];
+const MONTH_COLORS=['#818cf8','#c084fc','#f472b6','#60a5fa','#34d399','#fb923c','#a78bfa','#4ade80','#fbbf24','#e879f9','#38bdf8','#f87171'];
+// SUMMARY row 28, kolom mulai D(col 4), tiap bulan +2 kolom
+// Jan=D(4), Feb=F(6), Mar=H(8), Apr=J(10), Mei=L(12), Jun=N(14), Jul=P(16), Agu=R(18), Sep=T(20), Okt=V(22), Nov=X(24), Des=Z(26)
+const SUMMARY_ROW=28;
+const SUMMARY_COL_START=4; // D=4 (1-indexed)
+
+let allRows=[],dbOpts={banks:[],kategoris:[],metodes:[],jenis:[]};
+let isAdmin=false,editMode=false;
+let chartKat=null,chartTab=null,chartRekap=null,chartMetode=null,chartKal=null;
+let toastT,avgDetailData=null;
+let kalYear=new Date().getFullYear(),kalMonth=new Date().getMonth();
+let settModalType='';
+let notifEnabled=true,alertPct=80,adminPassword=ADMIN_PASS_DEFAULT;
+
+// ═══ PARSE TANGGAL ═══
+function parseTanggal(raw) {
+  if(!raw) return '';
+  // Angka serial Excel
+  if(!isNaN(Number(raw)) && Number(raw) > 40000) {
+    const d = new Date((Number(raw) - 25569) * 86400 * 1000);
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+  // Format DD/MM/YYYY
+  if(typeof raw === 'string' && raw.includes('/')) {
+    const p = raw.split('/');
+    if(p.length === 3) {
+      const d = p[0].padStart(2,'0'), m = p[1].padStart(2,'0');
+      const y = p[2].length === 2 ? '20'+p[2] : p[2];
+      return `${y}-${m}-${d}`;
+    }
+  }
+  // Format YYYY-MM-DD
+  if(typeof raw === 'string' && raw.includes('-') && raw.length >= 8) {
+    return raw.substring(0,10);
+  }
+  // Format DD-MM-YYYY
+  if(typeof raw === 'string' && raw.includes('-')) {
+    const p = raw.split('-');
+    if(p.length === 3 && p[0].length <= 2) {
+      return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+    }
+  }
+  return '';
+}
+
+// ═══ PERIOD ═══
+function getEffective25(year,month){
+  const d=new Date(year,month,24);
+  const dow=d.getDay();
+  if(dow===6) d.setDate(23);
+  return d;
+}
+function getActivePeriod(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const y=today.getFullYear(),m=today.getMonth();
+  const eff=getEffective25(y,m);
+  let s,e;
+  if(today>eff){
+    s=new Date(eff);
+    const nm=m===11?0:m+1,ny=m===11?y+1:y;
+    e=getEffective25(ny,nm);
+  } else {
+    const pm=m===0?11:m-1,py=m===0?y-1:y;
+    s=getEffective25(py,pm);e=new Date(eff);
+  }
+  return{startDate:s,endDate:e};
+}
+function fmtDateShort(d){return`${d.getDate()} ${MOS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`}
+function getSisaHari(endDate){
+  const today=new Date();today.setHours(0,0,0,0);
+  const end=new Date(endDate);end.setHours(0,0,0,0);
+  let total=0,weekday=0,weekend=0,cur=new Date(today);
+  while(cur<end){cur.setDate(cur.getDate()+1);if(cur<=end){const dow=cur.getDay();if(dow===0||dow===6)weekend++;else weekday++;total++;}}
+  return{total,weekday,weekend};
+}
+function updatePeriodUI(){
+  const periodeCustom=JSON.parse(localStorage.getItem('mm_periode')||'{}');
+  let startDate,endDate;
+  if(periodeCustom.startDate&&periodeCustom.endDate){
+    startDate=new Date(periodeCustom.startDate);endDate=new Date(periodeCustom.endDate);
+  } else {
+    const p=getActivePeriod();startDate=p.startDate;endDate=p.endDate;
+  }
+  const ps=`${fmtDateShort(startDate)} – ${fmtDateShort(endDate)}`;
+  const sisa=getSisaHari(endDate);
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+  set('drawerPeriodVal',ps);set('drawerSub',`Sisa ${sisa.total} hari`);
+  set('dashPeriodVal',ps);set('dashPeriodDays',`${sisa.total} hari lagi`);
+  set('hk-period-text',ps);
+  set('sisaTotal',sisa.total);set('sisaWeekday',sisa.weekday);set('sisaWeekend',sisa.weekend);
+}
+
+// ═══ LOGO ═══
+function initLogo(){
+  ['brandIco','drawerAvatar','settAvatar'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const img=document.createElement('img');
+    img.src=LOGO_URL;img.alt='logo';
+    img.onerror=()=>{el.textContent='💰';el.style.fontSize='1.1rem';el.style.display='flex';el.style.alignItems='center';el.style.justifyContent='center'};
+    el.innerHTML='';el.appendChild(img);
+  });
+}
+
+// ═══ PARTICLES ═══
+function initParticles(){
+  const c=document.getElementById('particles');if(!c)return;
+  for(let i=0;i<18;i++){const p=document.createElement('div');p.className='particle';p.style.cssText=`left:${Math.random()*100}%;width:${Math.random()*3+1}px;height:${Math.random()*3+1}px;animation-duration:${Math.random()*15+10}s;animation-delay:${Math.random()*10}s;opacity:${Math.random()*0.6+0.2}`;c.appendChild(p)}
+}
+function initOceanParticles(){
+  const c=document.getElementById('oceanParticles');if(!c)return;
+  for(let i=0;i<14;i++){const p=document.createElement('div');p.className='ocean-particle';p.style.cssText=`left:${Math.random()*100}%;width:${Math.random()*4+1}px;height:${Math.random()*4+1}px;animation-duration:${Math.random()*18+8}s;animation-delay:${Math.random()*12}s;opacity:${Math.random()*0.5+0.15}`;c.appendChild(p)}
+}
+
+// ═══ DRAWER ═══
+function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('drawerOverlay').classList.add('open')}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawerOverlay').classList.remove('open')}
+
+// ═══ SHEETS API ═══
+async function sheetsGet(range){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
+  const res=await fetch(url);
+  if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'Gagal ambil data: '+res.status)}
+  return(await res.json()).values||[];
+}
+async function sheetsAppend(values){
+  const res=await fetch(`${VERCEL_URL}/api/sheets?action=append`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({values})});
+  if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal simpan')}
+  return await res.json();
+}
+async function sheetsUpdate(id,values){
+  const res=await fetch(`${VERCEL_URL}/api/sheets?action=update`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,values})});
+  if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal update')}
+  return await res.json();
+}
+// Convert col number to letter (1=A, 2=B, dst)
+function colToLetter(n){
+  let s='';while(n>0){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s;
+}
+
+async function fetchAllData(){
+  const res=await fetch(`${VERCEL_URL}/api/sheets?action=get`);
+  if(!res.ok)throw new Error('Gagal ambil data: '+res.status);
+  const json=await res.json();
+  if(!json.success)throw new Error(json.error||'Gagal ambil data');
+  return (json.data||[]).map(r=>({
+    id:r.id,rowIndex:r.id,
+    tanggal:r.tanggal||'',bulan:r.bulan||'',kategori:r.kategori||'',
+    nominal:Number(r.nominal)||0,pembayaran:r.pembayaran||'',
+    detail:r.detail||'',metode:r.metode||'',jenis:r.jenis||''
+  })).filter(r=>r.tanggal);
+}
+
+async function fetchDBOptions(){
+  try{
+    if(!allRows.length)allRows=await fetchAllData();
+    const banks=[],kategoris=[];
+    allRows.forEach(r=>{
+      if(r.metode&&!r.metode.includes('Cash'))banks.push(r.metode);
+      if(r.kategori)kategoris.push(r.kategori);
+    });
+    const customKats=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');
+    const customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
+    dbOpts={
+      banks:[...new Set([...banks,...customBanks])],
+      kategoris:[...new Set([...kategoris,...customKats])].sort(),
+      metodes:['Cash','Transfer','QRIS'],
+      jenis:['Pemasukan','Pengeluaran']
+    };
+    fillBank('inBank','');fillBank('eBank','');
+  }catch(e){console.error('fetchDBOptions:',e)}
+}
+
+// ═══ CLOCK ═══
+function updateClock(){
+  const n=new Date();
+  const e1=document.getElementById('hdrTime'),e2=document.getElementById('hdrDate');
+  if(e1)e1.textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+  if(e2)e2.textContent=`${HARI[n.getDay()]}, ${n.getDate()} ${MOS[n.getMonth()]} ${n.getFullYear()}`;
+}
+setInterval(updateClock,1000);
+
+// ═══ NAV ═══
+function goPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.bnav-btn').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.drawer-item').forEach(el=>el.classList.remove('active'));
+  const pg=document.getElementById('pg-'+p);if(pg)pg.classList.add('on');
+  const nb=document.getElementById('nb-'+p);if(nb)nb.classList.add('on');
+  const di=document.getElementById('di-'+p);if(di)di.classList.add('active');
+  window.scrollTo(0,0);
+  if(p==='data')loadData();
+  else if(p==='tabungan'&&document.getElementById('tabContent').style.display!=='none')loadTabungan();
+  else if(p==='rekap')loadRekap();
+  else if(p==='metode')loadMetode();
+  else if(p==='kalender')renderKalender();
+  else if(p==='notif')loadNotif();
+  else if(p==='target-sett')loadTargetSett();
+}
+function doRefresh(){
+  const p=document.querySelector('.page.on');if(!p)return;
+  allRows=[];toast('🔄 Memuat ulang...');
+  const id=p.id.replace('pg-','');
+  if(id==='dashboard')loadDashboard();
+  else if(id==='data')loadData();
+  else if(id==='tabungan')loadTabungan();
+  else if(id==='rekap')loadRekap();
+  else if(id==='metode')loadMetode();
+  else if(id==='notif')loadNotif();
+}
+
+// ═══ DASHBOARD ═══
+async function loadDashboard(){
+  const now=new Date();
+  const b=MOS[now.getMonth()],t=String(now.getFullYear());
+  const lbl=document.getElementById('dashPeriodLabel');
+  if(lbl)lbl.textContent=`${b} ${t}`;
+  document.getElementById('d-kas').textContent='⌛';
+  document.getElementById('d-masuk').textContent='⌛';
+  document.getElementById('d-keluar').textContent='⌛';
+  document.getElementById('budgetList').innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
+  try{
+    if(!allRows.length)allRows=await fetchAllData();
+    // Filter ketat berdasarkan bulan & tahun yang dipilih saja
+    const periodeCustom=JSON.parse(localStorage.getItem('mm_periode')||'{}');
+    let startDate,endDate;
+    if(periodeCustom.startDate&&periodeCustom.endDate){
+      startDate=new Date(periodeCustom.startDate);endDate=new Date(periodeCustom.endDate);
+    } else {
+      // Filter berdasarkan bulan & tahun yang dipilih, bukan akumulasi
+      const bi=MOS.indexOf(b),yr=parseInt(t);
+      const pm=bi===0?11:bi-1,py=bi===0?yr-1:yr;
+      startDate=getEffective25(py,pm);
+      endDate=getEffective25(yr,bi);
+    }
+    startDate=new Date(startDate);startDate.setHours(0,0,0,0);
+    endDate=new Date(endDate);endDate.setHours(23,59,59,999);
+    // Filter rows hanya dalam rentang periode yang dipilih
+    const rows=allRows.filter(r=>{
+      const d=new Date(r.tanggal);
+      return d>=startDate&&d<=endDate;
+    });
+    const masuk=rows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
+    const keluar=rows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
+    const kas=masuk-keluar;
+    const days=[...new Set(rows.map(r=>r.tanggal))].length;
+    const tdim=new Date(parseInt(t),MOS.indexOf(b)+1,0).getDate();
+    const FIXED_CATS=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
+    const fleks=rows.filter(r=>r.jenis==='Pengeluaran'&&!FIXED_CATS.some(fc=>r.kategori.toLowerCase().includes(fc.toLowerCase())));
+    const totalFleks=fleks.reduce((s,r)=>s+r.nominal,0);
+    const avgHarian=days>0?Math.round(totalFleks/days):0;
+    const byKat=groupBy(rows.filter(r=>r.jenis==='Pengeluaran'),'kategori');
+    const byKatArr=Object.entries(byKat).map(([k,v])=>({kategori:k,nominal:v.reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
+    const byKatFleks=groupBy(fleks,'kategori');
+    const byKatFleksArr=Object.entries(byKatFleks).map(([k,v])=>({kategori:k,nominal:v.reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
+    document.getElementById('hk-periode-lbl').textContent=`${b} ${t}`;
+    countUp('d-kas',Math.abs(kas),kas<0?'−':'');
+    document.getElementById('d-masuk').textContent=rpShort(masuk);
+    document.getElementById('d-keluar').textContent=rpShort(keluar);
+    document.getElementById('d-avg').textContent=rpShort(avgHarian);
+    document.getElementById('d-active-days').textContent=`${days} hari`;
+    document.getElementById('d-total-days-val').textContent=`${tdim} hari`;
+    avgDetailData={totalFleksibel:totalFleks,totalDays:days||1,avgHarian,byKategori:byKatFleksArr};
+    renderChartKat(byKatArr);renderBudget(byKatArr);
+    updatePeriodUI();
+    if(notifEnabled)checkBudgetAlerts(byKatArr);
+  }catch(e){toast('❌ Gagal load: '+e.message,'err');console.error(e)}
+}
+
+function renderChartKat(byCat){
+  const wrap=document.getElementById('chartKat')?.parentElement;if(!wrap)return;
+  if(chartKat){try{chartKat.destroy()}catch(e){}chartKat=null;}
+  if(!byCat.length){wrap.innerHTML='<div class="empty"><div class="ei">📊</div><p>Belum ada pengeluaran</p></div>';return}
+  wrap.innerHTML='<canvas id="chartKat"></canvas>';
+  const ctx=document.getElementById('chartKat').getContext('2d');
+  const total=byCat.reduce((s,k)=>s+k.nominal,0);
+  const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
+  const bdrCol=isOcean?'rgba(10,74,140,0.6)':'rgba(15,12,41,0.6)';
+  const legendColor=isOcean?'rgba(184,222,255,0.95)':'rgba(255,255,255,0.92)';
+  const plugin={id:'rdg',afterDraw(chart){
+    const{ctx:c,chartArea:ca}=chart;if(!ca)return;
+    const cx=(ca.left+ca.right)/2,cy=(ca.top+ca.bottom)/2;
+    c.save();c.textAlign='center';c.textBaseline='middle';
+    c.fillStyle='rgba(255,255,255,0.5)';c.font=`500 11px 'DM Sans',sans-serif`;c.fillText('Total',cx,cy-14);
+    c.fillStyle='rgba(255,255,255,0.95)';c.font=`bold 20px 'Playfair Display',serif`;c.fillText((total/1e6).toFixed(1)+'jt',cx,cy+10);
+    c.restore();
+  }};
+  chartKat=new Chart(ctx,{
+    type:'doughnut',plugins:[plugin],
+    data:{labels:byCat.map(k=>k.kategori),datasets:[{
+      data:byCat.map(k=>k.nominal),
+      backgroundColor:CHART_COLORS.slice(0,byCat.length),
+      borderWidth:1.5,
+      borderColor:bdrCol,
+      hoverOffset:6,
+      spacing:2
+    }]},
+    options:{
+      responsive:true,
+      cutout:'52%',
+      animation:{animateRotate:true,duration:1000,easing:'easeOutQuart'},
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{
+            boxWidth:8,boxHeight:8,
+            font:{size:10.5,family:'DM Sans'},
+            color:legendColor,
+            padding:6,
+            generateLabels(chart){
+              const ds=chart.data.datasets[0];
+              return chart.data.labels.map((lbl,i)=>({
+                text:`${lbl.length>13?lbl.slice(0,12)+'…':lbl}  ${Math.round(ds.data[i]/total*100)}%`,
+                fillStyle:CHART_COLORS[i%CHART_COLORS.length],
+                strokeStyle:'transparent',lineWidth:0,index:i,hidden:false
+              }));
+            }
+          }
+        },
+        tooltip:{callbacks:{label:c=>` ${c.label}: ${rp(c.raw)} (${Math.round(c.raw/total*100)}%)`}}
+      }
+    }
+  });
+}
+
+function renderBudget(byCat){
+  const el=document.getElementById('budgetList');
+  if(!byCat.length){el.innerHTML='<div class="empty"><div class="ei">✅</div><p>Belum ada pengeluaran</p></div>';return}
+  const total=byCat.reduce((s,k)=>s+k.nominal,0);
+  el.innerHTML=byCat.map((k,i)=>{
+    const pct=total>0?Math.round(k.nominal/total*100):0;
+    const cls=pct>=30?'bud-over':pct>=15?'bud-warn':'bud-ok';
+    return`<div class="bud-item" style="animation-delay:${i*0.05}s"><div class="bud-top"><span class="bud-name">${k.kategori}</span><span class="bud-pct">${pct}%</span></div><div class="bud-bar"><div class="bud-fill ${cls}" style="width:0%" data-w="${pct}"></div></div><div class="bud-amts"><span>${rpShort(k.nominal)}</span><span>dari ${rpShort(total)}</span></div></div>`;
+  }).join('');
+  setTimeout(()=>{el.querySelectorAll('.bud-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
+}
+
+// ═══ DATA ═══
+async function loadData(){
+  try{
+    if(allRows.length){renderCards(allRows);return}
+    document.getElementById('dataList').innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+    allRows=await fetchAllData();
+    renderCards(allRows);
+  }catch(e){toast('❌ Gagal load data: '+e.message,'err');console.error(e)}
+}
+
+function renderCards(rows){
+  const el=document.getElementById('dataList');
+  if(!rows.length){el.innerHTML='<div class="empty"><div class="ei">📋</div><p>Belum ada data</p></div>';return}
+  const sorted=[...rows].sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
+  const totM=rows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
+  const totK=rows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
+  const kas=totM-totK;
+  const strip=`<div class="data-summary"><div class="ds-item"><div class="ds-lbl">Masuk</div><div class="ds-val g">${rpShort(totM)}</div></div><div class="ds-sep"></div><div class="ds-item"><div class="ds-lbl">Keluar</div><div class="ds-val r">${rpShort(totK)}</div></div><div class="ds-sep"></div><div class="ds-item"><div class="ds-lbl">Kas</div><div class="ds-val ${kas>=0?'g':'r'}">${kas<0?'−':'+'}${rpShort(Math.abs(kas))}</div></div></div>`;
+  const grouped={};sorted.forEach(r=>{if(!grouped[r.tanggal])grouped[r.tanggal]=[];grouped[r.tanggal].push(r)});
+  const html=Object.entries(grouped).map(([tgl,txs],gi)=>{
+    const dk=txs.reduce((s,r)=>r.jenis==='Pemasukan'?s+r.nominal:s-r.nominal,0);
+    const cards=txs.map((r,ri)=>{
+      const isIn=r.jenis==='Pemasukan',cls=isIn?'inc':'spd',arr=isIn?'↓':'↑';
+      const eb=editMode?`<button class="edit-btn" onclick="openEdit(${r.rowIndex})">✏️ Edit</button>`:'';
+      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s"><div class="dc-row1"><div><div class="dc-kat">${r.kategori}</div></div><div><div class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</div><div class="dc-badge ${cls}">${isIn?'📥':'📤'} ${r.jenis}</div></div></div><div class="dc-tags">${r.pembayaran?`<span class="dtag">💳 ${r.pembayaran}</span>`:''} ${r.metode?`<span class="dtag">🏦 ${r.metode}</span>`:''} ${r.bulan?`<span class="dtag">📆 ${r.bulan}</span>`:''} ${eb}</div>${r.detail?`<div class="dc-ket">📝 ${r.detail}</div>`:''}</div>`;
+    }).join('');
+    return`<div class="date-group"><div class="dg-header"><div class="dg-dot"></div><span class="dg-date">📅 ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
+  }).join('');
+  el.innerHTML=strip+html;
+}
+
+function filterData(){
+  const s=document.getElementById('srch').value.toLowerCase(),b=document.getElementById('fBulan').value,j=document.getElementById('fJenis').value;
+  renderCards(allRows.filter(r=>(!s||[r.kategori,r.detail,r.metode,r.pembayaran,r.bulan].join(' ').toLowerCase().includes(s))&&(!b||r.bulan===b)&&(!j||r.jenis===j)));
+}
+
+// ═══ TABUNGAN ═══
+function showTab(){document.getElementById('tabLock').style.display='none';document.getElementById('tabContent').style.display='block';loadTabungan()}
+function hideTab(){document.getElementById('tabContent').style.display='none';document.getElementById('tabLock').style.display='block'}
+
+async function loadTabungan(){
+  document.getElementById('tabList').innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+  try{
+    if(!allRows.length)allRows=await fetchAllData();
+    const tbm={};
+    allRows.forEach(r=>{
+      if(r.jenis==='Pengeluaran'&&r.kategori&&r.kategori.toLowerCase().includes('tabungan'))
+        tbm[r.bulan]=(tbm[r.bulan]||0)+r.nominal;
+    });
+    let targetTotal=18000000,blt={};
+    try{
+      const savedTargets=JSON.parse(localStorage.getItem('mm_targets')||'{}');
+      if(Object.keys(savedTargets).length>0){blt=savedTargets;targetTotal=Object.values(blt).reduce((s,v)=>s+v,0);}
+    }catch(e){console.warn('Gagal baca target:',e)}
+    const tt=Object.values(tbm).reduce((s,v)=>s+v,0);
+    const pct=targetTotal>0?Math.min(Math.round(tt/targetTotal*100),100):0;
+    document.getElementById('tabTotal').textContent=rp(targetTotal);
+    const sub=document.getElementById('tabSub');if(sub)sub.textContent=`Terkumpul: ${rp(tt)} · ${pct}% tercapai`;
+    const fill=document.getElementById('tabBarFill');if(fill)setTimeout(()=>fill.style.width=pct+'%',100);
+    const bd=MOS.map(b=>({bulan:b,tabungan:tbm[b]||0,target:blt[b]||2000000})).filter(b=>b.tabungan>0||b.target>0);
+    renderTabList(bd);renderChartTab(bd);
+  }catch(e){toast('❌ Gagal load tabungan: '+e.message,'err');console.error(e)}
+}
+
+function renderTabList(data){
+  const el=document.getElementById('tabList');
+  if(!data.length){el.innerHTML='<div class="empty"><div class="ei">🏦</div><p>Belum ada data tabungan</p></div>';return}
+  el.innerHTML=data.map((b,i)=>{
+    const pct=b.target>0?Math.min(Math.round(b.tabungan/b.target*100),100):0;
+    const done=b.target>0&&b.tabungan>=b.target;
+    const color=MONTH_COLORS[MOS.indexOf(b.bulan)%MONTH_COLORS.length];
+    return`<div class="tab-item" style="animation-delay:${i*0.05}s"><div class="tab-row"><span class="tab-mo">${done?'✅':'⬜'} ${b.bulan}</span><span class="tab-pc" style="color:${color}">${pct}%</span></div><div class="tab-bar"><div class="tab-bar-fill" style="width:0%;background:${color}" data-w="${pct}"></div></div><div class="tab-amts"><div class="tab-amt-item"><div class="tab-amt-lbl">Tabungan</div><div class="tab-amt-val">${rpShort(b.tabungan)}</div></div><div class="tab-amt-item"><div class="tab-amt-lbl">Target</div><div class="tab-amt-val">${rpShort(b.target)}</div></div></div></div>`;
+  }).join('');
+  setTimeout(()=>{el.querySelectorAll('.tab-bar-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
+}
+
+function renderChartTab(data){
+  const ctx=document.getElementById('chartTab')?.getContext('2d');if(!ctx)return;
+  if(chartTab)chartTab.destroy();if(!data.length)return;
+  const tc='rgba(255,255,255,0.5)';
+  chartTab=new Chart(ctx,{type:'bar',data:{labels:data.map(b=>b.bulan.slice(0,3)),datasets:[{label:'✅ Tabungan',data:data.map(b=>b.tabungan),backgroundColor:'rgba(52,211,153,0.6)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'🎯 Target',data:data.map(b=>b.target),type:'line',borderColor:'#a855f7',pointRadius:4,fill:false,tension:0.3,borderDash:[5,4]}]},options:{responsive:true,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
+}
+
+// ═══ TARGET SETTING ═══
+function hitungTarget(){
+  const total=Number(document.getElementById('tgtTotal').value)||0;
+  const from=document.getElementById('tgtFrom').value;
+  const to=document.getElementById('tgtTo').value;
+  const fi=MOS.indexOf(from),ti=MOS.indexOf(to);
+  const res=document.getElementById('tgtResult'),grid=document.getElementById('tgtMoGrid');
+  const btn=document.getElementById('btnSaveTgt');
+  if(!total||fi<0||ti<0||ti<fi){res.style.display='none';btn.style.display='none';return}
+  const count=ti-fi+1;
+  const perBulan=Math.round(total/count);
+  document.getElementById('tgtPerBulan').textContent=rp(perBulan);
+  grid.innerHTML=MOS.slice(fi,ti+1).map(mo=>`<div class="tgt-mo-item"><div class="tgt-mo-name">${mo.slice(0,3)}</div><div class="tgt-mo-val">${rpShort(perBulan)}</div></div>`).join('');
+  res.style.display='block';btn.style.display='block';
+}
+
+async function saveTarget(){
+  const total=Number(document.getElementById('tgtTotal').value)||0;
+  const from=document.getElementById('tgtFrom').value;
+  const to=document.getElementById('tgtTo').value;
+  const fi=MOS.indexOf(from),ti=MOS.indexOf(to);
+  if(!total||fi<0||ti<0||ti<fi){toast('⚠️ Lengkapi form dulu','err');return}
+  const count=ti-fi+1;
+  const perBulan=Math.round(total/count);
+  const btn=document.getElementById('btnSaveTgt');
+  btn.disabled=true;btn.textContent='⌛ Menyimpan...';
+  try{
+    const existing=JSON.parse(localStorage.getItem('mm_targets')||'{}');
+    for(let i=fi;i<=ti;i++){existing[MOS[i]]=perBulan;}
+    localStorage.setItem('mm_targets',JSON.stringify(existing));
+    toast('✅ Target tersimpan!','ok');
+    loadTargetSett();
+  }catch(e){toast('❌ Gagal simpan: '+e.message,'err')}
+  finally{btn.disabled=false;btn.textContent='💾 Simpan Target'}
+}
+
+async function loadTargetSett(){
+  const el=document.getElementById('tgtCurList');
+  try{
+    const targets=JSON.parse(localStorage.getItem('mm_targets')||'{}');
+    const items=MOS.map(mo=>({bulan:mo,target:targets[mo]||0})).filter(m=>m.target>0);
+    if(!items.length){el.innerHTML='<div class="empty"><div class="ei">🎯</div><p>Belum ada target tersimpan</p></div>';return}
+    el.innerHTML=items.map((m,i)=>`<div class="tab-item" style="animation-delay:${i*0.05}s"><div class="tab-row"><span class="tab-mo">🎯 ${m.bulan}</span><span class="tab-pc" style="color:var(--grn)">${rpShort(m.target)}</span></div></div>`).join('');
+  }catch(e){el.innerHTML='<div class="empty"><div class="ei">⚠️</div><p>Gagal baca target</p></div>'}
+}
+
+// ═══ REKAP ═══
+async function loadRekap(){
+  const t=document.getElementById('rekapTahun').value;
+  document.getElementById('rekapList').innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div>';
+  try{
+    if(!allRows.length)allRows=await fetchAllData();
+    const rows=allRows.filter(r=>r.tanggal.startsWith(t));
+    const tm=rows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
+    const tk=rows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
+    const kas=tm-tk;
+    document.getElementById('rekap-masuk').textContent=rp(tm);
+    document.getElementById('rekap-keluar').textContent=rp(tk);
+    const ke=document.getElementById('rekap-kas');ke.textContent=(kas<0?'−':'+')+rp(Math.abs(kas));ke.style.color=kas>=0?'#34d399':'#f87171';
+    const bm=MOS.map(bln=>{
+      const mr=rows.filter(r=>r.bulan===bln);
+      const m=mr.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
+      const k=mr.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
+      return{bulan:bln,masuk:m,keluar:k,kas:m-k};
+    }).filter(m=>m.masuk>0||m.keluar>0);
+    document.getElementById('rekapList').innerHTML=bm.map((m,i)=>`<div class="month-item" style="animation-delay:${i*0.05}s"><div class="month-item-top"><span class="month-name">${m.bulan} ${t}</span><span class="month-kas" style="color:${m.kas>=0?'#34d399':'#f87171'}">${m.kas>=0?'+':'−'}${rpShort(Math.abs(m.kas))}</span></div><div class="month-row"><div class="month-col"><div class="month-col-lbl">Pemasukan</div><div class="month-col-val" style="color:#34d399">${rpShort(m.masuk)}</div></div><div class="month-col"><div class="month-col-lbl">Pengeluaran</div><div class="month-col-val" style="color:#f87171">${rpShort(m.keluar)}</div></div></div></div>`).join('');
+    const ctx=document.getElementById('chartRekap')?.getContext('2d');if(!ctx)return;
+    if(chartRekap)chartRekap.destroy();const tc='rgba(255,255,255,0.5)';
+    chartRekap=new Chart(ctx,{type:'bar',data:{labels:bm.map(m=>m.bulan.slice(0,3)),datasets:[{label:'📥 Pemasukan',data:bm.map(m=>m.masuk),backgroundColor:'rgba(52,211,153,0.5)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'📤 Pengeluaran',data:bm.map(m=>m.keluar),backgroundColor:'rgba(248,113,113,0.5)',borderColor:'#f87171',borderWidth:2,borderRadius:6}]},options:{responsive:true,animation:{duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
+  }catch(e){toast('❌ Gagal load rekap','err')}
+}
+
+// ═══ METODE ═══
+async function loadMetode(){
+  document.getElementById('bankList').innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div>';
+  try{
+    if(!allRows.length)allRows=await fetchAllData();
+    const bln=document.getElementById('metodeBulan').value;
+    const rows=allRows.filter(r=>r.jenis==='Pengeluaran'&&(!bln||r.bulan===bln));
+    const bm={Cash:0,Transfer:0,QRIS:0},bb={};
+    rows.forEach(r=>{bm[r.pembayaran]=(bm[r.pembayaran]||0)+r.nominal;const bank=r.metode||r.pembayaran;bb[bank]=(bb[bank]||0)+r.nominal});
+    const total=rows.reduce((s,r)=>s+r.nominal,0);
+    document.getElementById('m-cash').textContent=rpShort(bm.Cash||0);
+    document.getElementById('m-transfer').textContent=rpShort(bm.Transfer||0);
+    document.getElementById('m-qris').textContent=rpShort(bm.QRIS||0);
+    const ctx=document.getElementById('chartMetode')?.getContext('2d');if(ctx){
+      if(chartMetode){try{chartMetode.destroy()}catch(e){}chartMetode=null;}
+      const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
+      const bdrCol=isOcean?'rgba(10,74,140,0.4)':'rgba(6,78,59,0.4)';
+      const lblColor=isOcean?'rgba(184,222,255,0.95)':'rgba(255,255,255,0.92)';
+      const lbls=Object.keys(bm).filter(k=>bm[k]>0),dm=lbls.map(k=>bm[k]);
+      if(dm.length)chartMetode=new Chart(ctx,{type:'doughnut',data:{labels:lbls,datasets:[{data:dm,backgroundColor:['rgba(52,211,153,0.75)','rgba(96,165,250,0.75)','rgba(168,85,247,0.75)'],borderWidth:1.5,borderRadius:6,spacing:3,borderColor:bdrCol}]},options:{responsive:true,cutout:'60%',animation:{animateRotate:true,duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,font:{size:10.5},color:lblColor,padding:8}},tooltip:{callbacks:{label:c=>` ${c.label}: ${rp(c.raw)}`}}}}});
+    }
+    const ba=Object.entries(bb).sort((a,b)=>b[1]-a[1]);
+    document.getElementById('bankList').innerHTML=ba.map(([bank,val],i)=>{
+      const pct=total>0?Math.round(val/total*100):0;
+      const ico=bank.includes('BCA')?'🔵':bank.includes('Jago')?'🟡':bank.includes('Seabank')?'🟠':bank.includes('Dana')?'⚫️':'💵';
+      return`<div class="bank-item" style="animation-delay:${i*0.05}s"><div class="bank-ico">${ico}</div><div class="bank-info"><div class="bank-name">${bank}</div><div class="bank-sub">${pct}% dari total</div><div class="bank-bar-wrap"><div class="bank-bar-fill" style="width:0%" data-w="${pct}"></div></div></div><div class="bank-val">${rpShort(val)}</div></div>`;
+    }).join('');
+    setTimeout(()=>{document.querySelectorAll('.bank-bar-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
+  }catch(e){toast('❌ Gagal load metode','err')}
+}
+
+// ═══ KALENDER ═══
+function renderKalender(){
+  const tl=document.getElementById('kalTitle');if(!tl)return;
+  tl.textContent=`${MOS[kalMonth]} ${kalYear}`;
+  const firstDay=new Date(kalYear,kalMonth,1).getDay();
+  const dim=new Date(kalYear,kalMonth+1,0).getDate();
+  const today=new Date();
+  const{startDate,endDate}=getActivePeriod();
+  const mr=allRows.filter(r=>{const d=new Date(r.tanggal);return d.getFullYear()===kalYear&&d.getMonth()===kalMonth&&r.jenis==='Pengeluaran'});
+  const bd={};mr.forEach(r=>{const day=new Date(r.tanggal).getDate();bd[day]=(bd[day]||0)+r.nominal});
+  const grid=document.getElementById('kalGrid');if(!grid)return;
+  // 7 header days
+  const dh=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  let html=dh.map(d=>`<div class="kal-day-hdr">${d}</div>`).join('');
+  // Empty cells before first day
+  for(let i=0;i<firstDay;i++)html+=`<div class="kal-day empty"></div>`;
+  // Day cells
+  for(let d=1;d<=dim;d++){
+    const isToday=d===today.getDate()&&kalMonth===today.getMonth()&&kalYear===today.getFullYear();
+    const hasData=bd[d]>0;
+    const cd=new Date(kalYear,kalMonth,d);cd.setHours(0,0,0,0);
+    const sd=new Date(startDate);sd.setHours(0,0,0,0);
+    const ed=new Date(endDate);ed.setHours(0,0,0,0);
+    const isPMark=cd.getTime()===sd.getTime()||cd.getTime()===ed.getTime();
+    const cls=isToday?'today':isPMark?'period-mark':hasData?'has-data':'';
+    html+=`<div class="kal-day ${cls}" onclick="showKalDetail(${d})">${d}</div>`;
+  }
+  // Fill remaining cells to complete the grid
+  const totalCells=firstDay+dim;
+  const remainder=totalCells%7;
+  if(remainder>0){for(let i=0;i<7-remainder;i++)html+=`<div class="kal-day empty"></div>`;}
+  grid.innerHTML=html;
+  updatePeriodUI();
+  // Chart
+  const ctx=document.getElementById('chartKal')?.getContext('2d');if(!ctx)return;
+  if(chartKal)chartKal.destroy();
+  const labels=Array.from({length:dim},(_,i)=>i+1),data=labels.map(d=>bd[d]||0);
+  const tc='rgba(255,255,255,0.5)';
+  chartKal=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Pengeluaran',data,backgroundColor:data.map(v=>v>0?'rgba(168,85,247,0.6)':'rgba(255,255,255,0.05)'),borderColor:data.map(v=>v>0?'#a855f7':'transparent'),borderWidth:1,borderRadius:4}]},options:{responsive:true,animation:{duration:600},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${rp(c.raw)}`}}},scales:{y:{ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},x:{ticks:{color:tc,font:{size:8}},grid:{display:false},border:{display:false}}}}});
+}
+
+function showKalDetail(day){
+  const tgl=`${kalYear}-${pad(kalMonth+1)}-${pad(day)}`;
+  const txs=allRows.filter(r=>r.tanggal===tgl);
+  const det=document.getElementById('kalDetail');if(!det)return;
+  if(!txs.length){det.style.display='none';return}
+  det.style.display='block';
+  document.getElementById('kalDetailDate').textContent=`📅 ${formatTgl(tgl)}`;
+  document.getElementById('kalTxList').innerHTML=txs.map(r=>`<div class="kal-tx"><span class="kal-tx-kat">${r.kategori}</span><span class="kal-tx-nom" style="color:${r.jenis==='Pemasukan'?'#34d399':'#f87171'}">${r.jenis==='Pemasukan'?'+':'−'}${rp(r.nominal)}</span></div>`).join('');
+}
+function kalPrev(){kalMonth--;if(kalMonth<0){kalMonth=11;kalYear--}renderKalender()}
+function kalNext(){kalMonth++;if(kalMonth>11){kalMonth=0;kalYear++}renderKalender()}
+
+// ═══ NOTIF ═══
+let notifications=[];
+async function loadNotif(){
+  document.getElementById('notifList').innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+  try{
+    if(!allRows.length)allRows=await fetchAllData();
+    notifications=[];
+    const now=new Date(),b=MOS[now.getMonth()],t=String(now.getFullYear());
+    const rows=allRows.filter(r=>r.bulan===b&&r.tanggal.startsWith(t)&&r.jenis==='Pengeluaran');
+    const bk=groupBy(rows,'kategori');
+    const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+    Object.entries(bk).forEach(([kat,txs])=>{
+      const total=txs.reduce((s,r)=>s+r.nominal,0),budget=budgets[kat]||0;
+      if(budget>0){
+        const pct=Math.round(total/budget*100);
+        if(pct>=100)notifications.push({type:'warn',ico:'🚨',title:`Budget ${kat} Jebol!`,msg:`Realisasi ${rp(total)} (${pct}%) dari budget ${rp(budget)}`,time:'Bulan ini'});
+        else if(pct>=alertPct)notifications.push({type:'warn',ico:'⚠️',title:`Peringatan: ${kat}`,msg:`Sudah ${pct}% dari budget. Sisa ${rp(budget-total)}`,time:'Bulan ini'});
+        else notifications.push({type:'ok',ico:'✅',title:`${kat} Aman`,msg:`${pct}% dari budget. Sisa ${rp(budget-total)}`,time:'Bulan ini'});
+      }
+    });
+    const tk=rows.reduce((s,r)=>s+r.nominal,0),days=[...new Set(rows.map(r=>r.tanggal))].length;
+    if(days>0)notifications.unshift({type:'info',ico:'📊',title:`Rata-rata Harian ${b}`,msg:`${rp(Math.round(tk/days))}/hari dari ${days} hari aktif`,time:'Update terbaru'});
+    const{startDate,endDate}=getActivePeriod();
+    const sisa=getSisaHari(endDate);
+    notifications.unshift({type:'info',ico:'📅',title:`Periode Aktif`,msg:`${fmtDateShort(startDate)} – ${fmtDateShort(endDate)} · Sisa ${sisa.total} hari`,time:'Real-time'});
+    renderNotif();
+    const badge=document.getElementById('notifBadge');
+    if(badge)badge.style.display=notifications.some(n=>n.type==='warn')?'inline':'none';
+  }catch(e){toast('❌ Gagal load notifikasi','err')}
+}
+
+function renderNotif(){
+  const el=document.getElementById('notifList');
+  if(!notifications.length){el.innerHTML='<div class="empty"><div class="ei">🔔</div><p>Belum ada notifikasi.<br>Set anggaran di Pengaturan.</p></div>';return}
+  el.innerHTML=`<div class="notif-list">${notifications.map((n,i)=>`<div class="notif-item ${n.type}" style="animation-delay:${i*0.06}s"><div class="notif-ico">${n.ico}</div><div class="notif-body"><div class="notif-title">${n.title}</div><div class="notif-msg">${n.msg}</div><div class="notif-time">${n.time}</div></div></div>`).join('')}</div>`;
+}
+
+function checkBudgetAlerts(byKatArr){
+  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  const hw=byKatArr.some(k=>{const b=budgets[k.kategori]||0;return b>0&&k.nominal>=b});
+  const badge=document.getElementById('notifBadge');if(badge)badge.style.display=hw?'inline':'none';
+}
+
+// ═══ INPUT ═══
+function openInputModal(){
+  document.getElementById('inTgl').value=getLocalDate();syncBulan('in');
+  document.getElementById('inJenis').value='';
+  document.getElementById('inKat').innerHTML='<option value="">— Pilih Jenis dulu —</option>';
+  document.getElementById('inNom').value='';document.getElementById('inMetode').value='';document.getElementById('inKet').value='';
+  fillBank('inBank','');renderQuickKat();
+  document.getElementById('ovInput').classList.add('open');
+}
+
+async function submitInput(){
+  const tgl=document.getElementById('inTgl').value,jenis=document.getElementById('inJenis').value;
+  const kat=document.getElementById('inKat').value,nom=document.getElementById('inNom').value;
+  const metode=document.getElementById('inMetode').value,bank=document.getElementById('inBank').value;
+  const ket=document.getElementById('inKet').value,bulan=document.getElementById('inBulan').value;
+  if(!tgl||!jenis||!kat||!nom){toast('⚠️ Lengkapi field wajib','err');return}
+  document.getElementById('inLoad').style.display='flex';document.getElementById('btnSimpan').disabled=true;
+  try{
+    await sheetsAppend([[tgl,bulan,kat,Number(nom),metode,ket,bank,jenis]]);
+    saveRecentKat(kat,jenis);toast('✅ Data tersimpan!','ok');closeOv(null,'ovInput');allRows=[];
+    if(document.getElementById('pg-data').classList.contains('on'))loadData();
+    if(document.getElementById('pg-dashboard').classList.contains('on'))loadDashboard();
+  }catch(e){toast('❌ Gagal simpan: '+e.message,'err')}
+  finally{document.getElementById('inLoad').style.display='none';document.getElementById('btnSimpan').disabled=false}
+}
+
+// ═══ EDIT/DELETE ═══
+function toggleEditMode(){
+  if(!isAdmin){
+    document.getElementById('adminPass').value='';document.getElementById('adminErr').style.display='none';
+    document.getElementById('ovAdmin').classList.add('open');
+    setTimeout(()=>document.getElementById('adminPass').focus(),200);
+  } else {
+    isAdmin=false;editMode=false;setTheme('cosmic');
+    const btn=document.getElementById('editModeBtn');if(btn){btn.textContent='✏️ Edit';btn.classList.remove('on')}
+    toast('🔒 Edit mode nonaktif','ok');renderCards(allRows);
+  }
+}
+
+function doAdminLogin(){
+  const pass=document.getElementById('adminPass').value;
+  if(pass===adminPassword){
+    isAdmin=true;editMode=true;closeOv(null,'ovAdmin');setTheme('ocean');
+    const btn=document.getElementById('editModeBtn');if(btn){btn.textContent='✏️ Selesai';btn.classList.add('on')}
+    toast('🔓 Edit mode aktif','ok');renderCards(allRows);
+  } else document.getElementById('adminErr').style.display='block';
+}
+
+function openEdit(rowIdx){
+  if(!isAdmin)return;
+  const r=allRows.find(x=>x.rowIndex===rowIdx);if(!r)return;
+  document.getElementById('editRow').value=rowIdx;
+  document.getElementById('eTgl').value=r.tanggal;syncBulan('e');
+  document.getElementById('eJenis').value=r.jenis;onJenisChange('e');
+  setTimeout(()=>{
+    document.getElementById('eKat').value=r.kategori;
+    document.getElementById('eMetode').value=r.pembayaran;
+    fillBank('eBank',r.pembayaran);
+    setTimeout(()=>{document.getElementById('eBank').value=r.metode},80);
+  },80);
+  document.getElementById('eNom').value=r.nominal;document.getElementById('eKet').value=r.detail||'';
+  document.getElementById('ovEdit').classList.add('open');
+}
+
+async function doEdit(){
+  const ri=Number(document.getElementById('editRow').value);
+  const tgl=document.getElementById('eTgl').value,j=document.getElementById('eJenis').value;
+  const k=document.getElementById('eKat').value,n=document.getElementById('eNom').value;
+  const m=document.getElementById('eMetode').value,b=document.getElementById('eBank').value;
+  const d=document.getElementById('eKet').value,bln=document.getElementById('eBulan').value;
+  if(!tgl||!j||!k||!n){toast('⚠️ Lengkapi field','err');return}
+  document.getElementById('eLoad').style.display='flex';
+  try{await sheetsUpdate(ri,[tgl,bln,k,Number(n),m,d,b,j]);toast('✅ Diupdate!','ok');closeOv(null,'ovEdit');allRows=[];loadData()}
+  catch(e){toast('❌ Gagal update','err')}
+  finally{document.getElementById('eLoad').style.display='none'}
+}
+
+async function doDelete(){
+  showConfirm('🗑️ Hapus Transaksi','Yakin ingin menghapus data ini?',async()=>{
+    const ri=Number(document.getElementById('editRow').value);
+    document.getElementById('eLoad').style.display='flex';
+    try{const res=await fetch(`${VERCEL_URL}/api/sheets?action=delete`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:ri})});if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal hapus')}toast('🗑️ Dihapus','ok');closeOv(null,'ovEdit');allRows=[];loadData()}
+    catch(e){toast('❌ Gagal hapus','err')}
+    finally{document.getElementById('eLoad').style.display='none'}
+  });
+}
+
+// ═══ PENGATURAN ═══
+function loadSettings(){
+  const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');
+  if(s.username){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=s.username})}
+  if(s.notifEnabled!==undefined)notifEnabled=s.notifEnabled;
+  if(s.alertPct)alertPct=s.alertPct;
+  if(s.adminPassword)adminPassword=s.adminPassword;
+  document.getElementById('alertPctLabel').textContent=`${alertPct}% dari anggaran`;
+  const nt=document.getElementById('notifToggle');if(nt)nt.classList.toggle('on',notifEnabled);
+  updateKatRataLabel();
+}
+
+function openSettModal(type){
+  settModalType=type;
+  const title=document.getElementById('settModalTitle'),body=document.getElementById('settModalBody');
+  if(type==='nama'){title.textContent='✏️ Ubah Nama';const cur=document.getElementById('settUsername').textContent;body.innerHTML=`<div class="fr"><label>Nama Baru</label><input class="fi" type="text" id="settNamaInput" value="${cur}" placeholder="Nama kamu"></div>`}
+  else if(type==='anggaran'){
+    title.textContent='💰 Anggaran per Kategori';
+    body.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+    document.getElementById('ovSett').classList.add('open');
+    const renderAnggaran=()=>{
+      const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+      const kats=dbOpts.kategoris.filter(k=>!k.toLowerCase().includes('income'));
+      if(!kats.length){body.innerHTML='<div class="empty"><div class="ei">🏷️</div><p>Belum ada kategori</p></div>';return}
+      body.innerHTML=`
+        <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
+        ${kats.map(k=>{
+          const id='bgt_'+btoa(k).replace(/[^a-zA-Z0-9]/g,'');
+          const val=budgets[k]||'';
+          return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" placeholder="Rp — tidak ada limit" value="${val}" min="0"></div>`;
+        }).join('')}
+        <div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:0.7rem;color:var(--grn);margin-top:4px">
+          💡 Budget akan muncul di notifikasi jika pengeluaran melebihi batas.
+        </div>`;
+    };
+    if(allRows.length){fetchDBOptions().then(renderAnggaran)}
+    else{fetchAllData().then(r=>{allRows=r;return fetchDBOptions()}).then(renderAnggaran).catch(()=>{body.innerHTML='<div class="empty"><div class="ei">⚠️</div><p>Gagal memuat data</p></div>'})}
+    return;
+  }
+  else if(type==='rekening'){
+    title.textContent='🏦 Kelola Rekening';
+    renderRekeningModal();
+  }
+  else if(type==='kategori'){
+    title.textContent='🏷️ Kelola Kategori';
+    renderKategoriModal();
+  }
+  else if(type==='alertpct'){title.textContent='⚠️ Batas Peringatan';body.innerHTML=`<div class="fr"><label>Persentase (%)</label><input class="fi" type="number" id="alertPctInput" value="${alertPct}" min="50" max="100"></div>`}
+  else if(type==='katrata'){
+    title.textContent='📊 Kategori Rata-rata Harian';
+    const excluded=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
+    const allKats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
+    body.innerHTML='<p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Centang kategori yang <b style=color:var(--red)>TIDAK</b> masuk perhitungan rata-rata harian:</p>'+allKats.map(k=>{const checked=excluded.includes(k)?'checked':'';return`<label style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--bdr);cursor:pointer"><input type="checkbox" ${checked} value="${k}" style="width:18px;height:18px;accent-color:var(--ac)"><span style="font-size:0.82rem;color:#fff">${k}</span></label>`}).join('');
+  }
+  else if(type==='periode'){
+    title.textContent='📅 Setting Periode';
+    const ps=JSON.parse(localStorage.getItem('mm_periode')||'{}');
+    const sd=ps.startDate||'',ed=ps.endDate||'';
+    body.innerHTML=`<p style="font-size:0.75rem;color:var(--tx2);margin-bottom:8px;line-height:1.5">Set periode manual. Kosongkan untuk pakai sistem otomatis (24 ke 24). Jika pilih Sabtu/Minggu otomatis mundur ke Jumat.</p>
+      <div class="fr"><label>Tanggal Mulai</label><input class="fi" type="date" id="periodeStart" value="${sd}" onchange="autoFriday('periodeStart')"></div>
+      <div class="fr"><label>Tanggal Selesai</label><input class="fi" type="date" id="periodeEnd" value="${ed}" onchange="autoFriday('periodeEnd')"></div>
+      <button style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1.5px solid var(--red);background:var(--red-bg);color:var(--red);font-size:0.76rem;font-weight:700;cursor:pointer;width:100%" onclick="resetPeriode()">🔄 Reset ke Otomatis</button>`;
+  }
+  else if(type==='password'){title.textContent='🔐 Ubah Password Admin';body.innerHTML=`<div class="fr"><label>Password Lama</label><input class="fi" type="password" id="passOld"></div><div class="fr"><label>Password Baru</label><input class="fi" type="password" id="passNew"></div><div class="fr"><label>Konfirmasi</label><input class="fi" type="password" id="passConf"></div>`}
+  document.getElementById('ovSett').classList.add('open');
+}
+
+function getCustomKats(){return JSON.parse(localStorage.getItem('mm_custom_kats')||'[]')}
+function getCustomBanks(){return JSON.parse(localStorage.getItem('mm_custom_banks')||'[]')}
+function getHiddenKats(){return JSON.parse(localStorage.getItem('mm_hidden_kats')||'[]')}
+function getHiddenBanks(){return JSON.parse(localStorage.getItem('mm_hidden_banks')||'[]')}
+
+function renderKategoriModal(){
+  const body=document.getElementById('settModalBody');
+  const customKats=getCustomKats();
+  const hiddenKats=getHiddenKats();
+  const fromData=dbOpts.kategoris||[];
+  const allKats=[...new Set([...fromData,...customKats])];
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:8px">${allKats.length} kategori tersedia.</p>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <input class="fi" type="text" id="newKatInput" placeholder="Tambah kategori baru..." style="flex:1">
+      <button onclick="addCustomKat()" style="padding:0 14px;height:40px;border-radius:var(--rsm);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">➕ Tambah</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto" id="katListBody">
+      ${allKats.map(k=>{
+        const isCustom=customKats.includes(k);
+        const isHidden=hiddenKats.includes(k);
+        return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--glass);border:1px solid var(--bdr);border-radius:10px;opacity:${isHidden?0.45:1}">
+          <span style="font-size:0.82rem;color:#fff;font-weight:600;flex:1">${k}${isCustom?'<span style="font-size:0.55rem;color:var(--ac);margin-left:6px;font-weight:800">CUSTOM</span>':''}</span>
+          <div style="display:flex;gap:5px">
+            <button onclick="toggleHideKat('${k.replace(/'/g,"\\'")}',${isHidden})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--glass);color:var(--tx2);font-size:0.62rem;cursor:pointer">${isHidden?'👁️ Tampil':'🙈 Sembunyikan'}</button>
+            ${isCustom?`<button onclick="deleteCustomKat('${k.replace(/'/g,"\\'")}') " style="padding:3px 8px;border-radius:6px;border:1px solid var(--red);background:var(--red-bg);color:var(--red);font-size:0.62rem;cursor:pointer">🗑️</button>`:''}
+          </div>
+        </div>`}).join('')}
+    </div>
+    <div style="margin-top:8px;padding:8px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,248,0.2);border-radius:8px;font-size:0.7rem;color:var(--blu)">
+      💡 Kategori dari transaksi tidak bisa dihapus, hanya bisa disembunyikan.
+    </div>`;
+}
+
+function renderRekeningModal(){
+  const body=document.getElementById('settModalBody');
+  const customBanks=getCustomBanks();
+  const hiddenBanks=getHiddenBanks();
+  const fromData=dbOpts.banks||[];
+  const allBanks=[...new Set([...fromData,...customBanks])];
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:8px">${allBanks.length} rekening tersedia.</p>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <input class="fi" type="text" id="newBankInput" placeholder="Tambah rekening baru..." style="flex:1">
+      <button onclick="addCustomBank()" style="padding:0 14px;height:40px;border-radius:var(--rsm);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">➕ Tambah</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto" id="bankListBody">
+      ${allBanks.map(b=>{
+        const isCustom=customBanks.includes(b);
+        const isHidden=hiddenBanks.includes(b);
+        return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--glass);border:1px solid var(--bdr);border-radius:10px;opacity:${isHidden?0.45:1}">
+          <span style="font-size:0.82rem;color:#fff;font-weight:600;flex:1">${b}${isCustom?'<span style="font-size:0.55rem;color:var(--ac);margin-left:6px;font-weight:800">CUSTOM</span>':''}</span>
+          <div style="display:flex;gap:5px">
+            <button onclick="toggleHideBank('${b.replace(/'/g,"\\'")}',${isHidden})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--glass);color:var(--tx2);font-size:0.62rem;cursor:pointer">${isHidden?'👁️ Tampil':'🙈 Sembunyikan'}</button>
+            ${isCustom?`<button onclick="deleteCustomBank('${b.replace(/'/g,"\\'")}') " style="padding:3px 8px;border-radius:6px;border:1px solid var(--red);background:var(--red-bg);color:var(--red);font-size:0.62rem;cursor:pointer">🗑️</button>`:''}
+          </div>
+        </div>`}).join('')}
+    </div>
+    <div style="margin-top:8px;padding:8px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,248,0.2);border-radius:8px;font-size:0.7rem;color:var(--blu)">
+      💡 Rekening dari transaksi tidak bisa dihapus, hanya bisa disembunyikan.
+    </div>`;
+}
+
+function addCustomKat(){
+  const inp=document.getElementById('newKatInput');
+  const val=inp.value.trim();
+  if(!val){toast('⚠️ Nama kategori kosong','err');return}
+  const custom=getCustomKats();
+  const all=[...dbOpts.kategoris,...custom];
+  if(all.some(k=>k.toLowerCase()===val.toLowerCase())){toast('⚠️ Kategori sudah ada','err');return}
+  custom.push(val);
+  localStorage.setItem('mm_custom_kats',JSON.stringify(custom));
+  dbOpts.kategoris=[...new Set([...dbOpts.kategoris,...custom])].sort();
+  toast('✅ Kategori ditambahkan','ok');
+  renderKategoriModal();
+}
+
+function deleteCustomKat(kat){
+  let custom=getCustomKats().filter(k=>k!==kat);
+  localStorage.setItem('mm_custom_kats',JSON.stringify(custom));
+  dbOpts.kategoris=dbOpts.kategoris.filter(k=>k!==kat||!getCustomKats().includes(k));
+  dbOpts.kategoris=[...new Set([...(allRows.map(r=>r.kategori).filter(Boolean)),...custom])].sort();
+  toast('🗑️ Kategori dihapus','ok');
+  renderKategoriModal();
+}
+
+function toggleHideKat(kat,isHidden){
+  let hidden=getHiddenKats();
+  if(isHidden)hidden=hidden.filter(k=>k!==kat);
+  else hidden.push(kat);
+  localStorage.setItem('mm_hidden_kats',JSON.stringify(hidden));
+  renderKategoriModal();
+}
+
+function addCustomBank(){
+  const inp=document.getElementById('newBankInput');
+  const val=inp.value.trim();
+  if(!val){toast('⚠️ Nama rekening kosong','err');return}
+  const custom=getCustomBanks();
+  const all=[...dbOpts.banks,...custom];
+  if(all.some(b=>b.toLowerCase()===val.toLowerCase())){toast('⚠️ Rekening sudah ada','err');return}
+  custom.push(val);
+  localStorage.setItem('mm_custom_banks',JSON.stringify(custom));
+  dbOpts.banks=[...new Set([...dbOpts.banks,...custom])];
+  toast('✅ Rekening ditambahkan','ok');
+  renderRekeningModal();
+}
+
+function deleteCustomBank(bank){
+  let custom=getCustomBanks().filter(b=>b!==bank);
+  localStorage.setItem('mm_custom_banks',JSON.stringify(custom));
+  dbOpts.banks=[...new Set([...(allRows.map(r=>r.metode).filter(b=>b&&!b.includes('Cash'))),...custom])];
+  toast('🗑️ Rekening dihapus','ok');
+  renderRekeningModal();
+}
+
+function toggleHideBank(bank,isHidden){
+  let hidden=getHiddenBanks();
+  if(isHidden)hidden=hidden.filter(b=>b!==bank);
+  else hidden.push(bank);
+  localStorage.setItem('mm_hidden_banks',JSON.stringify(hidden));
+  renderRekeningModal();
+}
+
+function saveSettModal(){
+  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  if(settModalType==='export'){
+    const from=document.getElementById('expFrom').value;
+    const to=document.getElementById('expTo').value;
+    const bln=document.getElementById('expBulan').value;
+    if(!from||!to){toast('⚠️ Pilih rentang tanggal','err');return}
+    let filtered=allRows.filter(r=>{const d=r.tanggal;return d>=from&&d<=to});
+    if(bln)filtered=filtered.filter(r=>r.bulan===bln);
+    if(!filtered.length){toast('⚠️ Tidak ada data di rentang ini','err');return}
+    const h=['Tanggal','Bulan','Kategori','Nominal','Pembayaran','Detail','Metode','Jenis'];
+    const csv=[h,...filtered.map(r=>[r.tanggal,r.bulan,r.kategori,r.nominal,r.pembayaran,r.detail,r.metode,r.jenis])].map(r=>r.join(',')).join('\n');
+    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`money-manager-${from}-${to}.csv`;a.click();
+    toast(`✅ Export ${filtered.length} data berhasil!`,'ok');closeOv(null,'ovSett');return;
+  }
+  if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('✅ Nama diperbarui','ok')}}
+  else if(settModalType==='anggaran'){
+    const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+    dbOpts.kategoris.filter(k=>!k.toLowerCase().includes('income')).forEach(k=>{const el=document.getElementById('bgt_'+btoa(k).replace(/[^a-zA-Z0-9]/g,''));if(el&&el.value)budgets[k]=Number(el.value);else if(el&&!el.value)delete budgets[k]});localStorage.setItem('mm_budgets',JSON.stringify(budgets));toast('✅ Anggaran disimpan','ok')}
+  else if(settModalType==='alertpct'){const val=Number(document.getElementById('alertPctInput').value);if(val>=50&&val<=100){alertPct=val;document.getElementById('alertPctLabel').textContent=`${alertPct}% dari anggaran`;saveSettingsStorage();toast('✅ Batas diperbarui','ok')}}
+  else if(settModalType==='periode'){
+    const s=document.getElementById('periodeStart').value;
+    const e=document.getElementById('periodeEnd').value;
+    if(s&&e&&new Date(s)<new Date(e)){
+      localStorage.setItem('mm_periode',JSON.stringify({startDate:s,endDate:e}));
+      updatePeriodUI();loadDashboard();
+      toast('✅ Periode diperbarui','ok');
+    } else {toast('⚠️ Tanggal tidak valid','err');return;}
+  }
+  else if(settModalType==='katrata'){
+    const checks=document.querySelectorAll('#settModalBody input[type=checkbox]');
+    const excluded=[];checks.forEach(c=>{if(c.checked)excluded.push(c.value)});
+    localStorage.setItem('mm_fixed_cats',JSON.stringify(excluded));
+    toast('✅ Pengaturan rata-rata disimpan','ok');
+    updateKatRataLabel();allRows=[];loadDashboard();
+  }
+  else if(settModalType==='password'){const old=document.getElementById('passOld').value,nw=document.getElementById('passNew').value,cf=document.getElementById('passConf').value;if(old!==adminPassword){toast('❌ Password lama salah','err');return}if(nw!==cf){toast('❌ Konfirmasi tidak cocok','err');return}if(nw.length<4){toast('❌ Min 4 karakter','err');return}adminPassword=nw;saveSettingsStorage();toast('✅ Password diperbarui','ok')}
+  closeOv(null,'ovSett');
+}
+
+function autoFriday(inputId){
+  const inp=document.getElementById(inputId);if(!inp||!inp.value)return;
+  const d=new Date(inp.value+'T00:00:00');const dow=d.getDay();
+  if(dow===6)d.setDate(d.getDate()-1);else if(dow===0)d.setDate(d.getDate()-2);
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  inp.value=`${y}-${m}-${dd}`;
+}
+function updateKatRataLabel(){
+  const excl=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
+  const el=document.getElementById('katRataLabel');if(el)el.textContent=`${excl.length} kategori dikecualikan`;
+}
+function saveSettingsStorage(){const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.notifEnabled=notifEnabled;s.alertPct=alertPct;s.adminPassword=adminPassword;localStorage.setItem('mm_settings',JSON.stringify(s))}
+function toggleNotif(){notifEnabled=!notifEnabled;const nt=document.getElementById('notifToggle');if(nt)nt.classList.toggle('on',notifEnabled);saveSettingsStorage();toast(notifEnabled?'🔔 Notifikasi aktif':'🔕 Nonaktif','ok')}
+function resetPeriode(){localStorage.removeItem('mm_periode');updatePeriodUI();closeOv(null,'ovSett');loadDashboard();toast('🔄 Periode direset ke otomatis','ok')}
+
+function exportCSV(){
+  if(!allRows.length){toast('⚠️ Load data dulu','err');return}
+  // Show export modal
+  const body=document.getElementById('settModalBody');
+  const title=document.getElementById('settModalTitle');
+  settModalType='export';
+  title.textContent='📊 Export Data CSV';
+  const now=new Date();
+  body.innerHTML=`
+    <p style="font-size:0.75rem;color:var(--tx2);margin-bottom:10px">Pilih rentang tanggal export:</p>
+    <div class="fr"><label>Dari Tanggal</label><input class="fi" type="date" id="expFrom" value="${now.getFullYear()}-01-01"></div>
+    <div class="fr"><label>Sampai Tanggal</label><input class="fi" type="date" id="expTo" value="${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}"></div>
+    <div class="fr"><label>Filter Bulan (opsional)</label>
+      <select class="fs" id="expBulan"><option value="">Semua Bulan</option>${MOS.map(m=>`<option>${m}</option>`).join('')}</select>
+    </div>
+    <div style="margin-top:8px;padding:8px 10px;background:var(--glass);border-radius:8px;font-size:0.7rem;color:var(--tx2)">
+      Total data tersedia: <strong style="color:#fff">${allRows.length} transaksi</strong>
+    </div>`;
+  document.getElementById('ovSett').classList.add('open');
+}
+
+// ═══ THEME ═══
+function loadTheme(){setTheme(localStorage.getItem('mm_t')||'cosmic',false)}
+function setTheme(t,save=true){
+  document.documentElement.setAttribute('data-theme',t==='ocean'?'ocean':'cosmic');
+  if(save)localStorage.setItem('mm_t',t);
+  const isOcean=t==='ocean';
+  ['themeToggle','drawerThemeToggle'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('on',isOcean)});
+  const tl=document.getElementById('themeLabel');if(tl)tl.textContent=isOcean?'Ocean (Edit Mode)':'Cosmic (Default)';
+  const dl=document.getElementById('drawerThemeLbl');if(dl)dl.textContent=`🎨 Tema: ${isOcean?'Ocean':'Cosmic'}`;
+}
+function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme');setTheme(cur==='ocean'?'cosmic':'ocean')}
+
+// ═══ AVG DETAIL ═══
+function openAvgDetail(){
+  document.getElementById('bsOverlay').classList.add('open');
+  const body=document.getElementById('bsBody');
+  if(!avgDetailData||!avgDetailData.byKategori.length){body.innerHTML='<div class="empty"><div class="ei">📊</div><p>Load dashboard dulu</p></div>';return}
+  const d=avgDetailData,total=d.totalFleksibel,days=d.totalDays,maxN=Math.max(...d.byKategori.map(k=>k.nominal),1);
+  body.innerHTML=`<div class="bs-sum"><div class="bs-sum-lbl">Total Pengeluaran Fleksibel</div><div class="bs-sum-val">${rp(total)}</div><div class="bs-sum-avg">Rata-rata ${rp(d.avgHarian)}/hari · ${days} hari aktif</div></div><div class="bs-kat-list">${d.byKategori.map(k=>{const avg=Math.round(k.nominal/days),pct=Math.round(k.nominal/maxN*100),share=total>0?Math.round(k.nominal/total*100):0;return`<div class="bs-kat"><div class="bs-kat-top"><span class="bs-kat-name">${k.kategori}</span><span class="bs-kat-total">${rp(k.nominal)}</span></div><div class="bs-kat-avg">Rata-rata ${rp(avg)}/hari · ${share}% dari total</div><div class="bs-kat-bar"><div class="bs-kat-fill" style="width:0%" data-w="${pct}"></div></div></div>`}).join('')}</div>`;
+  setTimeout(()=>{body.querySelectorAll('.bs-kat-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
+}
+function closeBs(){document.getElementById('bsOverlay').classList.remove('open')}
+
+// ═══ MODAL ═══
+function closeOv(e,id){if(!e||e.target.id===id)document.getElementById(id).classList.remove('open')}
+function showConfirm(title,msg,onOk){document.getElementById('cfmTitle').textContent=title;document.getElementById('cfmMsg').textContent=msg;document.getElementById('cfmOk').onclick=()=>{closeOv(null,'ovConfirm');onOk()};document.getElementById('ovConfirm').classList.add('open')}
+
+// ═══ FORM ═══
+function syncBulan(pfx){const v=document.getElementById(pfx==='in'?'inTgl':'eTgl').value,b=document.getElementById(pfx==='in'?'inBulan':'eBulan');if(!v)return;b.value=MOS[parseInt(v.split('-')[1],10)-1]||''}
+function onJenisChange(pfx){
+  const j=document.getElementById(pfx==='in'?'inJenis':'eJenis').value;
+  const sel=document.getElementById(pfx==='in'?'inKat':'eKat');
+  sel.innerHTML='<option value="">— Pilih —</option>';
+  if(j==='Pemasukan')sel.innerHTML+='<option value="💰 Income">💰 Income</option>';
+  else if(j==='Pengeluaran')(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income')).forEach(k=>{sel.innerHTML+=`<option value="${k}">${k}</option>`});
+}
+function onMetodeChange(pfx){fillBank(pfx==='in'?'inBank':'eBank',document.getElementById(pfx==='in'?'inMetode':'eMetode').value)}
+function fillBank(id,metode){
+  const sel=document.getElementById(id);if(!sel)return;
+  if(metode==='Cash'){sel.innerHTML='<option value="💵 Cash">💵 Cash</option>';sel.value='💵 Cash';return}
+  const banks=(dbOpts.banks||[]).filter(b=>!b.toLowerCase().includes('cash'));
+  sel.innerHTML='<option value="">— Pilih Bank —</option>'+banks.map(b=>`<option value="${b}">${b}</option>`).join('');
+}
+function getRecentKats(){try{return JSON.parse(localStorage.getItem('mm_recent_kat')||'[]')}catch(e){return[]}}
+function saveRecentKat(kat,jenis){let a=getRecentKats().filter(x=>x.kat!==kat);a.unshift({kat,jenis});localStorage.setItem('mm_recent_kat',JSON.stringify(a.slice(0,5)))}
+function renderQuickKat(){
+  const wrap=document.getElementById('quickKatWrap');if(!wrap)return;
+  const recent=getRecentKats();
+  if(!recent.length){wrap.style.display='none';return}
+  wrap.style.display='block';
+  document.getElementById('quickKatList').innerHTML=recent.map(x=>`<button class="qk-btn ${x.jenis==='Pemasukan'?'qk-inc':'qk-spd'}" onclick="applyQuickKat('${x.kat}','${x.jenis}')">${x.kat}</button>`).join('');
+}
+function applyQuickKat(kat,jenis){document.getElementById('inJenis').value=jenis;onJenisChange('in');setTimeout(()=>{document.getElementById('inKat').value=kat},60)}
+
+// ═══ RIPPLE ═══
+document.addEventListener('click',function(e){
+  const btn=e.target.closest('button:not(.sett-toggle),.bnav-btn,.dc,.tap-card');if(!btn)return;
+  const ripple=document.createElement('span');ripple.className='ripple';
+  const rect=btn.getBoundingClientRect(),size=Math.max(rect.width,rect.height);
+  ripple.style.cssText=`width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+  btn.style.position='relative';btn.style.overflow='hidden';btn.appendChild(ripple);
+  setTimeout(()=>ripple.remove(),600);
+});
+
+// ═══ UTILS ═══
+function rp(v){if(v===undefined||v===null||v==='')return'Rp 0';return'Rp '+Number(v).toLocaleString('id-ID')}
+function rpShort(v){v=Number(v)||0;if(v>=1e9)return(v/1e9).toFixed(1).replace(/\.0$/,'')+'M';if(v>=1e6)return(v/1e6).toFixed(1).replace(/\.0$/,'')+'jt';if(v>=1e3)return(v/1e3).toFixed(0)+'rb';return String(v)}
+function formatTgl(s){if(!s)return'—';const p=s.split('-');if(p.length!==3||Number(p[0])<1990)return'—';return`${p[2]}/${p[1]}/${p[0]}`}
+function pad(n){return String(n).padStart(2,'0')}
+function getLocalDate(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function groupBy(arr,key){return arr.reduce((g,r)=>{(g[r[key]]=g[r[key]]||[]).push(r);return g},{})}
+function countUp(id,target,prefix=''){
+  const el=document.getElementById(id);if(!el)return;
+  const steps=40,step=900/steps;let cur=0;
+  const timer=setInterval(()=>{cur+=target/steps;if(cur>=target){cur=target;clearInterval(timer)}el.textContent=prefix+rp(Math.round(cur))},step);
+}
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast show '+type;
+  clearTimeout(toastT);toastT=setTimeout(()=>{el.className='toast'},3200);
+}
+
+// ═══ INIT ═══
+document.addEventListener('DOMContentLoaded',()=>{
+  initParticles();initOceanParticles();
+  updateClock();loadTheme();loadSettings();initLogo();
+  document.getElementById('inTgl').value=getLocalDate();syncBulan('in');
+  const now=new Date();
+  document.getElementById('rekapTahun').value=String(now.getFullYear());
+  // Set target form defaults
+  const tgtFrom=document.getElementById('tgtFrom');
+  const tgtTo=document.getElementById('tgtTo');
+  if(tgtFrom)tgtFrom.value=MOS[now.getMonth()];
+  if(tgtTo){const nextM=Math.min(now.getMonth()+5,11);tgtTo.value=MOS[nextM]}
+  updatePeriodUI();
+  fetchDBOptions().then(()=>loadDashboard());
+});
