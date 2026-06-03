@@ -361,6 +361,13 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .btn-cx{padding:0 16px;height:38px;border-radius:var(--rsm);border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:var(--tx2);font-family:var(--ffb);font-weight:600;font-size:0.82rem;cursor:pointer}
 .btn-ok{padding:0 20px;height:38px;border-radius:var(--rsm);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-family:var(--ffb);font-weight:700;font-size:0.82rem;cursor:pointer;box-shadow:var(--sa)}
 .btn-ok:active{transform:scale(0.96)}
+.btn-img-small{width:38px;height:38px;border-radius:var(--rsm);border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-img-small:active{transform:scale(0.93)}
+.scan-overlay{position:relative;width:100%;border-radius:10px;overflow:hidden;margin-bottom:12px;background:#000;max-height:220px}
+.scan-preview-img{width:100%;max-height:220px;object-fit:contain;display:block;opacity:0.7}
+.scan-line{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#00f7ff,#00f7ff,transparent);box-shadow:0 0 10px #00f7ff,0 0 20px #00f7ff88;animation:scanMove 1.4s linear infinite;top:0}
+@keyframes scanMove{0%{top:0}100%{top:100%}}
+.scan-status-text{position:absolute;bottom:0;left:0;right:0;padding:6px 10px;background:rgba(0,0,0,0.6);color:#00f7ff;font-size:0.78rem;font-weight:600;text-align:center;letter-spacing:0.3px}
 .btn-del{padding:0 14px;height:38px;border-radius:var(--rsm);border:1.5px solid var(--red);background:var(--red-bg);color:var(--red);font-family:var(--ffb);font-weight:600;font-size:0.82rem;cursor:pointer;margin-right:auto}
 .err-msg{color:var(--red);font-size:0.76rem;font-weight:700;padding:8px 10px;background:var(--red-bg);border-radius:var(--rxs);border:1px solid var(--red)}
 .m-loading{position:absolute;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);border-radius:var(--r);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;color:#fff;font-size:0.84rem;z-index:10}
