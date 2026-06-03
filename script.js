@@ -1,17 +1,10 @@
-const SHEET_ID='1bjeestIs-wvjxQtmkrLuf39KNOssgzHMTkC4xpTBzzY';
-const API_KEY='AIzaSyDN0LxmvCi3HVWM7BcW9GF8vDmc0CqWDRg';
-const ADMIN_PASS_DEFAULT='sheril';
-const SHEET_DATA='DATA',SHEET_DB='DATABASE',SHEET_SUMMARY='SUMMARY';
 const VERCEL_URL='https://manager-khaki-ten.vercel.app';
 const LOGO_URL='https://raw.githubusercontent.com/MR-REAL-png/Manager/main/logo.png';
 const MOS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const CHART_COLORS=['#a78bfa','#f472b6','#60a5fa','#fb923c','#34d399','#818cf8','#fbbf24','#4ade80','#f87171','#e879f9','#38bdf8','#a3e635'];
 const MONTH_COLORS=['#818cf8','#c084fc','#f472b6','#60a5fa','#34d399','#fb923c','#a78bfa','#4ade80','#fbbf24','#e879f9','#38bdf8','#f87171'];
-// SUMMARY row 28, kolom mulai D(col 4), tiap bulan +2 kolom
-// Jan=D(4), Feb=F(6), Mar=H(8), Apr=J(10), Mei=L(12), Jun=N(14), Jul=P(16), Agu=R(18), Sep=T(20), Okt=V(22), Nov=X(24), Des=Z(26)
-const SUMMARY_ROW=28;
-const SUMMARY_COL_START=4; // D=4 (1-indexed)
+const ADMIN_PASS_DEFAULT='sheril';
 
 let allRows=[],dbOpts={banks:[],kategoris:[],metodes:[],jenis:[]};
 let isAdmin=false,editMode=false;
@@ -24,12 +17,10 @@ let notifEnabled=true,alertPct=80,adminPassword=ADMIN_PASS_DEFAULT;
 // ═══ PARSE TANGGAL ═══
 function parseTanggal(raw) {
   if(!raw) return '';
-  // Angka serial Excel
   if(!isNaN(Number(raw)) && Number(raw) > 40000) {
     const d = new Date((Number(raw) - 25569) * 86400 * 1000);
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   }
-  // Format DD/MM/YYYY
   if(typeof raw === 'string' && raw.includes('/')) {
     const p = raw.split('/');
     if(p.length === 3) {
@@ -38,11 +29,9 @@ function parseTanggal(raw) {
       return `${y}-${m}-${d}`;
     }
   }
-  // Format YYYY-MM-DD
   if(typeof raw === 'string' && raw.includes('-') && raw.length >= 8) {
     return raw.substring(0,10);
   }
-  // Format DD-MM-YYYY
   if(typeof raw === 'string' && raw.includes('-')) {
     const p = raw.split('-');
     if(p.length === 3 && p[0].length <= 2) {
@@ -74,6 +63,13 @@ function getActivePeriod(){
   }
   return{startDate:s,endDate:e};
 }
+function getActivePeriodResolved(){
+  const periodeCustom=JSON.parse(localStorage.getItem('mm_periode')||'{}');
+  if(periodeCustom.startDate&&periodeCustom.endDate){
+    return{startDate:new Date(periodeCustom.startDate),endDate:new Date(periodeCustom.endDate)};
+  }
+  return getActivePeriod();
+}
 function fmtDateShort(d){return`${d.getDate()} ${MOS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`}
 function getSisaHari(endDate){
   const today=new Date();today.setHours(0,0,0,0);
@@ -83,13 +79,7 @@ function getSisaHari(endDate){
   return{total,weekday,weekend};
 }
 function updatePeriodUI(){
-  const periodeCustom=JSON.parse(localStorage.getItem('mm_periode')||'{}');
-  let startDate,endDate;
-  if(periodeCustom.startDate&&periodeCustom.endDate){
-    startDate=new Date(periodeCustom.startDate);endDate=new Date(periodeCustom.endDate);
-  } else {
-    const p=getActivePeriod();startDate=p.startDate;endDate=p.endDate;
-  }
+  const{startDate,endDate}=getActivePeriodResolved();
   const ps=`${fmtDateShort(startDate)} – ${fmtDateShort(endDate)}`;
   const sisa=getSisaHari(endDate);
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
@@ -124,27 +114,19 @@ function initOceanParticles(){
 function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('drawerOverlay').classList.add('open')}
 function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawerOverlay').classList.remove('open')}
 
-// ═══ SHEETS API ═══
-async function sheetsGet(range){
-  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
-  const res=await fetch(url);
-  if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'Gagal ambil data: '+res.status)}
-  return(await res.json()).values||[];
-}
-async function sheetsAppend(values){
-  const res=await fetch(`${VERCEL_URL}/api/sheets?action=append`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({values})});
+// ═══ API ═══
+async function apiPost(action,body){
+  const res=await fetch(`${VERCEL_URL}/api/sheets?action=${action}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal simpan')}
   return await res.json();
 }
-async function sheetsUpdate(id,values){
-  const res=await fetch(`${VERCEL_URL}/api/sheets?action=update`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,values})});
+async function apiPut(action,body){
+  const res=await fetch(`${VERCEL_URL}/api/sheets?action=${action}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal update')}
   return await res.json();
 }
-// Convert col number to letter (1=A, 2=B, dst)
-function colToLetter(n){
-  let s='';while(n>0){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s;
-}
+async function sheetsAppend(values){return apiPost('append',{values})}
+async function sheetsUpdate(id,values){return apiPut('update',{id,values})}
 
 async function fetchAllData(){
   const res=await fetch(`${VERCEL_URL}/api/sheets?action=get`);
@@ -176,6 +158,8 @@ async function fetchDBOptions(){
       jenis:['Pemasukan','Pengeluaran']
     };
     fillBank('inBank','');fillBank('eBank','');
+    // return agar .then() bisa dipanggil
+    return dbOpts;
   }catch(e){console.error('fetchDBOptions:',e)}
 }
 
@@ -197,7 +181,15 @@ function goPage(p){
   const nb=document.getElementById('nb-'+p);if(nb)nb.classList.add('on');
   const di=document.getElementById('di-'+p);if(di)di.classList.add('active');
   window.scrollTo(0,0);
-  if(p==='data')loadData();
+  // Tampilkan skeleton dulu sebelum load
+  if(p==='data'){
+    // Langsung tampilkan skeleton, baru load data
+    const el=document.getElementById('dataList');
+    if(el&&!allRows.length){
+      el.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
+    }
+    loadData();
+  }
   else if(p==='tabungan'&&document.getElementById('tabContent').style.display!=='none')loadTabungan();
   else if(p==='rekap')loadRekap();
   else if(p==='metode')loadMetode();
@@ -229,25 +221,10 @@ async function loadDashboard(){
   document.getElementById('budgetList').innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
   try{
     if(!allRows.length)allRows=await fetchAllData();
-    // Filter ketat berdasarkan bulan & tahun yang dipilih saja
-    const periodeCustom=JSON.parse(localStorage.getItem('mm_periode')||'{}');
-    let startDate,endDate;
-    if(periodeCustom.startDate&&periodeCustom.endDate){
-      startDate=new Date(periodeCustom.startDate);endDate=new Date(periodeCustom.endDate);
-    } else {
-      // Filter berdasarkan bulan & tahun yang dipilih, bukan akumulasi
-      const bi=MOS.indexOf(b),yr=parseInt(t);
-      const pm=bi===0?11:bi-1,py=bi===0?yr-1:yr;
-      startDate=getEffective25(py,pm);
-      endDate=getEffective25(yr,bi);
-    }
-    startDate=new Date(startDate);startDate.setHours(0,0,0,0);
-    endDate=new Date(endDate);endDate.setHours(23,59,59,999);
-    // Filter rows hanya dalam rentang periode yang dipilih
-    const rows=allRows.filter(r=>{
-      const d=new Date(r.tanggal);
-      return d>=startDate&&d<=endDate;
-    });
+    const{startDate,endDate}=getActivePeriodResolved();
+    const sd=new Date(startDate);sd.setHours(0,0,0,0);
+    const ed=new Date(endDate);ed.setHours(23,59,59,999);
+    const rows=allRows.filter(r=>{const d=new Date(r.tanggal);return d>=sd&&d<=ed});
     const masuk=rows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
     const keluar=rows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
     const kas=masuk-keluar;
@@ -284,7 +261,7 @@ function renderChartKat(byCat){
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
   const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
   const bdrCol=isOcean?'rgba(10,74,140,0.6)':'rgba(15,12,41,0.6)';
-  const legendColor=isOcean?'rgba(184,222,255,0.95)':'rgba(255,255,255,0.92)';
+  const legendColor='rgba(255,255,255,0.92)';
   const plugin={id:'rdg',afterDraw(chart){
     const{ctx:c,chartArea:ca}=chart;if(!ca)return;
     const cx=(ca.left+ca.right)/2,cy=(ca.top+ca.bottom)/2;
@@ -310,11 +287,13 @@ function renderChartKat(byCat){
       plugins:{
         legend:{
           position:'bottom',
+          align:'start',
           labels:{
             boxWidth:8,boxHeight:8,
             font:{size:10.5,family:'DM Sans'},
             color:legendColor,
-            padding:6,
+            padding:8,
+            textAlign:'left',
             generateLabels(chart){
               const ds=chart.data.datasets[0];
               return chart.data.labels.map((lbl,i)=>({
@@ -345,12 +324,53 @@ function renderBudget(byCat){
 
 // ═══ DATA ═══
 async function loadData(){
+  const el=document.getElementById('dataList');
   try{
-    if(allRows.length){renderCards(allRows);return}
-    document.getElementById('dataList').innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+    if(allRows.length){
+      renderCards(allRows);
+      syncFilterBulan();
+      return;
+    }
+    // Tampilkan skeleton saat fetching
+    el.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
     allRows=await fetchAllData();
     renderCards(allRows);
-  }catch(e){toast('❌ Gagal load data: '+e.message,'err');console.error(e)}
+    syncFilterBulan();
+  }catch(e){
+    el.innerHTML='<div class="empty"><div class="ei">⚠️</div><p>Gagal memuat data</p></div>';
+    toast('❌ Gagal load data: '+e.message,'err');console.error(e);
+  }
+}
+
+// Sinkronkan dropdown bulan dengan periode aktif
+function syncFilterBulan(){
+  const sel=document.getElementById('fBulan');if(!sel)return;
+  const{startDate,endDate}=getActivePeriodResolved();
+  const sd=new Date(startDate);sd.setHours(0,0,0,0);
+  const ed=new Date(endDate);ed.setHours(23,59,59,999);
+  // Kumpulkan bulan yang ada dalam rentang periode
+  const bulanDalamPeriode=new Set();
+  allRows.forEach(r=>{
+    const d=new Date(r.tanggal);
+    if(d>=sd&&d<=ed&&r.bulan)bulanDalamPeriode.add(r.bulan);
+  });
+  // Rebuild options: "Semua" + bulan dalam periode (urut MOS) + bulan lain
+  const bulanPeriodeUrut=MOS.filter(m=>bulanDalamPeriode.has(m));
+  const bulanLain=[...new Set(allRows.map(r=>r.bulan).filter(b=>b&&!bulanDalamPeriode.has(b)))];
+  const curVal=sel.value;
+  sel.innerHTML='<option value="">Semua Bulan</option>';
+  if(bulanPeriodeUrut.length){
+    const grp=document.createElement('optgroup');grp.label='— Periode Aktif —';
+    bulanPeriodeUrut.forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;grp.appendChild(o)});
+    sel.appendChild(grp);
+  }
+  if(bulanLain.length){
+    const grp2=document.createElement('optgroup');grp2.label='— Lainnya —';
+    bulanLain.forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;grp2.appendChild(o)});
+    sel.appendChild(grp2);
+  }
+  // Restore nilai sebelumnya jika masih ada
+  if(curVal)sel.value=curVal;
 }
 
 function renderCards(rows){
@@ -515,7 +535,7 @@ async function loadMetode(){
       if(chartMetode){try{chartMetode.destroy()}catch(e){}chartMetode=null;}
       const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
       const bdrCol=isOcean?'rgba(10,74,140,0.4)':'rgba(6,78,59,0.4)';
-      const lblColor=isOcean?'rgba(184,222,255,0.95)':'rgba(255,255,255,0.92)';
+      const lblColor='rgba(255,255,255,0.92)';
       const lbls=Object.keys(bm).filter(k=>bm[k]>0),dm=lbls.map(k=>bm[k]);
       if(dm.length)chartMetode=new Chart(ctx,{type:'doughnut',data:{labels:lbls,datasets:[{data:dm,backgroundColor:['rgba(52,211,153,0.75)','rgba(96,165,250,0.75)','rgba(168,85,247,0.75)'],borderWidth:1.5,borderRadius:6,spacing:3,borderColor:bdrCol}]},options:{responsive:true,cutout:'60%',animation:{animateRotate:true,duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,font:{size:10.5},color:lblColor,padding:8}},tooltip:{callbacks:{label:c=>` ${c.label}: ${rp(c.raw)}`}}}}});
     }
@@ -536,16 +556,13 @@ function renderKalender(){
   const firstDay=new Date(kalYear,kalMonth,1).getDay();
   const dim=new Date(kalYear,kalMonth+1,0).getDate();
   const today=new Date();
-  const{startDate,endDate}=getActivePeriod();
+  const{startDate,endDate}=getActivePeriodResolved();
   const mr=allRows.filter(r=>{const d=new Date(r.tanggal);return d.getFullYear()===kalYear&&d.getMonth()===kalMonth&&r.jenis==='Pengeluaran'});
   const bd={};mr.forEach(r=>{const day=new Date(r.tanggal).getDate();bd[day]=(bd[day]||0)+r.nominal});
   const grid=document.getElementById('kalGrid');if(!grid)return;
-  // 7 header days
   const dh=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
   let html=dh.map(d=>`<div class="kal-day-hdr">${d}</div>`).join('');
-  // Empty cells before first day
   for(let i=0;i<firstDay;i++)html+=`<div class="kal-day empty"></div>`;
-  // Day cells
   for(let d=1;d<=dim;d++){
     const isToday=d===today.getDate()&&kalMonth===today.getMonth()&&kalYear===today.getFullYear();
     const hasData=bd[d]>0;
@@ -556,13 +573,11 @@ function renderKalender(){
     const cls=isToday?'today':isPMark?'period-mark':hasData?'has-data':'';
     html+=`<div class="kal-day ${cls}" onclick="showKalDetail(${d})">${d}</div>`;
   }
-  // Fill remaining cells to complete the grid
   const totalCells=firstDay+dim;
   const remainder=totalCells%7;
   if(remainder>0){for(let i=0;i<7-remainder;i++)html+=`<div class="kal-day empty"></div>`;}
   grid.innerHTML=html;
   updatePeriodUI();
-  // Chart
   const ctx=document.getElementById('chartKal')?.getContext('2d');if(!ctx)return;
   if(chartKal)chartKal.destroy();
   const labels=Array.from({length:dim},(_,i)=>i+1),data=labels.map(d=>bd[d]||0);
@@ -604,7 +619,7 @@ async function loadNotif(){
     });
     const tk=rows.reduce((s,r)=>s+r.nominal,0),days=[...new Set(rows.map(r=>r.tanggal))].length;
     if(days>0)notifications.unshift({type:'info',ico:'📊',title:`Rata-rata Harian ${b}`,msg:`${rp(Math.round(tk/days))}/hari dari ${days} hari aktif`,time:'Update terbaru'});
-    const{startDate,endDate}=getActivePeriod();
+    const{startDate,endDate}=getActivePeriodResolved();
     const sisa=getSisaHari(endDate);
     notifications.unshift({type:'info',ico:'📅',title:`Periode Aktif`,msg:`${fmtDateShort(startDate)} – ${fmtDateShort(endDate)} · Sisa ${sisa.total} hari`,time:'Real-time'});
     renderNotif();
@@ -622,17 +637,8 @@ function renderNotif(){
 function checkBudgetAlerts(byKatArr){
   const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
   const hw=byKatArr.some(k=>{const b=budgets[k.kategori]||0;return b>0&&k.nominal>=b});
-  const badge=document.getElementById('notifBadge');if(badge)badge.style.display=hw?'inline':'none';
-}
-
-// ═══ INPUT ═══
-function openInputModal(){
-  document.getElementById('inTgl').value=getLocalDate();syncBulan('in');
-  document.getElementById('inJenis').value='';
-  document.getElementById('inKat').innerHTML='<option value="">— Pilih Jenis dulu —</option>';
-  document.getElementById('inNom').value='';document.getElementById('inMetode').value='';document.getElementById('inKet').value='';
-  fillBank('inBank','');renderQuickKat();
-  document.getElementById('ovInput').classList.add('open');
+  const badge=document.getElementById('notifBadge');
+  if(badge)badge.style.display=hw?'inline':'none';
 }
 
 async function submitInput(){
@@ -706,7 +712,11 @@ async function doDelete(){
   showConfirm('🗑️ Hapus Transaksi','Yakin ingin menghapus data ini?',async()=>{
     const ri=Number(document.getElementById('editRow').value);
     document.getElementById('eLoad').style.display='flex';
-    try{const res=await fetch(`${VERCEL_URL}/api/sheets?action=delete`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:ri})});if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal hapus')}toast('🗑️ Dihapus','ok');closeOv(null,'ovEdit');allRows=[];loadData()}
+    try{
+      const res=await fetch(`${VERCEL_URL}/api/sheets?action=delete`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:ri})});
+      if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal hapus')}
+      toast('🗑️ Dihapus','ok');closeOv(null,'ovEdit');allRows=[];loadData()
+    }
     catch(e){toast('❌ Gagal hapus','err')}
     finally{document.getElementById('eLoad').style.display='none'}
   });
@@ -734,7 +744,7 @@ function openSettModal(type){
     document.getElementById('ovSett').classList.add('open');
     const renderAnggaran=()=>{
       const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
-      const kats=dbOpts.kategoris.filter(k=>!k.toLowerCase().includes('income'));
+      const kats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
       if(!kats.length){body.innerHTML='<div class="empty"><div class="ei">🏷️</div><p>Belum ada kategori</p></div>';return}
       body.innerHTML=`
         <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
@@ -747,8 +757,10 @@ function openSettModal(type){
           💡 Budget akan muncul di notifikasi jika pengeluaran melebihi batas.
         </div>`;
     };
-    if(allRows.length){fetchDBOptions().then(renderAnggaran)}
-    else{fetchAllData().then(r=>{allRows=r;return fetchDBOptions()}).then(renderAnggaran).catch(()=>{body.innerHTML='<div class="empty"><div class="ei">⚠️</div><p>Gagal memuat data</p></div>'})}
+    // Fix: pastikan fetchDBOptions selesai sebelum renderAnggaran
+    fetchDBOptions().then(()=>renderAnggaran()).catch(()=>{
+      body.innerHTML='<div class="empty"><div class="ei">⚠️</div><p>Gagal memuat data</p></div>';
+    });
     return;
   }
   else if(type==='rekening'){
@@ -759,209 +771,121 @@ function openSettModal(type){
     title.textContent='🏷️ Kelola Kategori';
     renderKategoriModal();
   }
-  else if(type==='alertpct'){title.textContent='⚠️ Batas Peringatan';body.innerHTML=`<div class="fr"><label>Persentase (%)</label><input class="fi" type="number" id="alertPctInput" value="${alertPct}" min="50" max="100"></div>`}
   else if(type==='katrata'){
-    title.textContent='📊 Kategori Rata-rata Harian';
-    const excluded=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
-    const allKats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
-    body.innerHTML='<p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Centang kategori yang <b style=color:var(--red)>TIDAK</b> masuk perhitungan rata-rata harian:</p>'+allKats.map(k=>{const checked=excluded.includes(k)?'checked':'';return`<label style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--bdr);cursor:pointer"><input type="checkbox" ${checked} value="${k}" style="width:18px;height:18px;accent-color:var(--ac)"><span style="font-size:0.82rem;color:#fff">${k}</span></label>`}).join('');
+    title.textContent='📊 Kategori Rata-rata';
+    renderKatRataModal();
+  }
+  else if(type==='alertpct'){
+    title.textContent='🔔 Batas Peringatan';
+    body.innerHTML=`<div class="fr"><label>Persentase Peringatan (%)</label><input class="fi" type="number" id="alertPctInput" value="${alertPct}" min="50" max="100" placeholder="80"></div><p style="font-size:0.7rem;color:var(--tx3);margin-top:6px">Notifikasi muncul saat pengeluaran mencapai persentase ini dari budget.</p>`;
   }
   else if(type==='periode'){
-    title.textContent='📅 Setting Periode';
-    const ps=JSON.parse(localStorage.getItem('mm_periode')||'{}');
-    const sd=ps.startDate||'',ed=ps.endDate||'';
-    body.innerHTML=`<p style="font-size:0.75rem;color:var(--tx2);margin-bottom:8px;line-height:1.5">Set periode manual. Kosongkan untuk pakai sistem otomatis (24 ke 24). Jika pilih Sabtu/Minggu otomatis mundur ke Jumat.</p>
-      <div class="fr"><label>Tanggal Mulai</label><input class="fi" type="date" id="periodeStart" value="${sd}" onchange="autoFriday('periodeStart')"></div>
-      <div class="fr"><label>Tanggal Selesai</label><input class="fi" type="date" id="periodeEnd" value="${ed}" onchange="autoFriday('periodeEnd')"></div>
-      <button style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1.5px solid var(--red);background:var(--red-bg);color:var(--red);font-size:0.76rem;font-weight:700;cursor:pointer;width:100%" onclick="resetPeriode()">🔄 Reset ke Otomatis</button>`;
+    title.textContent='📅 Atur Periode';
+    const{startDate,endDate}=getActivePeriodResolved();
+    const fmt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    body.innerHTML=`
+      <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Atur periode kustom atau reset ke otomatis (tanggal 24/25 tiap bulan).</p>
+      <div class="fr"><label>Dari Tanggal</label><input class="fi" type="date" id="periodeFrom" value="${fmt(startDate)}" onchange="autoFriday('periodeFrom')"></div>
+      <div class="fr"><label>Sampai Tanggal</label><input class="fi" type="date" id="periodeTo" value="${fmt(endDate)}" onchange="autoFriday('periodeTo')"></div>
+      <button class="btn-cx" style="width:100%;margin-top:8px" onclick="resetPeriode()">🔄 Reset ke Otomatis</button>`;
   }
-  else if(type==='password'){title.textContent='🔐 Ubah Password Admin';body.innerHTML=`<div class="fr"><label>Password Lama</label><input class="fi" type="password" id="passOld"></div><div class="fr"><label>Password Baru</label><input class="fi" type="password" id="passNew"></div><div class="fr"><label>Konfirmasi</label><input class="fi" type="password" id="passConf"></div>`}
+  else if(type==='password'){
+    title.textContent='🔒 Ganti Password';
+    body.innerHTML=`<div class="fr"><label>Password Lama</label><input class="fi" type="password" id="passOld" placeholder="••••"></div><div class="fr"><label>Password Baru</label><input class="fi" type="password" id="passNew" placeholder="••••"></div><div class="fr"><label>Konfirmasi</label><input class="fi" type="password" id="passConf" placeholder="••••"></div>`;
+  }
   document.getElementById('ovSett').classList.add('open');
-}
-
-function getCustomKats(){return JSON.parse(localStorage.getItem('mm_custom_kats')||'[]')}
-function getCustomBanks(){return JSON.parse(localStorage.getItem('mm_custom_banks')||'[]')}
-function getHiddenKats(){return JSON.parse(localStorage.getItem('mm_hidden_kats')||'[]')}
-function getHiddenBanks(){return JSON.parse(localStorage.getItem('mm_hidden_banks')||'[]')}
-
-function renderKategoriModal(){
-  const body=document.getElementById('settModalBody');
-  const customKats=getCustomKats();
-  const hiddenKats=getHiddenKats();
-  const fromData=dbOpts.kategoris||[];
-  const allKats=[...new Set([...fromData,...customKats])];
-  body.innerHTML=`
-    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:8px">${allKats.length} kategori tersedia.</p>
-    <div style="display:flex;gap:6px;margin-bottom:10px">
-      <input class="fi" type="text" id="newKatInput" placeholder="Tambah kategori baru..." style="flex:1">
-      <button onclick="addCustomKat()" style="padding:0 14px;height:40px;border-radius:var(--rsm);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">➕ Tambah</button>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto" id="katListBody">
-      ${allKats.map(k=>{
-        const isCustom=customKats.includes(k);
-        const isHidden=hiddenKats.includes(k);
-        return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--glass);border:1px solid var(--bdr);border-radius:10px;opacity:${isHidden?0.45:1}">
-          <span style="font-size:0.82rem;color:#fff;font-weight:600;flex:1">${k}${isCustom?'<span style="font-size:0.55rem;color:var(--ac);margin-left:6px;font-weight:800">CUSTOM</span>':''}</span>
-          <div style="display:flex;gap:5px">
-            <button onclick="toggleHideKat('${k.replace(/'/g,"\\'")}',${isHidden})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--glass);color:var(--tx2);font-size:0.62rem;cursor:pointer">${isHidden?'👁️ Tampil':'🙈 Sembunyikan'}</button>
-            ${isCustom?`<button onclick="deleteCustomKat('${k.replace(/'/g,"\\'")}') " style="padding:3px 8px;border-radius:6px;border:1px solid var(--red);background:var(--red-bg);color:var(--red);font-size:0.62rem;cursor:pointer">🗑️</button>`:''}
-          </div>
-        </div>`}).join('')}
-    </div>
-    <div style="margin-top:8px;padding:8px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,248,0.2);border-radius:8px;font-size:0.7rem;color:var(--blu)">
-      💡 Kategori dari transaksi tidak bisa dihapus, hanya bisa disembunyikan.
-    </div>`;
 }
 
 function renderRekeningModal(){
   const body=document.getElementById('settModalBody');
-  const customBanks=getCustomBanks();
-  const hiddenBanks=getHiddenBanks();
-  const fromData=dbOpts.banks||[];
-  const allBanks=[...new Set([...fromData,...customBanks])];
+  const customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
   body.innerHTML=`
-    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:8px">${allBanks.length} rekening tersedia.</p>
-    <div style="display:flex;gap:6px;margin-bottom:10px">
-      <input class="fi" type="text" id="newBankInput" placeholder="Tambah rekening baru..." style="flex:1">
-      <button onclick="addCustomBank()" style="padding:0 14px;height:40px;border-radius:var(--rsm);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">➕ Tambah</button>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto" id="bankListBody">
-      ${allBanks.map(b=>{
-        const isCustom=customBanks.includes(b);
-        const isHidden=hiddenBanks.includes(b);
-        return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--glass);border:1px solid var(--bdr);border-radius:10px;opacity:${isHidden?0.45:1}">
-          <span style="font-size:0.82rem;color:#fff;font-weight:600;flex:1">${b}${isCustom?'<span style="font-size:0.55rem;color:var(--ac);margin-left:6px;font-weight:800">CUSTOM</span>':''}</span>
-          <div style="display:flex;gap:5px">
-            <button onclick="toggleHideBank('${b.replace(/'/g,"\\'")}',${isHidden})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--glass);color:var(--tx2);font-size:0.62rem;cursor:pointer">${isHidden?'👁️ Tampil':'🙈 Sembunyikan'}</button>
-            ${isCustom?`<button onclick="deleteCustomBank('${b.replace(/'/g,"\\'")}') " style="padding:3px 8px;border-radius:6px;border:1px solid var(--red);background:var(--red-bg);color:var(--red);font-size:0.62rem;cursor:pointer">🗑️</button>`:''}
-          </div>
-        </div>`}).join('')}
-    </div>
-    <div style="margin-top:8px;padding:8px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,248,0.2);border-radius:8px;font-size:0.7rem;color:var(--blu)">
-      💡 Rekening dari transaksi tidak bisa dihapus, hanya bisa disembunyikan.
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px">Tambah rekening/dompet digital kustom.</p>
+    <div class="fr"><label>Nama Rekening</label><input class="fi" type="text" id="newBankInput" placeholder="Contoh: BCA, Jago, Dana"></div>
+    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+      ${customBanks.map(b=>`<div style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--glass);border:1px solid var(--bdr2);border-radius:50px;font-size:0.75rem;color:var(--tx2)">${b}<button onclick="removeCustomBank('${b}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.8rem;padding:0 0 0 4px">✕</button></div>`).join('')}
     </div>`;
 }
 
-function addCustomKat(){
-  const inp=document.getElementById('newKatInput');
-  const val=inp.value.trim();
-  if(!val){toast('⚠️ Nama kategori kosong','err');return}
-  const custom=getCustomKats();
-  const all=[...dbOpts.kategoris,...custom];
-  if(all.some(k=>k.toLowerCase()===val.toLowerCase())){toast('⚠️ Kategori sudah ada','err');return}
-  custom.push(val);
-  localStorage.setItem('mm_custom_kats',JSON.stringify(custom));
-  dbOpts.kategoris=[...new Set([...dbOpts.kategoris,...custom])].sort();
-  toast('✅ Kategori ditambahkan','ok');
-  renderKategoriModal();
+function renderKategoriModal(){
+  const body=document.getElementById('settModalBody');
+  const customKats=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px">Tambah kategori pengeluaran kustom.</p>
+    <div class="fr"><label>Nama Kategori</label><input class="fi" type="text" id="newKatInput" placeholder="Contoh: Hobi, Olahraga"></div>
+    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+      ${customKats.map(k=>`<div style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--glass);border:1px solid var(--bdr2);border-radius:50px;font-size:0.75rem;color:var(--tx2)">${k}<button onclick="removeCustomKat('${k}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.8rem;padding:0 0 0 4px">✕</button></div>`).join('')}
+    </div>`;
 }
 
-function deleteCustomKat(kat){
-  let custom=getCustomKats().filter(k=>k!==kat);
-  localStorage.setItem('mm_custom_kats',JSON.stringify(custom));
-  dbOpts.kategoris=dbOpts.kategoris.filter(k=>k!==kat||!getCustomKats().includes(k));
-  dbOpts.kategoris=[...new Set([...(allRows.map(r=>r.kategori).filter(Boolean)),...custom])].sort();
-  toast('🗑️ Kategori dihapus','ok');
-  renderKategoriModal();
+function renderKatRataModal(){
+  const body=document.getElementById('settModalBody');
+  const excl=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
+  const allKats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Centang kategori yang dikecualikan dari perhitungan rata-rata harian.</p>
+    ${allKats.map(k=>`<label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bdr);font-size:0.82rem;color:#fff;cursor:pointer"><input type="checkbox" ${excl.some(e=>e.toLowerCase()===k.toLowerCase())?'checked':''} value="${k}" style="width:16px;height:16px;accent-color:var(--ac)"> ${k}</label>`).join('')}`;
 }
 
-function toggleHideKat(kat,isHidden){
-  let hidden=getHiddenKats();
-  if(isHidden)hidden=hidden.filter(k=>k!==kat);
-  else hidden.push(kat);
-  localStorage.setItem('mm_hidden_kats',JSON.stringify(hidden));
-  renderKategoriModal();
+function removeCustomBank(name){
+  let a=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
+  a=a.filter(b=>b!==name);localStorage.setItem('mm_custom_banks',JSON.stringify(a));
+  renderRekeningModal();fetchDBOptions();
+}
+function removeCustomKat(name){
+  let a=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');
+  a=a.filter(k=>k!==name);localStorage.setItem('mm_custom_kats',JSON.stringify(a));
+  renderKategoriModal();fetchDBOptions();
 }
 
-function addCustomBank(){
-  const inp=document.getElementById('newBankInput');
-  const val=inp.value.trim();
-  if(!val){toast('⚠️ Nama rekening kosong','err');return}
-  const custom=getCustomBanks();
-  const all=[...dbOpts.banks,...custom];
-  if(all.some(b=>b.toLowerCase()===val.toLowerCase())){toast('⚠️ Rekening sudah ada','err');return}
-  custom.push(val);
-  localStorage.setItem('mm_custom_banks',JSON.stringify(custom));
-  dbOpts.banks=[...new Set([...dbOpts.banks,...custom])];
-  toast('✅ Rekening ditambahkan','ok');
-  renderRekeningModal();
-}
-
-function deleteCustomBank(bank){
-  let custom=getCustomBanks().filter(b=>b!==bank);
-  localStorage.setItem('mm_custom_banks',JSON.stringify(custom));
-  dbOpts.banks=[...new Set([...(allRows.map(r=>r.metode).filter(b=>b&&!b.includes('Cash'))),...custom])];
-  toast('🗑️ Rekening dihapus','ok');
-  renderRekeningModal();
-}
-
-function toggleHideBank(bank,isHidden){
-  let hidden=getHiddenBanks();
-  if(isHidden)hidden=hidden.filter(b=>b!==bank);
-  else hidden.push(bank);
-  localStorage.setItem('mm_hidden_banks',JSON.stringify(hidden));
-  renderRekeningModal();
-}
-
-function saveSettModal(){
+async function saveSettModal(){
+  const body=document.getElementById('settModalBody');
   const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
   if(settModalType==='export'){
-    const from=document.getElementById('expFrom').value;
-    const to=document.getElementById('expTo').value;
-    const bln=document.getElementById('expBulan').value;
-    if(!from||!to){toast('⚠️ Pilih rentang tanggal','err');return}
-    let filtered=allRows.filter(r=>{const d=r.tanggal;return d>=from&&d<=to});
-    if(bln)filtered=filtered.filter(r=>r.bulan===bln);
-    if(!filtered.length){toast('⚠️ Tidak ada data di rentang ini','err');return}
-    const h=['Tanggal','Bulan','Kategori','Nominal','Pembayaran','Detail','Metode','Jenis'];
-    const csv=[h,...filtered.map(r=>[r.tanggal,r.bulan,r.kategori,r.nominal,r.pembayaran,r.detail,r.metode,r.jenis])].map(r=>r.join(',')).join('\n');
-    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=`money-manager-${from}-${to}.csv`;a.click();
-    toast(`✅ Export ${filtered.length} data berhasil!`,'ok');closeOv(null,'ovSett');return;
+    const from=document.getElementById('expFrom')?.value;
+    const to=document.getElementById('expTo')?.value;
+    const bln=document.getElementById('expBulan')?.value;
+    let rows=allRows.filter(r=>{
+      const d=new Date(r.tanggal);
+      const df=from?new Date(from):null,dt=to?new Date(to):null;
+      return(!df||d>=df)&&(!dt||d<=dt)&&(!bln||r.bulan===bln);
+    });
+    if(!rows.length){toast('⚠️ Tidak ada data','err');return}
+    const header='Tanggal,Bulan,Kategori,Nominal,Pembayaran,Detail,Metode,Jenis';
+    const csv=rows.map(r=>`${r.tanggal},${r.bulan},"${r.kategori}",${r.nominal},"${r.pembayaran}","${r.detail||''}","${r.metode}",${r.jenis}`).join('\n');
+    const blob=new Blob([header+'\n'+csv],{type:'text/csv'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`transaksi_${from||'all'}_${to||'all'}.csv`;a.click();
+    URL.revokeObjectURL(url);toast('✅ CSV diunduh!','ok');closeOv(null,'ovSett');return;
   }
   if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('✅ Nama diperbarui','ok')}}
   else if(settModalType==='anggaran'){
-    const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
-    dbOpts.kategoris.filter(k=>!k.toLowerCase().includes('income')).forEach(k=>{const el=document.getElementById('bgt_'+btoa(k).replace(/[^a-zA-Z0-9]/g,''));if(el&&el.value)budgets[k]=Number(el.value);else if(el&&!el.value)delete budgets[k]});localStorage.setItem('mm_budgets',JSON.stringify(budgets));toast('✅ Anggaran disimpan','ok')}
+    (dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income')).forEach(k=>{const el=document.getElementById('bgt_'+btoa(k).replace(/[^a-zA-Z0-9]/g,''));if(el&&el.value)budgets[k]=Number(el.value);else if(el&&!el.value)delete budgets[k]});localStorage.setItem('mm_budgets',JSON.stringify(budgets));toast('✅ Anggaran disimpan','ok')}
   else if(settModalType==='alertpct'){const val=Number(document.getElementById('alertPctInput').value);if(val>=50&&val<=100){alertPct=val;document.getElementById('alertPctLabel').textContent=`${alertPct}% dari anggaran`;saveSettingsStorage();toast('✅ Batas diperbarui','ok')}}
   else if(settModalType==='periode'){
-    const s=document.getElementById('periodeStart').value;
-    const e=document.getElementById('periodeEnd').value;
-    if(s&&e&&new Date(s)<new Date(e)){
-      localStorage.setItem('mm_periode',JSON.stringify({startDate:s,endDate:e}));
-      updatePeriodUI();loadDashboard();
-      toast('✅ Periode diperbarui','ok');
-    } else {toast('⚠️ Tanggal tidak valid','err');return;}
+    const from=document.getElementById('periodeFrom')?.value;
+    const to=document.getElementById('periodeTo')?.value;
+    if(from&&to){localStorage.setItem('mm_periode',JSON.stringify({startDate:from,endDate:to}));updatePeriodUI();loadDashboard();toast('✅ Periode disimpan','ok')}
   }
   else if(settModalType==='katrata'){
     const checks=document.querySelectorAll('#settModalBody input[type=checkbox]');
-    const excluded=[];checks.forEach(c=>{if(c.checked)excluded.push(c.value)});
-    localStorage.setItem('mm_fixed_cats',JSON.stringify(excluded));
-    toast('✅ Pengaturan rata-rata disimpan','ok');
-    updateKatRataLabel();allRows=[];loadDashboard();
+    const excl=[];checks.forEach(c=>{if(c.checked)excl.push(c.value)});
+    localStorage.setItem('mm_fixed_cats',JSON.stringify(excl));updateKatRataLabel();toast('✅ Kategori disimpan','ok');
+  }
+  else if(settModalType==='rekening'){
+    const val=document.getElementById('newBankInput')?.value.trim();
+    if(val){const a=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_banks',JSON.stringify(a));fetchDBOptions();toast('✅ Rekening ditambah','ok')}else toast('⚠️ Sudah ada','err')}
+  }
+  else if(settModalType==='kategori'){
+    const val=document.getElementById('newKatInput')?.value.trim();
+    if(val){const a=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_kats',JSON.stringify(a));fetchDBOptions();toast('✅ Kategori ditambah','ok')}else toast('⚠️ Sudah ada','err')}
   }
   else if(settModalType==='password'){const old=document.getElementById('passOld').value,nw=document.getElementById('passNew').value,cf=document.getElementById('passConf').value;if(old!==adminPassword){toast('❌ Password lama salah','err');return}if(nw!==cf){toast('❌ Konfirmasi tidak cocok','err');return}if(nw.length<4){toast('❌ Min 4 karakter','err');return}adminPassword=nw;saveSettingsStorage();toast('✅ Password diperbarui','ok')}
   closeOv(null,'ovSett');
 }
 
-function autoFriday(inputId){
-  const inp=document.getElementById(inputId);if(!inp||!inp.value)return;
-  const d=new Date(inp.value+'T00:00:00');const dow=d.getDay();
-  if(dow===6)d.setDate(d.getDate()-1);else if(dow===0)d.setDate(d.getDate()-2);
-  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
-  inp.value=`${y}-${m}-${dd}`;
-}
-function updateKatRataLabel(){
-  const excl=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
-  const el=document.getElementById('katRataLabel');if(el)el.textContent=`${excl.length} kategori dikecualikan`;
-}
-function saveSettingsStorage(){const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.notifEnabled=notifEnabled;s.alertPct=alertPct;s.adminPassword=adminPassword;localStorage.setItem('mm_settings',JSON.stringify(s))}
-function toggleNotif(){notifEnabled=!notifEnabled;const nt=document.getElementById('notifToggle');if(nt)nt.classList.toggle('on',notifEnabled);saveSettingsStorage();toast(notifEnabled?'🔔 Notifikasi aktif':'🔕 Nonaktif','ok')}
-function resetPeriode(){localStorage.removeItem('mm_periode');updatePeriodUI();closeOv(null,'ovSett');loadDashboard();toast('🔄 Periode direset ke otomatis','ok')}
-
 function exportCSV(){
   if(!allRows.length){toast('⚠️ Load data dulu','err');return}
-  // Show export modal
   const body=document.getElementById('settModalBody');
   const title=document.getElementById('settModalTitle');
   settModalType='export';
@@ -979,6 +903,21 @@ function exportCSV(){
     </div>`;
   document.getElementById('ovSett').classList.add('open');
 }
+
+function autoFriday(inputId){
+  const inp=document.getElementById(inputId);if(!inp||!inp.value)return;
+  const d=new Date(inp.value+'T00:00:00');const dow=d.getDay();
+  if(dow===6)d.setDate(d.getDate()-1);else if(dow===0)d.setDate(d.getDate()-2);
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  inp.value=`${y}-${m}-${dd}`;
+}
+function updateKatRataLabel(){
+  const excl=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
+  const el=document.getElementById('katRataLabel');if(el)el.textContent=`${excl.length} kategori dikecualikan`;
+}
+function saveSettingsStorage(){const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.notifEnabled=notifEnabled;s.alertPct=alertPct;s.adminPassword=adminPassword;localStorage.setItem('mm_settings',JSON.stringify(s))}
+function toggleNotif(){notifEnabled=!notifEnabled;const nt=document.getElementById('notifToggle');if(nt)nt.classList.toggle('on',notifEnabled);saveSettingsStorage();toast(notifEnabled?'🔔 Notifikasi aktif':'🔕 Nonaktif','ok')}
+function resetPeriode(){localStorage.removeItem('mm_periode');updatePeriodUI();closeOv(null,'ovSett');loadDashboard();toast('🔄 Periode direset ke otomatis','ok')}
 
 // ═══ THEME ═══
 function loadTheme(){setTheme(localStorage.getItem('mm_t')||'cosmic',false)}
@@ -1069,7 +1008,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('inTgl').value=getLocalDate();syncBulan('in');
   const now=new Date();
   document.getElementById('rekapTahun').value=String(now.getFullYear());
-  // Set target form defaults
   const tgtFrom=document.getElementById('tgtFrom');
   const tgtTo=document.getElementById('tgtTo');
   if(tgtFrom)tgtFrom.value=MOS[now.getMonth()];
