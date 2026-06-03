@@ -152,7 +152,7 @@
 
 <!-- REKAP -->
 <div id="pg-rekap" class="page">
-  <div class="pg-hd"><div><div class="pg-title">Rekap Total</div><div class="pg-sub">Ringkasan Tahunan</div></div><select class="spill" id="rekapTahun" onchange="loadRekap()"><option>2024</option><option>2025</option><option>2026</option><option>2027</option></select></div>
+  <div class="pg-hd"><div><div class="pg-title">Rekap Total</div><div class="pg-sub">Ringkasan Tahunan</div></div><select class="spill" id="rekapTahun" onchange="loadRekap()"><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option><option>2032</option><option>2033</option><option>2034</option><option>2035</option></select></div>
   <div class="rekap-hero"><div class="rekap-grid"><div class="rekap-stat"><div class="rekap-stat-lbl">Total Pemasukan</div><div class="rekap-stat-val" id="rekap-masuk">—</div></div><div class="rekap-stat"><div class="rekap-stat-lbl">Total Pengeluaran</div><div class="rekap-stat-val" id="rekap-keluar">—</div></div></div><div class="rekap-kas"><div class="rekap-kas-lbl">Arus Kas Tahunan</div><div class="rekap-kas-val" id="rekap-kas">—</div></div></div>
   <div class="sec-lbl">Per Bulan</div>
   <div id="rekapList" class="month-list"><div class="skel skel-card"></div><div class="skel skel-card"></div></div>
@@ -272,16 +272,12 @@
       <div class="ai-input-zone">
         <div class="ai-zone-title">✨ Input Cepat dengan AI</div>
         <div class="ai-zone-btns">
-          <button class="ai-btn" id="voiceBtn" onclick="toggleVoice()">
-            <span class="ai-btn-ico">🎤</span>
-            <span class="ai-btn-lbl">Voice Note</span>
-          </button>
           <button class="ai-btn" id="imgBtn" onclick="document.getElementById('imgInput').click()">
-            <span class="ai-btn-ico">📷</span>
-            <span class="ai-btn-lbl">Foto Struk</span>
+            <span class="ai-btn-ico">🖼️</span>
+            <span class="ai-btn-lbl">Upload Gambar</span>
           </button>
         </div>
-        <input type="file" id="imgInput" accept="image/*" capture="environment" style="display:none" onchange="handleImageInput(this)">
+        <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleImageInput(this)">
         <div class="ai-status" id="aiStatus" style="display:none">
           <div class="ai-status-inner">
             <div class="spin" id="aiSpin" style="display:none"></div>
