@@ -1,4 +1,5 @@
 const API_URL='https://manager-khaki-ten.vercel.app'; // Vercel → Supabase
+const GSHEET_URL='https://script.google.com/macros/s/AKfycbxCbuzuHQcvi15D8kFHneezpoLSQfZJOCcky02GjRTjnWC9PeDuf9F7mopBC38TKjpp6A/exec';
 const LOGO_URL='https://raw.githubusercontent.com/MR-REAL-png/Manager/main/logo.png';
 const MOS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -1024,12 +1025,110 @@ async function saveSettModal(){
   closeOv(null,'ovSett');
 }
 
+function triggerExportGSheet(){
+  const from=document.getElementById('expFrom')?.value;
+  const to=document.getElementById('expTo')?.value;
+  const bln=document.getElementById('expBulan')?.value;
+  let rows=allRows.filter(r=>{
+    const d=new Date(r.tanggal);
+    const df=from?new Date(from):null,dt=to?new Date(to):null;
+    return(!df||d>=df)&&(!dt||d<=dt)&&(!bln||r.bulan===bln);
+  });
+  if(!rows.length){toast('⚠️ Tidak ada data di rentang ini','err');return}
+  const fromDate=from?fmtDateShort(new Date(from)):'awal';
+  const toDate=to?fmtDateShort(new Date(to)):'sekarang';
+  showConfirm('📤 Export ke GSheet',`Akan export ${rows.length} baris, periode ${fromDate} – ${toDate}. Lanjut?`,()=>{
+    doExportGSheet(from,to,bln);
+  });
+}
+
+async function doExportGSheet(from,to,bln){
+  const btn=document.getElementById('btnExportGSheet');
+
+  // Filter rows
+  let rows=allRows.filter(r=>{
+    const d=new Date(r.tanggal);
+    const df=from?new Date(from):null,dt=to?new Date(to):null;
+    return(!df||d>=df)&&(!dt||d<=dt)&&(!bln||r.bulan===bln);
+  });
+
+  // Disable tombol & ganti label
+  if(btn){btn.disabled=true;btn.textContent='⏳ Mengirim...';}
+
+  // Inject progress bar ke body modal
+  const body=document.getElementById('settModalBody');
+  let pw=document.getElementById('gsheetProgressWrap');
+  if(!pw){
+    pw=document.createElement('div');
+    pw.id='gsheetProgressWrap';
+    pw.style.cssText='margin-top:12px;background:rgba(255,255,255,0.08);border-radius:8px;overflow:hidden;height:28px;position:relative';
+    pw.innerHTML=`<div id="gsheetProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#34a853,#0f9d58);transition:width 0.4s ease;border-radius:8px"></div><div id="gsheetProgressLabel" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:#fff;font-weight:600">0%</div>`;
+    body.appendChild(pw);
+  }
+
+  const bar=document.getElementById('gsheetProgressBar');
+  const lbl=document.getElementById('gsheetProgressLabel');
+
+  // Fake progress — naik pelan hingga 85%, makin lambat mendekati batas
+  let pct=0;
+  const interval=setInterval(()=>{
+    const step=pct<40?4:pct<65?2:pct<80?0.8:0.2;
+    pct=Math.min(pct+step,85);
+    bar.style.width=pct+'%';
+    lbl.textContent=Math.round(pct)+'%';
+  },200);
+
+  // Map ke format 8 kolom: Tanggal,Bulan,Kategori,Nominal,Pembayaran,Detail,Metode,Jenis
+  const mapped=rows.map(r=>{
+    const d=new Date(r.tanggal);
+    const tgl=`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+    return[tgl,r.bulan,r.kategori,r.nominal,r.pembayaran,r.detail||'',r.metode,r.jenis];
+  });
+
+  try{
+    const res=await fetch(GSHEET_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rows:mapped,dateFrom:from||'',dateTo:to||''})
+    });
+    const json=await res.json();
+
+    clearInterval(interval);
+    // Langsung lompat ke 100%
+    bar.style.width='100%';
+    lbl.textContent='100%';
+    await new Promise(r=>setTimeout(r,400));
+
+    if(json.status==='ok'||json.success||res.ok){
+      toast('✅ '+rows.length+' baris berhasil dikirim ke GSheet!','ok');
+      closeOv(null,'ovSett');
+    } else {
+      toast('❌ GSheet menolak: '+(json.message||'Unknown error'),'err');
+      resetGSheetBtn(btn);
+    }
+  }catch(err){
+    clearInterval(interval);
+    bar.style.width='100%';
+    bar.style.background='linear-gradient(90deg,#ef4444,#dc2626)';
+    lbl.textContent='Gagal';
+    await new Promise(r=>setTimeout(r,600));
+    toast('❌ Gagal kirim ke GSheet: '+err.message,'err');
+    resetGSheetBtn(btn);
+  }
+}
+
+function resetGSheetBtn(btn){
+  if(btn){btn.disabled=false;btn.textContent='📤 Export ke GSheet';}
+  const pw=document.getElementById('gsheetProgressWrap');
+  if(pw)pw.remove();
+}
+
 function exportCSV(){
   if(!allRows.length){toast('⚠️ Load data dulu','err');return}
   const body=document.getElementById('settModalBody');
   const title=document.getElementById('settModalTitle');
   settModalType='export';
-  title.textContent='📊 Export Data CSV';
+  title.textContent='📊 Export Data';
   const now=new Date();
   body.innerHTML=`
     <p style="font-size:0.75rem;color:var(--tx2);margin-bottom:10px">Pilih rentang tanggal export:</p>
@@ -1040,6 +1139,10 @@ function exportCSV(){
     </div>
     <div style="margin-top:8px;padding:8px 10px;background:var(--glass);border-radius:8px;font-size:0.7rem;color:var(--tx2)">
       Total data tersedia: <strong style="color:#fff">${allRows.length} transaksi</strong>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-ok" style="flex:1;font-size:0.78rem" onclick="saveSettModal()">⬇️ Download CSV</button>
+      <button class="btn-ok" id="btnExportGSheet" style="flex:1;font-size:0.78rem;background:linear-gradient(135deg,#34a853,#0f9d58)" onclick="triggerExportGSheet()">📤 Export ke GSheet</button>
     </div>`;
   document.getElementById('ovSett').classList.add('open');
 }
