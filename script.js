@@ -339,21 +339,29 @@ function renderChartHarian(rows){
   const tc='rgba(255,255,255,0.5)';
   const labels=sorted.map(d=>{const p=d.split('-');return`${p[2]}/${p[1]}`});
   const values=sorted.map(d=>byDay[d]);
-  const maxVal=Math.max(...values);
-  // Warna bar: merah kalau tertinggi, ungu/biru sisanya
-  const bgColors=values.map(v=>v===maxVal?'rgba(248,113,113,0.7)':isOcean?'rgba(96,165,250,0.55)':'rgba(167,139,250,0.55)');
-  const bdColors=values.map(v=>v===maxVal?'#f87171':isOcean?'#60a5fa':'#a78bfa');
+  const lineColor=isOcean?'#60a5fa':'#a78bfa';
+  const pointColor=isOcean?'#38bdf8':'#f472b6';
+  // Gradient fill untuk area di bawah garis
+  const gradient=ctx.createLinearGradient(0,0,0,200);
+  gradient.addColorStop(0,isOcean?'rgba(96,165,250,0.35)':'rgba(167,139,250,0.35)');
+  gradient.addColorStop(1,isOcean?'rgba(96,165,250,0.02)':'rgba(167,139,250,0.02)');
   chartHarian=new Chart(ctx,{
-    type:'bar',
+    type:'line',
     data:{
       labels,
       datasets:[{
         label:'Pengeluaran',
         data:values,
-        backgroundColor:bgColors,
-        borderColor:bdColors,
-        borderWidth:1.5,
-        borderRadius:5,
+        fill:true,
+        backgroundColor:gradient,
+        borderColor:lineColor,
+        borderWidth:2,
+        pointBackgroundColor:pointColor,
+        pointBorderColor:lineColor,
+        pointRadius:4,
+        pointHoverRadius:6,
+        pointBorderWidth:1.5,
+        tension:0.4,
       }]
     },
     options:{
