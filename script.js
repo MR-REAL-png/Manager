@@ -325,14 +325,13 @@ function renderChartKat(byCat){
 function renderChartHarian(rows){
   const wrap=document.getElementById('chartHarian')?.parentElement;if(!wrap)return;
   if(chartHarian){try{chartHarian.destroy()}catch(e){}chartHarian=null;}
-  // Kelompokkan pengeluaran per hari
   const byDay={};
   rows.filter(r=>r.jenis==='Pengeluaran').forEach(r=>{
     byDay[r.tanggal]=(byDay[r.tanggal]||0)+r.nominal;
   });
-  // Isi hari-hari kosong antara tanggal pertama sampai hari ini
   const allDates=Object.keys(byDay).sort();
   if(!allDates.length){wrap.innerHTML='<div class="empty"><div class="ei">📈</div><p>Belum ada data harian</p></div>';return}
+  // Isi hari kosong dari tanggal pertama sampai hari ini
   const startD=new Date(allDates[0]);
   const today=new Date();today.setHours(0,0,0,0);
   const filledDates=[];
@@ -340,22 +339,28 @@ function renderChartHarian(rows){
     const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     filledDates.push({key,val:byDay[key]||0});
   }
-  // Kumulatif
+  // Nilai kumulatif
   let cum=0;
   const cumValues=filledDates.map(({val})=>{cum+=val;return cum});
   const labels=filledDates.map(({key})=>{const p=key.split('-');return`${p[2]}/${p[1]}`});
   wrap.innerHTML='<canvas id="chartHarian"></canvas>';
   const ctx=document.getElementById('chartHarian').getContext('2d');
   const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
-  const tc='rgba(255,255,255,0.5)';
-  const lineColor=isOcean?'#60a5fa':'#a78bfa';
-  const pointColor=isOcean?'#38bdf8':'#f472b6';
-  const gradient=ctx.createLinearGradient(0,0,0,220);
-  gradient.addColorStop(0,isOcean?'rgba(96,165,250,0.4)':'rgba(167,139,250,0.4)');
-  gradient.addColorStop(1,isOcean?'rgba(96,165,250,0.02)':'rgba(167,139,250,0.02)');
-  // Titik terakhir (hari ini) berwarna merah/pink sebagai penanda
-  const pointColors=cumValues.map((_,i)=>i===cumValues.length-1?'#f87171':lineColor);
-  const pointRadii=cumValues.map((_,i)=>i===cumValues.length-1?6:3);
+  const tc='rgba(255,255,255,0.45)';
+  // Gradient area: cyan → magenta → transparan
+  const gradient=ctx.createLinearGradient(0,0,0,230);
+  gradient.addColorStop(0,'rgba(99,234,210,0.35)');
+  gradient.addColorStop(0.5,'rgba(168,85,247,0.2)');
+  gradient.addColorStop(1,'rgba(168,85,247,0.0)');
+  // Warna garis: gradient dari cyan ke ungu
+  const lineGrad=ctx.createLinearGradient(0,0,ctx.canvas.width||400,0);
+  lineGrad.addColorStop(0,'#63EAD2');
+  lineGrad.addColorStop(0.5,'#a855f7');
+  lineGrad.addColorStop(1,'#f472b6');
+  // Titik: kecil transparan, kecuali hari ini merah muda
+  const pointColors=cumValues.map((_,i)=>i===cumValues.length-1?'#f472b6':'rgba(255,255,255,0.15)');
+  const pointBorder=cumValues.map((_,i)=>i===cumValues.length-1?'#f472b6':'rgba(255,255,255,0.2)');
+  const pointSizes=cumValues.map((_,i)=>i===cumValues.length-1?5:2);
   chartHarian=new Chart(ctx,{
     type:'line',
     data:{
@@ -365,26 +370,39 @@ function renderChartHarian(rows){
         data:cumValues,
         fill:true,
         backgroundColor:gradient,
-        borderColor:lineColor,
-        borderWidth:2.5,
+        borderColor:lineGrad,
+        borderWidth:1.5,
         pointBackgroundColor:pointColors,
-        pointBorderColor:pointColors,
-        pointRadius:pointRadii,
-        pointHoverRadius:7,
-        tension:0.35,
+        pointBorderColor:pointBorder,
+        pointRadius:pointSizes,
+        pointHoverRadius:6,
+        pointHoverBackgroundColor:'#f472b6',
+        tension:0.45,
       }]
     },
     options:{
       responsive:true,
-      animation:{duration:1000,easing:'easeOutQuart'},
+      animation:{duration:1200,easing:'easeInOutQuart'},
       plugins:{
         legend:{display:false},
-        tooltip:{callbacks:{label:c=>` Total: ${rp(c.raw)}`}}
+        tooltip:{
+          callbacks:{
+            label:c=>` Total: ${rp(c.raw)}`,
+            title:t=>`📅 ${t[0].label}`
+          },
+          backgroundColor:'rgba(15,12,41,0.85)',
+          titleColor:'rgba(255,255,255,0.6)',
+          bodyColor:'#f472b6',
+          borderColor:'rgba(168,85,247,0.4)',
+          borderWidth:1,
+          padding:10,
+          cornerRadius:8,
+        }
       },
       scales:{
         y:{
           ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},
-          grid:{color:'rgba(255,255,255,0.06)'},
+          grid:{color:'rgba(255,255,255,0.04)'},
           border:{display:false}
         },
         x:{
@@ -397,17 +415,11 @@ function renderChartHarian(rows){
   });
 }
 
-let bmonRingkas=true;
 function renderBudget(byCat){
   const el=document.getElementById('budgetList');
-  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
-  const hasBudget=Object.values(budgets).some(v=>Number(v)>0);
-  // Sembunyikan komposisi jika sudah ada budget
-  const kompSec=document.getElementById('kompSection');
-  if(kompSec)kompSec.style.display=hasBudget?'none':'';
   if(!byCat.length){el.innerHTML='<div class="empty"><div class="ei">✅</div><p>Belum ada pengeluaran</p></div>';renderBudgetMonitor([]);return}
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
-  // Toggle Semua/Ringkas komposisi
+  // Toggle Semua/Ringkas
   const btn=document.getElementById('btnToggleView');
   if(btn){btn.classList.toggle('on',komposisiRingkas);btn.textContent=komposisiRingkas?'📋 Semua':'🔢 Ringkas';}
   let tampil=byCat;
@@ -439,43 +451,26 @@ function toggleKomposisiView(){
   renderBudget(byKatArr);
 }
 
-function toggleBmonView(){
-  bmonRingkas=!bmonRingkas;
-  const byKat=groupBy(allRows.filter(r=>{
-    const{startDate,endDate}=getActivePeriodResolved();
-    const sd=new Date(startDate);sd.setHours(0,0,0,0);
-    const ed=new Date(endDate);ed.setHours(23,59,59,999);
-    const d=new Date(r.tanggal);
-    return d>=sd&&d<=ed&&r.jenis==='Pengeluaran';
-  }),'kategori');
-  const byKatArr=Object.entries(byKat).map(([k,v])=>({kategori:k,nominal:v.reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
-  renderBudgetMonitor(byKatArr);
-}
 function renderBudgetMonitor(byCat){
   const el=document.getElementById('budgetMonitor');
   const secLbl=document.getElementById('bmonSecLbl');
   if(!el||!secLbl)return;
   const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
-  const allItems=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
+  const items=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
     const budget=budgets[k.kategori];
     const pct=Math.min(Math.round(k.nominal/budget*100),999);
-    const cls=pct>100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
+    const cls=pct>=100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
     const barW=Math.min(pct,100);
-    const over=pct>100;
+    const over=pct>=100;
     return{k,budget,pct,cls,barW,over};
   });
-  if(!allItems.length){el.style.display='none';secLbl.style.display='none';return}
-  // Toggle ringkas/semua di header bmon
-  const bmonBtn=document.getElementById('btnBmonToggle');
-  if(bmonBtn){bmonBtn.classList.toggle('on',bmonRingkas);bmonBtn.textContent=bmonRingkas?'📋 Semua':'🔢 Ringkas';}
-  let items=allItems;
-  if(bmonRingkas&&allItems.length>5)items=allItems.slice(0,5);
+  if(!items.length){el.style.display='none';secLbl.style.display='none';return}
   secLbl.style.display='';el.style.display='flex';
   el.innerHTML=items.map(({k,budget,pct,cls,barW,over},i)=>`
     <div class="bmon-item" style="animation-delay:${i*0.05}s">
       <div class="bmon-top">
         <span class="bmon-name">${k.kategori}</span>
-        <span class="bmon-pct" style="color:${pct>100?'var(--red)':pct===100?'var(--grn)':pct>=alertPct?'#fbbf24':'var(--grn)'}">${pct}%${pct>100?' 🚨':pct===100?' 🎯':pct>=alertPct?' ⚠️':' ✅'}</span>
+        <span class="bmon-pct" style="color:${pct>=100?`var(--red)`:pct>=alertPct?`#fbbf24`:`var(--grn)`}">${pct}%${pct>=100?` 🚨`:pct>=alertPct?` ⚠️`:` ✅`}</span>
       </div>
       <div class="bmon-bar"><div class="bmon-fill ${cls}" style="width:0%" data-w="${barW}"></div></div>
       <div class="bmon-amts">
@@ -483,9 +478,6 @@ function renderBudgetMonitor(byCat){
         <span>dari ${rpShort(budget)}</span>
       </div>
     </div>`).join('');
-  if(bmonRingkas&&allItems.length>5){
-    el.innerHTML+=`<div style="text-align:center;font-size:0.72rem;color:var(--tx3);padding:6px 0">+${allItems.length-5} kategori lainnya</div>`;
-  }
   setTimeout(()=>{el.querySelectorAll('.bmon-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
 }
 
