@@ -330,38 +330,56 @@ function renderChartHarian(rows){
   rows.filter(r=>r.jenis==='Pengeluaran').forEach(r=>{
     byDay[r.tanggal]=(byDay[r.tanggal]||0)+r.nominal;
   });
-  // Urutkan tanggal
-  const sorted=Object.keys(byDay).sort();
-  if(!sorted.length){wrap.innerHTML='<div class="empty"><div class="ei">📈</div><p>Belum ada data harian</p></div>';return}
+  // Isi hari-hari kosong antara tanggal pertama sampai hari ini
+  const allDates=Object.keys(byDay).sort();
+  if(!allDates.length){wrap.innerHTML='<div class="empty"><div class="ei">📈</div><p>Belum ada data harian</p></div>';return}
+  const startD=new Date(allDates[0]);
+  const today=new Date();today.setHours(0,0,0,0);
+  const filledDates=[];
+  for(let d=new Date(startD);d<=today;d.setDate(d.getDate()+1)){
+    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    filledDates.push({key,val:byDay[key]||0});
+  }
+  // Kumulatif
+  let cum=0;
+  const cumValues=filledDates.map(({val})=>{cum+=val;return cum});
+  const labels=filledDates.map(({key})=>{const p=key.split('-');return`${p[2]}/${p[1]}`});
   wrap.innerHTML='<canvas id="chartHarian"></canvas>';
   const ctx=document.getElementById('chartHarian').getContext('2d');
   const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
   const tc='rgba(255,255,255,0.5)';
-  const labels=sorted.map(d=>{const p=d.split('-');return`${p[2]}/${p[1]}`});
-  const values=sorted.map(d=>byDay[d]);
-  const maxVal=Math.max(...values);
-  // Warna bar: merah kalau tertinggi, ungu/biru sisanya
-  const bgColors=values.map(v=>v===maxVal?'rgba(248,113,113,0.7)':isOcean?'rgba(96,165,250,0.55)':'rgba(167,139,250,0.55)');
-  const bdColors=values.map(v=>v===maxVal?'#f87171':isOcean?'#60a5fa':'#a78bfa');
+  const lineColor=isOcean?'#60a5fa':'#a78bfa';
+  const pointColor=isOcean?'#38bdf8':'#f472b6';
+  const gradient=ctx.createLinearGradient(0,0,0,220);
+  gradient.addColorStop(0,isOcean?'rgba(96,165,250,0.4)':'rgba(167,139,250,0.4)');
+  gradient.addColorStop(1,isOcean?'rgba(96,165,250,0.02)':'rgba(167,139,250,0.02)');
+  // Titik terakhir (hari ini) berwarna merah/pink sebagai penanda
+  const pointColors=cumValues.map((_,i)=>i===cumValues.length-1?'#f87171':lineColor);
+  const pointRadii=cumValues.map((_,i)=>i===cumValues.length-1?6:3);
   chartHarian=new Chart(ctx,{
-    type:'bar',
+    type:'line',
     data:{
       labels,
       datasets:[{
-        label:'Pengeluaran',
-        data:values,
-        backgroundColor:bgColors,
-        borderColor:bdColors,
-        borderWidth:1.5,
-        borderRadius:5,
+        label:'Total Kumulatif',
+        data:cumValues,
+        fill:true,
+        backgroundColor:gradient,
+        borderColor:lineColor,
+        borderWidth:2.5,
+        pointBackgroundColor:pointColors,
+        pointBorderColor:pointColors,
+        pointRadius:pointRadii,
+        pointHoverRadius:7,
+        tension:0.35,
       }]
     },
     options:{
       responsive:true,
-      animation:{duration:800,easing:'easeOutQuart'},
+      animation:{duration:1000,easing:'easeOutQuart'},
       plugins:{
         legend:{display:false},
-        tooltip:{callbacks:{label:c=>' '+rp(c.raw)}}
+        tooltip:{callbacks:{label:c=>` Total: ${rp(c.raw)}`}}
       },
       scales:{
         y:{
@@ -379,11 +397,17 @@ function renderChartHarian(rows){
   });
 }
 
+let bmonRingkas=true;
 function renderBudget(byCat){
   const el=document.getElementById('budgetList');
+  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  const hasBudget=Object.values(budgets).some(v=>Number(v)>0);
+  // Sembunyikan komposisi jika sudah ada budget
+  const kompSec=document.getElementById('kompSection');
+  if(kompSec)kompSec.style.display=hasBudget?'none':'';
   if(!byCat.length){el.innerHTML='<div class="empty"><div class="ei">✅</div><p>Belum ada pengeluaran</p></div>';renderBudgetMonitor([]);return}
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
-  // Toggle Semua/Ringkas
+  // Toggle Semua/Ringkas komposisi
   const btn=document.getElementById('btnToggleView');
   if(btn){btn.classList.toggle('on',komposisiRingkas);btn.textContent=komposisiRingkas?'📋 Semua':'🔢 Ringkas';}
   let tampil=byCat;
@@ -415,26 +439,43 @@ function toggleKomposisiView(){
   renderBudget(byKatArr);
 }
 
+function toggleBmonView(){
+  bmonRingkas=!bmonRingkas;
+  const byKat=groupBy(allRows.filter(r=>{
+    const{startDate,endDate}=getActivePeriodResolved();
+    const sd=new Date(startDate);sd.setHours(0,0,0,0);
+    const ed=new Date(endDate);ed.setHours(23,59,59,999);
+    const d=new Date(r.tanggal);
+    return d>=sd&&d<=ed&&r.jenis==='Pengeluaran';
+  }),'kategori');
+  const byKatArr=Object.entries(byKat).map(([k,v])=>({kategori:k,nominal:v.reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
+  renderBudgetMonitor(byKatArr);
+}
 function renderBudgetMonitor(byCat){
   const el=document.getElementById('budgetMonitor');
   const secLbl=document.getElementById('bmonSecLbl');
   if(!el||!secLbl)return;
   const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
-  const items=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
+  const allItems=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
     const budget=budgets[k.kategori];
     const pct=Math.min(Math.round(k.nominal/budget*100),999);
-    const cls=pct>=100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
+    const cls=pct>100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
     const barW=Math.min(pct,100);
-    const over=pct>=100;
+    const over=pct>100;
     return{k,budget,pct,cls,barW,over};
   });
-  if(!items.length){el.style.display='none';secLbl.style.display='none';return}
+  if(!allItems.length){el.style.display='none';secLbl.style.display='none';return}
+  // Toggle ringkas/semua di header bmon
+  const bmonBtn=document.getElementById('btnBmonToggle');
+  if(bmonBtn){bmonBtn.classList.toggle('on',bmonRingkas);bmonBtn.textContent=bmonRingkas?'📋 Semua':'🔢 Ringkas';}
+  let items=allItems;
+  if(bmonRingkas&&allItems.length>5)items=allItems.slice(0,5);
   secLbl.style.display='';el.style.display='flex';
   el.innerHTML=items.map(({k,budget,pct,cls,barW,over},i)=>`
     <div class="bmon-item" style="animation-delay:${i*0.05}s">
       <div class="bmon-top">
         <span class="bmon-name">${k.kategori}</span>
-        <span class="bmon-pct" style="color:${pct>=100?`var(--red)`:pct>=alertPct?`#fbbf24`:`var(--grn)`}">${pct}%${pct>=100?` 🚨`:pct>=alertPct?` ⚠️`:` ✅`}</span>
+        <span class="bmon-pct" style="color:${pct>100?'var(--red)':pct===100?'var(--grn)':pct>=alertPct?'#fbbf24':'var(--grn)'}">${pct}%${pct>100?' 🚨':pct===100?' 🎯':pct>=alertPct?' ⚠️':' ✅'}</span>
       </div>
       <div class="bmon-bar"><div class="bmon-fill ${cls}" style="width:0%" data-w="${barW}"></div></div>
       <div class="bmon-amts">
@@ -442,6 +483,9 @@ function renderBudgetMonitor(byCat){
         <span>dari ${rpShort(budget)}</span>
       </div>
     </div>`).join('');
+  if(bmonRingkas&&allItems.length>5){
+    el.innerHTML+=`<div style="text-align:center;font-size:0.72rem;color:var(--tx3);padding:6px 0">+${allItems.length-5} kategori lainnya</div>`;
+  }
   setTimeout(()=>{el.querySelectorAll('.bmon-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
 }
 
@@ -753,13 +797,6 @@ function renderNotif(){
   el.innerHTML=`<div class="notif-list">${notifications.map((n,i)=>`<div class="notif-item ${n.type}" style="animation-delay:${i*0.06}s"><div class="notif-ico">${n.ico}</div><div class="notif-body"><div class="notif-title">${n.title}</div><div class="notif-msg">${n.msg}</div><div class="notif-time">${n.time}</div></div></div>`).join('')}</div>`;
 }
 
-function updateTotalBudgetDisplay(){
-  const el=document.getElementById('totalBudgetVal');if(!el)return;
-  const inputs=document.querySelectorAll('#settModalBody .fi[type="number"]');
-  let total=0;inputs.forEach(inp=>total+=Number(inp.value)||0);
-  el.textContent=rp(total);
-}
-
 function checkBudgetAlerts(byKatArr){
   const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
   const hw=byKatArr.some(k=>{const b=budgets[k.kategori]||0;return b>0&&k.nominal>=b});
@@ -872,19 +909,14 @@ function openSettModal(type){
       const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
       const kats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
       if(!kats.length){body.innerHTML='<div class="empty"><div class="ei">🏷️</div><p>Belum ada kategori.<br>Tambahkan transaksi pengeluaran dulu.</p></div>';return}
-      const totalBudget=kats.reduce((s,k)=>s+(Number(budgets[k])||0),0);
       body.innerHTML=`
         <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
         ${kats.map((k,i)=>{
           const id='bgt_'+i;
           const val=budgets[k]||'';
-          return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" placeholder="Rp — tidak ada limit" value="${val}" min="0" oninput="updateTotalBudgetDisplay()"></div>`;
+          return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" placeholder="Rp — tidak ada limit" value="${val}" min="0"></div>`;
         }).join('')}
-        <div id="totalBudgetBox" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);border-radius:8px;margin-top:4px">
-          <span style="font-size:0.75rem;color:var(--tx2)">💰 Total Anggaran</span>
-          <span id="totalBudgetVal" style="font-size:0.85rem;font-weight:700;color:#a78bfa">${rp(totalBudget)}</span>
-        </div>
-        <div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:0.7rem;color:var(--grn);margin-top:6px">
+        <div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:0.7rem;color:var(--grn);margin-top:4px">
           💡 Budget akan muncul di notifikasi jika pengeluaran melebihi batas.
         </div>`;
     };
