@@ -262,6 +262,11 @@ async function loadDashboard(){
     document.getElementById('d-active-days').textContent=`${days} hari`;
     document.getElementById('d-total-days-val').textContent=`${tdim} hari`;
     avgDetailData={totalFleksibel:totalFleks,totalDays:totalDaysPeriode,avgHarian,byKategori:byKatFleksArr};
+    // Hide komposisi jika ada budget sebelum render
+    const _budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+    const _hasBudget=Object.values(_budgets).some(v=>Number(v)>0);
+    const _kompSec=document.getElementById('kompSection');
+    if(_kompSec)_kompSec.style.display=_hasBudget?'none':'';
     renderChartKat(byKatArr);renderBudget(byKatArr);renderChartHarian(rows);
     updatePeriodUI();
     if(notifEnabled)checkBudgetAlerts(byKatArr);
@@ -333,73 +338,33 @@ function renderChartHarian(rows){
   if(!sorted.length){wrap.innerHTML='<div class="empty"><div class="ei">📈</div><p>Belum ada data harian</p></div>';return}
   wrap.innerHTML='<canvas id="chartHarian"></canvas>';
   const ctx=document.getElementById('chartHarian').getContext('2d');
-  const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
   const tc='rgba(255,255,255,0.45)';
   const labels=sorted.map(d=>{const p=d.split('-');return`${p[2]}/${p[1]}`});
   const values=sorted.map(d=>byDay[d]);
   const maxVal=Math.max(...values);
-  // Gradient area
   const gradient=ctx.createLinearGradient(0,0,0,230);
   gradient.addColorStop(0,'rgba(99,234,210,0.35)');
   gradient.addColorStop(0.5,'rgba(168,85,247,0.2)');
   gradient.addColorStop(1,'rgba(168,85,247,0.0)');
-  // Gradient garis kiri ke kanan
   const lineGrad=ctx.createLinearGradient(0,0,ctx.canvas.width||400,0);
   lineGrad.addColorStop(0,'#63EAD2');
   lineGrad.addColorStop(0.5,'#a855f7');
   lineGrad.addColorStop(1,'#f472b6');
-  // Titik: merah di nilai tertinggi, kecil transparan sisanya
   const pointColors=values.map(v=>v===maxVal?'#f87171':'rgba(255,255,255,0.2)');
   const pointSizes=values.map(v=>v===maxVal?5:2);
   chartHarian=new Chart(ctx,{
     type:'line',
-    data:{
-      labels,
-      datasets:[{
-        label:'Pengeluaran',
-        data:values,
-        fill:true,
-        backgroundColor:gradient,
-        borderColor:lineGrad,
-        borderWidth:1.5,
-        pointBackgroundColor:pointColors,
-        pointBorderColor:pointColors,
-        pointRadius:pointSizes,
-        pointHoverRadius:6,
-        pointHoverBackgroundColor:'#f472b6',
-        tension:0.45,
-      }]
-    },
+    data:{labels,datasets:[{label:'Pengeluaran',data:values,fill:true,backgroundColor:gradient,borderColor:lineGrad,borderWidth:1.5,pointBackgroundColor:pointColors,pointBorderColor:pointColors,pointRadius:pointSizes,pointHoverRadius:6,pointHoverBackgroundColor:'#f472b6',tension:0.45}]},
     options:{
       responsive:true,
       animation:{duration:1000,easing:'easeInOutQuart'},
       plugins:{
         legend:{display:false},
-        tooltip:{
-          callbacks:{
-            label:c=>` ${rp(c.raw)}`,
-            title:t=>`📅 ${t[0].label}`
-          },
-          backgroundColor:'rgba(15,12,41,0.85)',
-          titleColor:'rgba(255,255,255,0.6)',
-          bodyColor:'#f472b6',
-          borderColor:'rgba(168,85,247,0.4)',
-          borderWidth:1,
-          padding:10,
-          cornerRadius:8,
-        }
+        tooltip:{callbacks:{label:c=>` ${rp(c.raw)}`,title:t=>`📅 ${t[0].label}`},backgroundColor:'rgba(15,12,41,0.85)',titleColor:'rgba(255,255,255,0.6)',bodyColor:'#f472b6',borderColor:'rgba(168,85,247,0.4)',borderWidth:1,padding:10,cornerRadius:8}
       },
       scales:{
-        y:{
-          ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},
-          grid:{color:'rgba(255,255,255,0.04)'},
-          border:{display:false}
-        },
-        x:{
-          ticks:{color:tc,font:{size:9},maxRotation:45},
-          grid:{display:false},
-          border:{display:false}
-        }
+        y:{ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
+        x:{ticks:{color:tc,font:{size:9},maxRotation:45},grid:{display:false},border:{display:false}}
       }
     }
   });
@@ -407,6 +372,11 @@ function renderChartHarian(rows){
 
 function renderBudget(byCat){
   const el=document.getElementById('budgetList');
+  // Sembunyikan komposisi jika sudah ada budget
+  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  const hasBudget=Object.values(budgets).some(v=>Number(v)>0);
+  const kompSec=document.getElementById('kompSection');
+  if(kompSec)kompSec.style.display=hasBudget?'none':'';
   if(!byCat.length){el.innerHTML='<div class="empty"><div class="ei">✅</div><p>Belum ada pengeluaran</p></div>';renderBudgetMonitor([]);return}
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
   // Toggle Semua/Ringkas
@@ -441,26 +411,42 @@ function toggleKomposisiView(){
   renderBudget(byKatArr);
 }
 
+let bmonRingkas=true;
+function toggleBmonView(){
+  bmonRingkas=!bmonRingkas;
+  const byKat=groupBy(allRows.filter(r=>{
+    const{startDate,endDate}=getActivePeriodResolved();
+    const sd=new Date(startDate);sd.setHours(0,0,0,0);
+    const ed=new Date(endDate);ed.setHours(23,59,59,999);
+    const d=new Date(r.tanggal);
+    return d>=sd&&d<=ed&&r.jenis==='Pengeluaran';
+  }),'kategori');
+  const byKatArr=Object.entries(byKat).map(([k,v])=>({kategori:k,nominal:v.reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
+  renderBudgetMonitor(byKatArr);
+}
 function renderBudgetMonitor(byCat){
   const el=document.getElementById('budgetMonitor');
   const secLbl=document.getElementById('bmonSecLbl');
   if(!el||!secLbl)return;
   const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
-  const items=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
+  const allItems=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
     const budget=budgets[k.kategori];
     const pct=Math.min(Math.round(k.nominal/budget*100),999);
-    const cls=pct>=100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
+    const cls=pct>100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
     const barW=Math.min(pct,100);
-    const over=pct>=100;
+    const over=pct>100;
     return{k,budget,pct,cls,barW,over};
   });
-  if(!items.length){el.style.display='none';secLbl.style.display='none';return}
+  if(!allItems.length){el.style.display='none';secLbl.style.display='none';return}
+  const bmonBtn=document.getElementById('btnBmonToggle');
+  if(bmonBtn){bmonBtn.classList.toggle('on',bmonRingkas);bmonBtn.textContent=bmonRingkas?'📋 Semua':'🔢 Ringkas';}
+  let items=bmonRingkas&&allItems.length>5?allItems.slice(0,5):allItems;
   secLbl.style.display='';el.style.display='flex';
   el.innerHTML=items.map(({k,budget,pct,cls,barW,over},i)=>`
     <div class="bmon-item" style="animation-delay:${i*0.05}s">
       <div class="bmon-top">
         <span class="bmon-name">${k.kategori}</span>
-        <span class="bmon-pct" style="color:${pct>=100?`var(--red)`:pct>=alertPct?`#fbbf24`:`var(--grn)`}">${pct}%${pct>=100?` 🚨`:pct>=alertPct?` ⚠️`:` ✅`}</span>
+        <span class="bmon-pct" style="color:${pct>100?'var(--red)':pct===100?'var(--grn)':pct>=alertPct?'#fbbf24':'var(--grn)'}">${pct}%${pct>100?' 🚨':pct===100?' 🎯':pct>=alertPct?' ⚠️':' ✅'}</span>
       </div>
       <div class="bmon-bar"><div class="bmon-fill ${cls}" style="width:0%" data-w="${barW}"></div></div>
       <div class="bmon-amts">
@@ -468,6 +454,7 @@ function renderBudgetMonitor(byCat){
         <span>dari ${rpShort(budget)}</span>
       </div>
     </div>`).join('');
+  if(bmonRingkas&&allItems.length>5)el.innerHTML+=`<div style="text-align:center;font-size:0.72rem;color:var(--tx3);padding:6px 0">+${allItems.length-5} kategori lainnya</div>`;
   setTimeout(()=>{el.querySelectorAll('.bmon-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
 }
 
@@ -757,7 +744,8 @@ async function loadNotif(){
       const total=txs.reduce((s,r)=>s+r.nominal,0),budget=budgets[kat]||0;
       if(budget>0){
         const pct=Math.round(total/budget*100);
-        if(pct>=100)notifications.push({type:'warn',ico:'🚨',title:`Budget ${kat} Jebol!`,msg:`Realisasi ${rp(total)} (${pct}%) dari budget ${rp(budget)}`,time:'Bulan ini'});
+        if(pct>100)notifications.push({type:'warn',ico:'🚨',title:`Budget ${kat} Jebol!`,msg:`Realisasi ${rp(total)} (${pct}%) dari budget ${rp(budget)}`,time:'Bulan ini'});
+        else if(pct===100)notifications.push({type:'ok',ico:'🎯',title:`${kat} Sesuai Anggaran`,msg:`Terpakai ${rp(total)} — tepat 100% dari budget`,time:'Bulan ini'});
         else if(pct>=alertPct)notifications.push({type:'warn',ico:'⚠️',title:`Peringatan: ${kat}`,msg:`Sudah ${pct}% dari budget. Sisa ${rp(budget-total)}`,time:'Bulan ini'});
         else notifications.push({type:'ok',ico:'✅',title:`${kat} Aman`,msg:`${pct}% dari budget. Sisa ${rp(budget-total)}`,time:'Bulan ini'});
       }
@@ -1137,7 +1125,7 @@ document.addEventListener('click',function(e){
 
 // ═══ UTILS ═══
 function rp(v){if(v===undefined||v===null||v==='')return'Rp 0';return'Rp '+Number(v).toLocaleString('id-ID')}
-function rpShort(v){v=Number(v)||0;if(v>=1e9)return(v/1e9).toFixed(1).replace(/\.0$/,'')+'M';if(v>=1e6)return(v/1e6).toFixed(1).replace(/\.0$/,'')+'jt';if(v>=1e3)return(v/1e3).toFixed(0)+'rb';return String(v)}
+function rpShort(v){v=Number(v)||0;if(v>=1e9)return(v/1e9).toFixed(1).replace(/\.0$/,'')+'M';if(v>=1e6)return(v/1e6).toFixed(2).replace(/\.?0+$/,'')+'jt';if(v>=1e3)return(v/1e3).toFixed(0)+'rb';return String(v)}
 function formatTgl(s){if(!s)return'—';const p=s.split('-');if(p.length!==3||Number(p[0])<1990)return'—';return`${p[2]}/${p[1]}/${p[0]}`}
 function pad(n){return String(n).padStart(2,'0')}
 function getLocalDate(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
