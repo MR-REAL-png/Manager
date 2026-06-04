@@ -1144,6 +1144,7 @@ function exportCSV(){
       <button class="btn-ok" style="flex:1;font-size:0.78rem" onclick="saveSettModal()">⬇️ Download CSV</button>
       <button class="btn-ok" id="btnExportGSheet" style="flex:1;font-size:0.78rem;background:linear-gradient(135deg,#34a853,#0f9d58)" onclick="triggerExportGSheet()">📤 Export ke GSheet</button>
     </div>`;
+  const _ft=document.querySelector('#ovSett .modal-ft');if(_ft)_ft.style.display='none';
   document.getElementById('ovSett').classList.add('open');
 }
 
@@ -1186,7 +1187,7 @@ function openAvgDetail(){
 function closeBs(){document.getElementById('bsOverlay').classList.remove('open')}
 
 // ═══ MODAL ═══
-function closeOv(e,id){if(!e||e.target.id===id)document.getElementById(id).classList.remove('open')}
+function closeOv(e,id){if(!e||e.target.id===id){document.getElementById(id).classList.remove('open');if(id==='ovSett'){const _ft=document.querySelector('#ovSett .modal-ft');if(_ft)_ft.style.display=''}}}
 function showConfirm(title,msg,onOk){document.getElementById('cfmTitle').textContent=title;document.getElementById('cfmMsg').textContent=msg;document.getElementById('cfmOk').onclick=()=>{closeOv(null,'ovConfirm');onOk()};document.getElementById('ovConfirm').classList.add('open')}
 
 // ═══ FORM ═══
