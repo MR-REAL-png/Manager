@@ -1135,10 +1135,7 @@ function applyAIResult(data) {
   }
 }
 
-// ══ GEMINI API KEY — ganti dengan key kamu ══
-const GEMINI_API_KEY = 'AQ.Ab8RN6KEbHAabcnlVocLzq1_Ol_09EOmkZjOV_qM1N1hktqEqQ';
-
-// ── Panggil Gemini API untuk parse gambar struk ──
+// ── Panggil backend Vercel untuk parse gambar struk ──
 async function parseWithClaude(prompt, imageBase64 = null) {
   const today = getLocalDate();
   const katList = getKatListForAI();
@@ -1161,27 +1158,18 @@ Pilih kategori yang paling cocok dari daftar di atas. Jika tidak ada yang cocok,
 Tanggal hari ini: ${today}. Jika tidak ada tanggal di input, gunakan tanggal hari ini.
 Jenis default: Pengeluaran kecuali jelas disebutkan pemasukan/income/gaji/terima.`;
 
-  const parts = [];
-  if (imageBase64) {
-    parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageBase64 } });
-    parts.push({ text: 'Baca struk/nota ini dan ekstrak data transaksinya. ' + systemPrompt });
-  } else {
-    parts.push({ text: systemPrompt + '\n\n' + prompt });
+  const res = await fetch('/api/parse-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageBase64, prompt, systemPrompt })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Backend error');
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts }] })
-    }
-  );
-
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  return await res.json();
 }
 
 // ── VOICE NOTE ──
