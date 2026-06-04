@@ -423,9 +423,9 @@ function renderBudgetMonitor(byCat){
   const items=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
     const budget=budgets[k.kategori];
     const pct=Math.min(Math.round(k.nominal/budget*100),999);
-    const cls=pct>100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
+    const cls=pct>=100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
     const barW=Math.min(pct,100);
-    const over=pct>100;
+    const over=pct>=100;
     return{k,budget,pct,cls,barW,over};
   });
   if(!items.length){el.style.display='none';secLbl.style.display='none';return}
@@ -434,7 +434,7 @@ function renderBudgetMonitor(byCat){
     <div class="bmon-item" style="animation-delay:${i*0.05}s">
       <div class="bmon-top">
         <span class="bmon-name">${k.kategori}</span>
-        <span class="bmon-pct" style="color:${pct>100?`var(--red)`:pct>=alertPct?`#fbbf24`:`var(--grn)`}">${pct}%${pct>100?` 🚨`:pct===100?` 🎯`:pct>=alertPct?` ⚠️`:` ✅`}</span>
+        <span class="bmon-pct" style="color:${pct>=100?`var(--red)`:pct>=alertPct?`#fbbf24`:`var(--grn)`}">${pct}%${pct>=100?` 🚨`:pct>=alertPct?` ⚠️`:` ✅`}</span>
       </div>
       <div class="bmon-bar"><div class="bmon-fill ${cls}" style="width:0%" data-w="${barW}"></div></div>
       <div class="bmon-amts">
@@ -731,8 +731,7 @@ async function loadNotif(){
       const total=txs.reduce((s,r)=>s+r.nominal,0),budget=budgets[kat]||0;
       if(budget>0){
         const pct=Math.round(total/budget*100);
-        if(pct>100)notifications.push({type:'warn',ico:'🚨',title:`Budget ${kat} Jebol!`,msg:`Realisasi ${rp(total)} (${pct}%) dari budget ${rp(budget)}`,time:'Bulan ini'});
-        else if(pct===100)notifications.push({type:'ok',ico:'🎯',title:`${kat} Sesuai Anggaran`,msg:`Terpakai ${rp(total)} — tepat 100% dari budget`,time:'Bulan ini'});
+        if(pct>=100)notifications.push({type:'warn',ico:'🚨',title:`Budget ${kat} Jebol!`,msg:`Realisasi ${rp(total)} (${pct}%) dari budget ${rp(budget)}`,time:'Bulan ini'});
         else if(pct>=alertPct)notifications.push({type:'warn',ico:'⚠️',title:`Peringatan: ${kat}`,msg:`Sudah ${pct}% dari budget. Sisa ${rp(budget-total)}`,time:'Bulan ini'});
         else notifications.push({type:'ok',ico:'✅',title:`${kat} Aman`,msg:`${pct}% dari budget. Sisa ${rp(budget-total)}`,time:'Bulan ini'});
       }
@@ -754,9 +753,16 @@ function renderNotif(){
   el.innerHTML=`<div class="notif-list">${notifications.map((n,i)=>`<div class="notif-item ${n.type}" style="animation-delay:${i*0.06}s"><div class="notif-ico">${n.ico}</div><div class="notif-body"><div class="notif-title">${n.title}</div><div class="notif-msg">${n.msg}</div><div class="notif-time">${n.time}</div></div></div>`).join('')}</div>`;
 }
 
+function updateTotalBudgetDisplay(){
+  const el=document.getElementById('totalBudgetVal');if(!el)return;
+  const inputs=document.querySelectorAll('#settModalBody .fi[type="number"]');
+  let total=0;inputs.forEach(inp=>total+=Number(inp.value)||0);
+  el.textContent=rp(total);
+}
+
 function checkBudgetAlerts(byKatArr){
   const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
-  const hw=byKatArr.some(k=>{const b=budgets[k.kategori]||0;return b>0&&k.nominal>b});
+  const hw=byKatArr.some(k=>{const b=budgets[k.kategori]||0;return b>0&&k.nominal>=b});
   const badge=document.getElementById('notifBadge');
   if(badge)badge.style.display=hw?'inline':'none';
 }
@@ -866,14 +872,19 @@ function openSettModal(type){
       const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
       const kats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
       if(!kats.length){body.innerHTML='<div class="empty"><div class="ei">🏷️</div><p>Belum ada kategori.<br>Tambahkan transaksi pengeluaran dulu.</p></div>';return}
+      const totalBudget=kats.reduce((s,k)=>s+(Number(budgets[k])||0),0);
       body.innerHTML=`
         <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
         ${kats.map((k,i)=>{
           const id='bgt_'+i;
           const val=budgets[k]||'';
-          return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" placeholder="Rp — tidak ada limit" value="${val}" min="0"></div>`;
+          return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" placeholder="Rp — tidak ada limit" value="${val}" min="0" oninput="updateTotalBudgetDisplay()"></div>`;
         }).join('')}
-        <div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:0.7rem;color:var(--grn);margin-top:4px">
+        <div id="totalBudgetBox" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);border-radius:8px;margin-top:4px">
+          <span style="font-size:0.75rem;color:var(--tx2)">💰 Total Anggaran</span>
+          <span id="totalBudgetVal" style="font-size:0.85rem;font-weight:700;color:#a78bfa">${rp(totalBudget)}</span>
+        </div>
+        <div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:0.7rem;color:var(--grn);margin-top:6px">
           💡 Budget akan muncul di notifikasi jika pengeluaran melebihi batas.
         </div>`;
     };
