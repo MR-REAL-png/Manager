@@ -8,7 +8,7 @@ const ADMIN_PASS_DEFAULT='sheril';
 
 let allRows=[],dbOpts={banks:[],kategoris:[],metodes:[],jenis:[]};
 let isAdmin=false,editMode=false;
-let chartKat=null,chartTab=null,chartRekap=null,chartMetode=null,chartKal=null;
+let chartKat=null,chartTab=null,chartRekap=null,chartMetode=null,chartKal=null,chartHarian=null;
 let toastT,avgDetailData=null;
 let kalYear=new Date().getFullYear(),kalMonth=new Date().getMonth();
 let settModalType='';
@@ -262,7 +262,7 @@ async function loadDashboard(){
     document.getElementById('d-active-days').textContent=`${days} hari`;
     document.getElementById('d-total-days-val').textContent=`${tdim} hari`;
     avgDetailData={totalFleksibel:totalFleks,totalDays:totalDaysPeriode,avgHarian,byKategori:byKatFleksArr};
-    renderChartKat(byKatArr);renderBudget(byKatArr);
+    renderChartKat(byKatArr);renderBudget(byKatArr);renderChartHarian(rows);
     updatePeriodUI();
     if(notifEnabled)checkBudgetAlerts(byKatArr);
   }catch(e){toast('❌ Gagal load: '+e.message,'err');console.error(e)}
@@ -322,7 +322,64 @@ function renderChartKat(byCat){
 
 }
 
-function renderBudget(byCat){
+function renderChartHarian(rows){
+  const wrap=document.getElementById('chartHarian')?.parentElement;if(!wrap)return;
+  if(chartHarian){try{chartHarian.destroy()}catch(e){}chartHarian=null;}
+  // Kelompokkan pengeluaran per hari
+  const byDay={};
+  rows.filter(r=>r.jenis==='Pengeluaran').forEach(r=>{
+    byDay[r.tanggal]=(byDay[r.tanggal]||0)+r.nominal;
+  });
+  // Urutkan tanggal
+  const sorted=Object.keys(byDay).sort();
+  if(!sorted.length){wrap.innerHTML='<div class="empty"><div class="ei">📈</div><p>Belum ada data harian</p></div>';return}
+  wrap.innerHTML='<canvas id="chartHarian"></canvas>';
+  const ctx=document.getElementById('chartHarian').getContext('2d');
+  const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
+  const tc='rgba(255,255,255,0.5)';
+  const labels=sorted.map(d=>{const p=d.split('-');return`${p[2]}/${p[1]}`});
+  const values=sorted.map(d=>byDay[d]);
+  const maxVal=Math.max(...values);
+  // Warna bar: merah kalau tertinggi, ungu/biru sisanya
+  const bgColors=values.map(v=>v===maxVal?'rgba(248,113,113,0.7)':isOcean?'rgba(96,165,250,0.55)':'rgba(167,139,250,0.55)');
+  const bdColors=values.map(v=>v===maxVal?'#f87171':isOcean?'#60a5fa':'#a78bfa');
+  chartHarian=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Pengeluaran',
+        data:values,
+        backgroundColor:bgColors,
+        borderColor:bdColors,
+        borderWidth:1.5,
+        borderRadius:5,
+      }]
+    },
+    options:{
+      responsive:true,
+      animation:{duration:800,easing:'easeOutQuart'},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>' '+rp(c.raw)}}
+      },
+      scales:{
+        y:{
+          ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},
+          grid:{color:'rgba(255,255,255,0.06)'},
+          border:{display:false}
+        },
+        x:{
+          ticks:{color:tc,font:{size:9},maxRotation:45},
+          grid:{display:false},
+          border:{display:false}
+        }
+      }
+    }
+  });
+}
+
+
   const el=document.getElementById('budgetList');
   if(!byCat.length){el.innerHTML='<div class="empty"><div class="ei">✅</div><p>Belum ada pengeluaran</p></div>';renderBudgetMonitor([]);return}
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
