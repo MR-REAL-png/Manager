@@ -339,29 +339,21 @@ function renderChartHarian(rows){
   const tc='rgba(255,255,255,0.5)';
   const labels=sorted.map(d=>{const p=d.split('-');return`${p[2]}/${p[1]}`});
   const values=sorted.map(d=>byDay[d]);
-  const lineColor=isOcean?'#60a5fa':'#a78bfa';
-  const pointColor=isOcean?'#38bdf8':'#f472b6';
-  // Gradient fill untuk area di bawah garis
-  const gradient=ctx.createLinearGradient(0,0,0,200);
-  gradient.addColorStop(0,isOcean?'rgba(96,165,250,0.35)':'rgba(167,139,250,0.35)');
-  gradient.addColorStop(1,isOcean?'rgba(96,165,250,0.02)':'rgba(167,139,250,0.02)');
+  const maxVal=Math.max(...values);
+  // Warna bar: merah kalau tertinggi, ungu/biru sisanya
+  const bgColors=values.map(v=>v===maxVal?'rgba(248,113,113,0.7)':isOcean?'rgba(96,165,250,0.55)':'rgba(167,139,250,0.55)');
+  const bdColors=values.map(v=>v===maxVal?'#f87171':isOcean?'#60a5fa':'#a78bfa');
   chartHarian=new Chart(ctx,{
-    type:'line',
+    type:'bar',
     data:{
       labels,
       datasets:[{
         label:'Pengeluaran',
         data:values,
-        fill:true,
-        backgroundColor:gradient,
-        borderColor:lineColor,
-        borderWidth:2,
-        pointBackgroundColor:pointColor,
-        pointBorderColor:lineColor,
-        pointRadius:4,
-        pointHoverRadius:6,
-        pointBorderWidth:1.5,
-        tension:0.4,
+        backgroundColor:bgColors,
+        borderColor:bdColors,
+        borderWidth:1.5,
+        borderRadius:5,
       }]
     },
     options:{
@@ -431,9 +423,9 @@ function renderBudgetMonitor(byCat){
   const items=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
     const budget=budgets[k.kategori];
     const pct=Math.min(Math.round(k.nominal/budget*100),999);
-    const cls=pct>=100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
+    const cls=pct>100?'bmon-over':pct>=alertPct?'bmon-warn':'bmon-ok';
     const barW=Math.min(pct,100);
-    const over=pct>=100;
+    const over=pct>100;
     return{k,budget,pct,cls,barW,over};
   });
   if(!items.length){el.style.display='none';secLbl.style.display='none';return}
@@ -442,7 +434,7 @@ function renderBudgetMonitor(byCat){
     <div class="bmon-item" style="animation-delay:${i*0.05}s">
       <div class="bmon-top">
         <span class="bmon-name">${k.kategori}</span>
-        <span class="bmon-pct" style="color:${pct>=100?`var(--red)`:pct>=alertPct?`#fbbf24`:`var(--grn)`}">${pct}%${pct>=100?` 🚨`:pct>=alertPct?` ⚠️`:` ✅`}</span>
+        <span class="bmon-pct" style="color:${pct>100?`var(--red)`:pct>=alertPct?`#fbbf24`:`var(--grn)`}">${pct}%${pct>100?` 🚨`:pct===100?` 🎯`:pct>=alertPct?` ⚠️`:` ✅`}</span>
       </div>
       <div class="bmon-bar"><div class="bmon-fill ${cls}" style="width:0%" data-w="${barW}"></div></div>
       <div class="bmon-amts">
@@ -739,7 +731,8 @@ async function loadNotif(){
       const total=txs.reduce((s,r)=>s+r.nominal,0),budget=budgets[kat]||0;
       if(budget>0){
         const pct=Math.round(total/budget*100);
-        if(pct>=100)notifications.push({type:'warn',ico:'🚨',title:`Budget ${kat} Jebol!`,msg:`Realisasi ${rp(total)} (${pct}%) dari budget ${rp(budget)}`,time:'Bulan ini'});
+        if(pct>100)notifications.push({type:'warn',ico:'🚨',title:`Budget ${kat} Jebol!`,msg:`Realisasi ${rp(total)} (${pct}%) dari budget ${rp(budget)}`,time:'Bulan ini'});
+        else if(pct===100)notifications.push({type:'ok',ico:'🎯',title:`${kat} Sesuai Anggaran`,msg:`Terpakai ${rp(total)} — tepat 100% dari budget`,time:'Bulan ini'});
         else if(pct>=alertPct)notifications.push({type:'warn',ico:'⚠️',title:`Peringatan: ${kat}`,msg:`Sudah ${pct}% dari budget. Sisa ${rp(budget-total)}`,time:'Bulan ini'});
         else notifications.push({type:'ok',ico:'✅',title:`${kat} Aman`,msg:`${pct}% dari budget. Sisa ${rp(budget-total)}`,time:'Bulan ini'});
       }
@@ -763,7 +756,7 @@ function renderNotif(){
 
 function checkBudgetAlerts(byKatArr){
   const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
-  const hw=byKatArr.some(k=>{const b=budgets[k.kategori]||0;return b>0&&k.nominal>=b});
+  const hw=byKatArr.some(k=>{const b=budgets[k.kategori]||0;return b>0&&k.nominal>b});
   const badge=document.getElementById('notifBadge');
   if(badge)badge.style.display=hw?'inline':'none';
 }
