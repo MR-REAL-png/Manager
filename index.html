@@ -268,13 +268,7 @@
   <div class="modal">
     <div class="modal-hd"><h3>➕ Input Transaksi</h3><button class="modal-x" onclick="closeOv(null,'ovInput')">✕</button></div>
     <div class="modal-bd">
-      <!-- SCAN OVERLAY -->
-      <div class="scan-overlay" id="scanOverlay" style="display:none">
-        <img id="scanPreview" class="scan-preview-img">
-        <div class="scan-line" id="scanLine"></div>
-        <div class="scan-status-text" id="scanStatusText">🤖 AI membaca struk...</div>
-      </div>
-      <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleImageInput(this)">
+
       <div id="quickKatWrap" style="display:none"><div class="qk-lbl">⚡ Terakhir dipakai</div><div class="qk-list" id="quickKatList"></div></div>
       <div class="fr-2"><div class="fr"><label>📅 Tanggal</label><input class="fi" type="date" id="inTgl" onchange="syncBulan('in')"></div><div class="fr"><label>📆 Bulan</label><input class="fi ro" type="text" id="inBulan" readonly></div></div>
       <div class="fr"><label>🔄 Jenis</label><select class="fs" id="inJenis" onchange="onJenisChange('in')"><option value="">— Pilih Jenis —</option><option>Pemasukan</option><option>Pengeluaran</option></select></div>
@@ -283,8 +277,7 @@
       <div class="fr-2"><div class="fr"><label>💳 Metode</label><select class="fs" id="inMetode" onchange="onMetodeChange('in')"><option value="">— Pilih —</option><option>Cash</option><option>Transfer</option><option>QRIS</option></select></div><div class="fr"><label>🏦 Bank</label><select class="fs" id="inBank"><option value="">— Pilih —</option></select></div></div>
       <div class="fr"><label>📝 Keterangan</label><input class="fi" type="text" id="inKet" placeholder="opsional..."></div>
     </div>
-    <div class="modal-ft" style="display:flex;align-items:center;justify-content:space-between">
-      <button class="btn-img-small" id="imgBtn" onclick="document.getElementById('imgInput').click()" title="Upload Gambar">🖼️</button>
+    <div class="modal-ft" style="display:flex;align-items:center;justify-content:flex-end">
       <div style="display:flex;gap:8px">
         <button class="btn-cx" onclick="closeOv(null,'ovInput')">Batal</button>
         <button class="btn-ok" id="btnSimpan" onclick="submitInput()">💾 Simpan</button>
