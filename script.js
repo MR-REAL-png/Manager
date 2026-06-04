@@ -248,7 +248,8 @@ async function loadDashboard(){
     const FIXED_CATS=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
     const fleks=rows.filter(r=>r.jenis==='Pengeluaran'&&!FIXED_CATS.some(fc=>r.kategori.toLowerCase().includes(fc.toLowerCase())));
     const totalFleks=fleks.reduce((s,r)=>s+r.nominal,0);
-    const avgHarian=days>0?Math.round(totalFleks/days):0;
+    const totalDaysPeriode=Math.round((ed-sd)/(1000*60*60*24));
+    const avgHarian=totalDaysPeriode>0?Math.round(totalFleks/totalDaysPeriode):0;
     const byKat=groupBy(rows.filter(r=>r.jenis==='Pengeluaran'),'kategori');
     const byKatArr=Object.entries(byKat).map(([k,v])=>({kategori:k,nominal:v.reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
     const byKatFleks=groupBy(fleks,'kategori');
@@ -260,7 +261,7 @@ async function loadDashboard(){
     document.getElementById('d-avg').textContent=rpShort(avgHarian);
     document.getElementById('d-active-days').textContent=`${days} hari`;
     document.getElementById('d-total-days-val').textContent=`${tdim} hari`;
-    avgDetailData={totalFleksibel:totalFleks,totalDays:days||1,avgHarian,byKategori:byKatFleksArr};
+    avgDetailData={totalFleksibel:totalFleks,totalDays:totalDaysPeriode,avgHarian,byKategori:byKatFleksArr};
     renderChartKat(byKatArr);renderBudget(byKatArr);
     updatePeriodUI();
     if(notifEnabled)checkBudgetAlerts(byKatArr);
