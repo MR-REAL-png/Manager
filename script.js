@@ -1191,7 +1191,7 @@ async function handleImageInput(input) {
   btn.disabled = true;
 
   try {
-    const base64 = await resizeImageToBase64(file, 800);
+    const base64 = await resizeImageToBase64(file, 1200);
     statusText.textContent = '🤖 AI membaca struk...';
 
     const result = await parseWithClaude(null, base64);
@@ -1209,7 +1209,10 @@ async function handleImageInput(input) {
     toast('✅ ' + (desc.join(' · ') || 'Data terdeteksi'), 'ok');
 
   } catch (e) {
-    statusText.textContent = '⚠️ Gagal baca gambar. Isi manual.';
+    const msg = e.message.includes('429') || e.message.toLowerCase().includes('toomany')
+      ? '⏳ Server sibuk, coba lagi sebentar.'
+      : '⚠️ Gagal baca gambar. Isi manual.';
+    statusText.textContent = msg;
     setTimeout(() => { overlay.style.display = 'none'; }, 2500);
     console.error('Image AI error:', e);
   }
@@ -1232,7 +1235,7 @@ function resizeImageToBase64(file, maxSize = 800) {
         canvas.width = w; canvas.height = h;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
-        const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+        const base64 = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
         resolve(base64);
       };
       img.onerror = reject;
