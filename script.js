@@ -329,51 +329,41 @@ function renderChartHarian(rows){
   rows.filter(r=>r.jenis==='Pengeluaran').forEach(r=>{
     byDay[r.tanggal]=(byDay[r.tanggal]||0)+r.nominal;
   });
-  const allDates=Object.keys(byDay).sort();
-  if(!allDates.length){wrap.innerHTML='<div class="empty"><div class="ei">📈</div><p>Belum ada data harian</p></div>';return}
-  // Isi hari kosong dari tanggal pertama sampai hari ini
-  const startD=new Date(allDates[0]);
-  const today=new Date();today.setHours(0,0,0,0);
-  const filledDates=[];
-  for(let d=new Date(startD);d<=today;d.setDate(d.getDate()+1)){
-    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    filledDates.push({key,val:byDay[key]||0});
-  }
-  // Nilai kumulatif
-  let cum=0;
-  const cumValues=filledDates.map(({val})=>{cum+=val;return cum});
-  const labels=filledDates.map(({key})=>{const p=key.split('-');return`${p[2]}/${p[1]}`});
+  const sorted=Object.keys(byDay).sort();
+  if(!sorted.length){wrap.innerHTML='<div class="empty"><div class="ei">📈</div><p>Belum ada data harian</p></div>';return}
   wrap.innerHTML='<canvas id="chartHarian"></canvas>';
   const ctx=document.getElementById('chartHarian').getContext('2d');
   const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
   const tc='rgba(255,255,255,0.45)';
-  // Gradient area: cyan → magenta → transparan
+  const labels=sorted.map(d=>{const p=d.split('-');return`${p[2]}/${p[1]}`});
+  const values=sorted.map(d=>byDay[d]);
+  const maxVal=Math.max(...values);
+  // Gradient area
   const gradient=ctx.createLinearGradient(0,0,0,230);
   gradient.addColorStop(0,'rgba(99,234,210,0.35)');
   gradient.addColorStop(0.5,'rgba(168,85,247,0.2)');
   gradient.addColorStop(1,'rgba(168,85,247,0.0)');
-  // Warna garis: gradient dari cyan ke ungu
+  // Gradient garis kiri ke kanan
   const lineGrad=ctx.createLinearGradient(0,0,ctx.canvas.width||400,0);
   lineGrad.addColorStop(0,'#63EAD2');
   lineGrad.addColorStop(0.5,'#a855f7');
   lineGrad.addColorStop(1,'#f472b6');
-  // Titik: kecil transparan, kecuali hari ini merah muda
-  const pointColors=cumValues.map((_,i)=>i===cumValues.length-1?'#f472b6':'rgba(255,255,255,0.15)');
-  const pointBorder=cumValues.map((_,i)=>i===cumValues.length-1?'#f472b6':'rgba(255,255,255,0.2)');
-  const pointSizes=cumValues.map((_,i)=>i===cumValues.length-1?5:2);
+  // Titik: merah di nilai tertinggi, kecil transparan sisanya
+  const pointColors=values.map(v=>v===maxVal?'#f87171':'rgba(255,255,255,0.2)');
+  const pointSizes=values.map(v=>v===maxVal?5:2);
   chartHarian=new Chart(ctx,{
     type:'line',
     data:{
       labels,
       datasets:[{
-        label:'Total Kumulatif',
-        data:cumValues,
+        label:'Pengeluaran',
+        data:values,
         fill:true,
         backgroundColor:gradient,
         borderColor:lineGrad,
         borderWidth:1.5,
         pointBackgroundColor:pointColors,
-        pointBorderColor:pointBorder,
+        pointBorderColor:pointColors,
         pointRadius:pointSizes,
         pointHoverRadius:6,
         pointHoverBackgroundColor:'#f472b6',
@@ -382,12 +372,12 @@ function renderChartHarian(rows){
     },
     options:{
       responsive:true,
-      animation:{duration:1200,easing:'easeInOutQuart'},
+      animation:{duration:1000,easing:'easeInOutQuart'},
       plugins:{
         legend:{display:false},
         tooltip:{
           callbacks:{
-            label:c=>` Total: ${rp(c.raw)}`,
+            label:c=>` ${rp(c.raw)}`,
             title:t=>`📅 ${t[0].label}`
           },
           backgroundColor:'rgba(15,12,41,0.85)',
