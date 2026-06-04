@@ -379,7 +379,7 @@ function renderChartHarian(rows){
   });
 }
 
-
+function renderBudget(byCat){
   const el=document.getElementById('budgetList');
   if(!byCat.length){el.innerHTML='<div class="empty"><div class="ei">✅</div><p>Belum ada pengeluaran</p></div>';renderBudgetMonitor([]);return}
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
