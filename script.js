@@ -1050,8 +1050,6 @@ function triggerExportGSheet(){
   if(!rows.length){toast('⚠️ Tidak ada data di rentang ini','err');return}
   const fromDate=from?fmtDateShort(new Date(from)):'awal';
   const toDate=to?fmtDateShort(new Date(to)):'sekarang';
-  // Tutup modal dulu sebelum showConfirm supaya tidak tertimpa
-  closeOv(null,'ovSett');
   // Pakai confirm custom supaya tidak ikut styling "Hapus"
   showExportConfirm('📤 Export ke GSheet',`Akan export ${rows.length} baris, periode ${fromDate} – ${toDate}. Lanjut?`,()=>{
     doExportGSheet(from,to,bln);
@@ -1068,8 +1066,10 @@ function showExportConfirm(title,msg,onOk){
   newBtn.className='btn-ok';
   newBtn.textContent='✅ Lanjut';
   btnOk.parentNode.replaceChild(newBtn,btnOk);
-  newBtn.onclick=()=>{closeOv(null,'ovConfirm');onOk();};
-  document.getElementById('ovConfirm').classList.add('open');
+  newBtn.onclick=()=>{closeOv(null,'ovConfirm');document.getElementById('ovConfirm').style.zIndex='';onOk();};
+  const _ovCfm=document.getElementById('ovConfirm');
+  _ovCfm.style.zIndex='1100';
+  _ovCfm.classList.add('open');
 }
 
 async function doExportGSheet(from,to,bln){
