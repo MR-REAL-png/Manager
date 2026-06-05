@@ -1,5 +1,5 @@
 const API_URL='https://manager-khaki-ten.vercel.app'; // Vercel → Supabase
-const GSHEET_URL='https://script.google.com/macros/s/AKfycbxCbuzuHQcvi15D8kFHneezpoLSQfZJOCcky02GjRTjnWC9PeDuf9F7mopBC38TKjpp6A/exec';
+const GSHEET_URL='https://script.google.com/macros/s/AKfycbyyV1D7koGUFdOtcfBaiqdo9qk5dkqo4Kn-XxMCMCi98MGRlnC7M3-Y35G8uEF2mY2lsQ/exec';
 const LOGO_URL='https://raw.githubusercontent.com/MR-REAL-png/Manager/main/logo.png';
 const MOS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -1025,6 +1025,19 @@ async function saveSettModal(){
   closeOv(null,'ovSett');
 }
 
+function updateExpCount(){
+  const from=document.getElementById('expFrom')?.value;
+  const to=document.getElementById('expTo')?.value;
+  const bln=document.getElementById('expBulan')?.value;
+  const count=allRows.filter(r=>{
+    const d=new Date(r.tanggal);
+    const df=from?new Date(from):null,dt=to?new Date(to):null;
+    return(!df||d>=df)&&(!dt||d<=dt)&&(!bln||r.bulan===bln);
+  }).length;
+  const el=document.getElementById('expCount');
+  if(el)el.textContent=count+' transaksi';
+}
+
 function triggerExportGSheet(){
   const from=document.getElementById('expFrom')?.value;
   const to=document.getElementById('expTo')?.value;
@@ -1037,9 +1050,26 @@ function triggerExportGSheet(){
   if(!rows.length){toast('⚠️ Tidak ada data di rentang ini','err');return}
   const fromDate=from?fmtDateShort(new Date(from)):'awal';
   const toDate=to?fmtDateShort(new Date(to)):'sekarang';
-  showConfirm('📤 Export ke GSheet',`Akan export ${rows.length} baris, periode ${fromDate} – ${toDate}. Lanjut?`,()=>{
+  // Tutup modal dulu sebelum showConfirm supaya tidak tertimpa
+  closeOv(null,'ovSett');
+  // Pakai confirm custom supaya tidak ikut styling "Hapus"
+  showExportConfirm('📤 Export ke GSheet',`Akan export ${rows.length} baris, periode ${fromDate} – ${toDate}. Lanjut?`,()=>{
     doExportGSheet(from,to,bln);
   });
+}
+
+function showExportConfirm(title,msg,onOk){
+  document.getElementById('cfmTitle').textContent=title;
+  document.getElementById('cfmMsg').textContent=msg;
+  const btnOk=document.getElementById('cfmOk');
+  const newBtn=btnOk.cloneNode(true);
+  // Reset styling — hapus gaya destruktif, pakai gaya normal
+  newBtn.style.cssText='';
+  newBtn.className='btn-ok';
+  newBtn.textContent='✅ Lanjut';
+  btnOk.parentNode.replaceChild(newBtn,btnOk);
+  newBtn.onclick=()=>{closeOv(null,'ovConfirm');onOk();};
+  document.getElementById('ovConfirm').classList.add('open');
 }
 
 async function doExportGSheet(from,to,bln){
@@ -1086,10 +1116,12 @@ async function doExportGSheet(from,to,bln){
   });
 
   try{
+    // Kirim sebagai form-encoded supaya tidak kena CORS preflight block
+    const formData=new URLSearchParams();
+    formData.append('data',JSON.stringify({rows:mapped,dateFrom:from||'',dateTo:to||''}));
     const res=await fetch(GSHEET_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({rows:mapped,dateFrom:from||'',dateTo:to||''})
+      body:formData
     });
     const json=await res.json();
 
@@ -1132,13 +1164,13 @@ function exportCSV(){
   const now=new Date();
   body.innerHTML=`
     <p style="font-size:0.75rem;color:var(--tx2);margin-bottom:10px">Pilih rentang tanggal export:</p>
-    <div class="fr"><label>Dari Tanggal</label><input class="fi" type="date" id="expFrom" value="${now.getFullYear()}-01-01"></div>
-    <div class="fr"><label>Sampai Tanggal</label><input class="fi" type="date" id="expTo" value="${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}"></div>
+    <div class="fr"><label>Dari Tanggal</label><input class="fi" type="date" id="expFrom" value="${now.getFullYear()}-01-01" oninput="updateExpCount()"></div>
+    <div class="fr"><label>Sampai Tanggal</label><input class="fi" type="date" id="expTo" value="${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}" oninput="updateExpCount()"></div>
     <div class="fr"><label>Filter Bulan (opsional)</label>
-      <select class="fs" id="expBulan"><option value="">Semua Bulan</option>${MOS.map(m=>`<option>${m}</option>`).join('')}</select>
+      <select class="fs" id="expBulan" onchange="updateExpCount()"><option value="">Semua Bulan</option>${MOS.map(m=>`<option>${m}</option>`).join('')}</select>
     </div>
     <div style="margin-top:8px;padding:8px 10px;background:var(--glass);border-radius:8px;font-size:0.7rem;color:var(--tx2)">
-      Total data tersedia: <strong style="color:#fff">${allRows.length} transaksi</strong>
+      Data terpilih: <strong id="expCount" style="color:#fff">${allRows.length} transaksi</strong>
     </div>
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn-ok" style="flex:1;font-size:0.78rem" onclick="saveSettModal()">⬇️ Download CSV</button>
