@@ -1,5 +1,5 @@
 const API_URL='https://manager-khaki-ten.vercel.app'; // Vercel → Supabase
-const GSHEET_URL='https://script.google.com/macros/s/AKfycbyyV1D7koGUFdOtcfBaiqdo9qk5dkqo4Kn-XxMCMCi98MGRlnC7M3-Y35G8uEF2mY2lsQ/exec';
+const GSHEET_URL='https://script.google.com/macros/s/AKfycbwHu6HvVRXHXNsNwtY2-DTRYY7AUAKcB9eEENTRxHulRiVHq3kJCNb_Cnt-6sycb4rDzw/exec';
 const LOGO_URL='https://raw.githubusercontent.com/MR-REAL-png/Manager/main/logo.png';
 const MOS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -1121,9 +1121,9 @@ async function doExportGSheet(from,to,bln){
     formData.append('data',JSON.stringify({rows:mapped,dateFrom:from||'',dateTo:to||''}));
     const res=await fetch(GSHEET_URL,{
       method:'POST',
-      body:formData
+      body:formData,
+      redirect:'follow'
     });
-    const json=await res.json();
 
     clearInterval(interval);
     // Langsung lompat ke 100%
@@ -1131,12 +1131,25 @@ async function doExportGSheet(from,to,bln){
     lbl.textContent='100%';
     await new Promise(r=>setTimeout(r,400));
 
-    if(json.status==='ok'||json.success||res.ok){
+    // Parse JSON — Apps Script selalu return 200 kalau berhasil
+    let json={};
+    try{const txt=await res.text();json=JSON.parse(txt);}catch(_){}
+
+    if(json.success===true){
       toast('✅ '+rows.length+' baris berhasil dikirim ke GSheet!','ok');
       closeOv(null,'ovSett');
-    } else {
-      toast('❌ GSheet menolak: '+(json.message||'Unknown error'),'err');
+    } else if(json.success===false){
+      toast('❌ GSheet: '+(json.error||json.message||'Unknown error'),'err');
       resetGSheetBtn(btn);
+    } else {
+      // Tidak ada field success sama sekali — anggap berhasil kalau res.ok
+      if(res.ok){
+        toast('✅ '+rows.length+' baris berhasil dikirim ke GSheet!','ok');
+        closeOv(null,'ovSett');
+      } else {
+        toast('❌ Gagal kirim ke GSheet','err');
+        resetGSheetBtn(btn);
+      }
     }
   }catch(err){
     clearInterval(interval);
