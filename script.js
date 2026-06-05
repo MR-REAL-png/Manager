@@ -1126,25 +1126,28 @@ async function doExportGSheet(from,to,bln){
     });
 
     clearInterval(interval);
-    // Langsung lompat ke 100%
+    // Lompat ke 100%
     bar.style.width='100%';
     lbl.textContent='100%';
-    await new Promise(r=>setTimeout(r,400));
 
-    // Parse JSON — Apps Script selalu return 200 kalau berhasil
+    // Parse JSON sementara nunggu delay di 100%
     let json={};
     try{const txt=await res.text();json=JSON.parse(txt);}catch(_){}
 
+    // Tunggu 2.5 detik di 100% supaya progress bar sempat keliatan
+    await new Promise(r=>setTimeout(r,2500));
+
     if(json.success===true){
       toast('✅ '+rows.length+' baris berhasil dikirim ke GSheet!','ok');
+      await new Promise(r=>setTimeout(r,1500));
       closeOv(null,'ovSett');
     } else if(json.success===false){
       toast('❌ GSheet: '+(json.error||json.message||'Unknown error'),'err');
       resetGSheetBtn(btn);
     } else {
-      // Tidak ada field success sama sekali — anggap berhasil kalau res.ok
       if(res.ok){
         toast('✅ '+rows.length+' baris berhasil dikirim ke GSheet!','ok');
+        await new Promise(r=>setTimeout(r,1500));
         closeOv(null,'ovSett');
       } else {
         toast('❌ Gagal kirim ke GSheet','err');
