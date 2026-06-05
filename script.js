@@ -1136,11 +1136,11 @@ async function doExportGSheet(from,to,bln){
     try{const txt=await res.text();json=JSON.parse(txt);}catch(_){}
 
     // Tunggu 2.5 detik di 100% supaya progress bar sempat keliatan
-    await new Promise(r=>setTimeout(r,2500));
+    await new Promise(r=>setTimeout(r,1500));
 
     if(json.success===true){
       toast('✅ '+rows.length+' baris berhasil dikirim ke GSheet!','ok');
-      await new Promise(r=>setTimeout(r,1500));
+      await new Promise(r=>setTimeout(r,1000));
       closeOv(null,'ovSett');
     } else if(json.success===false){
       toast('❌ GSheet: '+(json.error||json.message||'Unknown error'),'err');
