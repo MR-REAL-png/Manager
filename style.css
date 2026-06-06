@@ -211,7 +211,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .dc-badge{display:inline-flex;align-items:center;gap:2px;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:50px;margin-top:2px}
 .dc-badge.inc{background:var(--grn-bg);color:var(--grn)}.dc-badge.spd{background:var(--red-bg);color:var(--red)}
 .dc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;padding-top:5px;border-top:1px solid var(--bdr);align-items:center}
-.dtag{font-size:0.62rem;color:var(--tx2);font-weight:600;background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:50px;white-space:nowrap;display:inline-flex;align-items:center;line-height:1.4}
+.dtag{font-size:0.62rem;color:var(--tx2);font-weight:600;background:rgba(255,255,255,0.1);padding:3px 8px;border-radius:50px;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;gap:3px}
 .dc-ket{font-size:0.65rem;color:var(--tx3);margin-top:3px;font-style:italic}
 .edit-btn{padding:3px 10px;border-radius:50px;border:1.5px solid var(--ac);background:rgba(168,85,247,0.15);color:var(--ac);cursor:pointer;font-size:0.62rem;font-weight:700;white-space:nowrap}
 .edit-mode-btn{padding:4px 12px;border-radius:50px;border:1.5px solid var(--bdr2);background:var(--glass);color:var(--tx2);cursor:pointer;font-size:0.68rem;font-weight:700;white-space:nowrap}
@@ -473,3 +473,79 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .ai-status{margin-top:8px;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:var(--rxs);border:1px solid rgba(255,255,255,0.08)}
 .ai-status-inner{display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--tx2);font-weight:600}
 .ai-transcript{margin-top:6px;font-size:0.68rem;color:var(--tx2);line-height:1.4;font-style:italic;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08)}
+
+/* ── HERO KAS POPUP ── */
+.bs-kas-hero{background:linear-gradient(135deg,#4c1d95,#7c3aed,#be185d);border-radius:var(--rsm);padding:14px;color:#fff;margin-bottom:10px;text-align:center}
+[data-theme="ocean"] .bs-kas-hero{background:linear-gradient(135deg,#0A4A8C,#1060B8,#1E7CDA)}
+.bs-kas-hero-lbl{font-size:0.55rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;opacity:0.8;margin-bottom:4px}
+.bs-kas-hero-val{font-family:var(--ffd);font-size:1.8rem;font-weight:700;line-height:1;margin-bottom:4px}
+.bs-kas-hero-sub{font-size:0.65rem;opacity:0.8}
+.bs-kas-pills{display:flex;gap:8px;margin-bottom:10px}
+.bs-kas-pill{flex:1;background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);padding:10px 8px;text-align:center}
+.bs-kas-pill-lbl{font-size:0.55rem;font-weight:700;text-transform:uppercase;color:var(--tx3);margin-bottom:3px}
+.bs-kas-pill-val{font-family:var(--ffd);font-size:0.85rem;font-weight:700}
+.bs-kas-rows{display:flex;flex-direction:column;gap:4px}
+.bs-kas-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--glass);border:1px solid var(--glass-bdr);border-radius:8px;font-size:0.72rem}
+.bs-kas-row-lbl{color:var(--tx2);font-weight:600}
+.bs-kas-row-val{font-weight:800;font-family:var(--ffd)}
+
+/* ── BUD-ITEM POPUP ── */
+.bs-bud-hero{border-radius:var(--rsm);padding:12px 14px;margin-bottom:10px;color:#fff}
+.bs-bud-hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.bs-bud-hero-name{font-size:1rem;font-weight:800}
+.bs-bud-hero-pct{font-size:1.4rem;font-weight:900;font-family:var(--ffd)}
+.bs-bud-bar-wrap{height:6px;background:rgba(255,255,255,0.2);border-radius:99px;overflow:hidden;margin-bottom:8px}
+.bs-bud-bar-fill{height:100%;border-radius:99px;transition:width 0.8s var(--ease)}
+.bs-bud-hero-amts{display:flex;justify-content:space-between;font-size:0.7rem;opacity:0.85}
+.bs-bud-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.bs-bud-stat{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);padding:8px 10px}
+.bs-bud-stat-lbl{font-size:0.55rem;font-weight:700;color:var(--tx3);text-transform:uppercase;margin-bottom:2px}
+.bs-bud-stat-val{font-size:0.82rem;font-weight:800;font-family:var(--ffd)}
+.bs-bud-txlist{display:flex;flex-direction:column;gap:4px}
+.bs-bud-tx{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--glass);border:1px solid var(--glass-bdr);border-radius:8px}
+.bs-bud-tx-left{display:flex;flex-direction:column;gap:1px}
+.bs-bud-tx-tgl{font-size:0.58rem;color:var(--tx3);font-weight:600}
+.bs-bud-tx-det{font-size:0.7rem;color:var(--tx2)}
+.bs-bud-tx-nom{font-size:0.75rem;font-weight:800;color:var(--red);font-family:var(--ffd)}
+
+/* ── STRUK TRANSAKSI ── */
+.bs-struk{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);overflow:hidden}
+.bs-struk-header{padding:14px 16px 10px;text-align:center;border-bottom:1px dashed rgba(255,255,255,0.15)}
+.bs-struk-header-ico{font-size:2rem;margin-bottom:4px;line-height:1}
+.bs-struk-header-kat{font-size:1rem;font-weight:800;color:#fff;margin-bottom:4px}
+.bs-struk-header-jenis{display:inline-flex;align-items:center;gap:3px;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:50px}
+.bs-struk-header-jenis.inc{background:var(--grn-bg);color:var(--grn)}
+.bs-struk-header-jenis.spd{background:var(--red-bg);color:var(--red)}
+.bs-struk-nom{padding:14px 16px;text-align:center;border-bottom:1px dashed rgba(255,255,255,0.15)}
+.bs-struk-nom-lbl{font-size:0.55rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.bs-struk-nom-val{font-family:var(--ffd);font-size:2rem;font-weight:700;line-height:1}
+.bs-struk-nom-val.inc{color:var(--grn)}.bs-struk-nom-val.spd{color:var(--red)}
+.bs-struk-rows{padding:10px 16px;display:flex;flex-direction:column;gap:0}
+.bs-struk-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.bs-struk-row:last-child{border-bottom:none}
+.bs-struk-row-lbl{font-size:0.65rem;color:var(--tx3);font-weight:600}
+.bs-struk-row-val{font-size:0.72rem;font-weight:700;color:var(--tx2);text-align:right;max-width:60%}
+.bs-struk-row-val.hl{color:#fff}
+.bs-struk-footer{padding:10px 16px;text-align:center;border-top:1px dashed rgba(255,255,255,0.15)}
+.bs-struk-footer-txt{font-size:0.55rem;color:var(--tx3);letter-spacing:0.08em;text-transform:uppercase}
+
+/* ── KAL DETAIL ENHANCED ── */
+.kal-detail{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);padding:0;margin-bottom:12px;overflow:hidden}
+.kal-det-hd{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center}
+.kal-det-date{font-family:var(--ffd);font-size:0.88rem;font-weight:700;color:#fff}
+.kal-det-summary{display:flex;gap:8px;font-size:0.65rem;align-items:center}
+.kal-det-sum-in{color:var(--grn);font-weight:700}
+.kal-det-sum-out{color:var(--red);font-weight:700}
+.kal-det-net{font-size:0.68rem;font-weight:800;font-family:var(--ffd);padding:2px 7px;border-radius:50px}
+.kal-det-net.pos{background:var(--grn-bg);color:var(--grn)}
+.kal-det-net.neg{background:var(--red-bg);color:var(--red)}
+.kal-det-txs{padding:6px 8px;display:flex;flex-direction:column;gap:4px}
+.kal-tx2{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 8px;border-radius:8px;background:rgba(255,255,255,0.05);gap:8px}
+.kal-tx2-left{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.kal-tx2-kat{font-size:0.72rem;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kal-tx2-det{font-size:0.6rem;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kal-tx2-tags{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}
+.kal-tx2-tag{font-size:0.52rem;padding:1px 5px;border-radius:50px;background:rgba(255,255,255,0.1);color:var(--tx3)}
+.kal-tx2-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0}
+.kal-tx2-nom{font-size:0.75rem;font-weight:800;font-family:var(--ffd)}
+.kal-tx2-nom.inc{color:var(--grn)}.kal-tx2-nom.spd{color:var(--red)}
