@@ -290,7 +290,12 @@
       <div class="fr-2"><div class="fr"><label><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/></svg> Metode</label><select class="fs" id="inMetode" onchange="onMetodeChange('in')"><option value="">— Pilih —</option><option>Cash</option><option>Transfer</option><option>QRIS</option></select></div><div class="fr"><label><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z"/></svg> Bank</label><select class="fs" id="inBank"><option value="">— Pilih —</option></select></div></div>
       <div class="fr"><label><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg> Keterangan</label><input class="fi" type="text" id="inKet" placeholder="opsional..."></div>
     </div>
-    <div class="modal-ft" style="display:flex;align-items:center;justify-content:flex-end">
+    <div class="modal-ft" style="display:flex;align-items:center;justify-content:space-between">
+      <button class="btn-ai-scan" id="btnAiScan" onclick="triggerAiScan()" title="Scan struk/nota dengan AI">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+        Scan AI
+      </button>
+      <input type="file" id="aiImageInput" accept="image/*" style="display:none" onchange="handleAiImageUpload(event)">
       <div style="display:flex;gap:8px">
         <button class="btn-cx" onclick="closeOv(null,'ovInput')">Batal</button>
         <button class="btn-ok" id="btnSimpan" onclick="submitInput()"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> Simpan</button>
@@ -329,6 +334,26 @@
     <div class="bs-handle"></div>
     <div class="bs-hd"><div class="bs-title" id="bsTitle"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg> Detail Pengeluaran Fleksibel</div><button class="modal-x" onclick="closeBs()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button></div>
     <div class="bs-body" id="bsBody"><div class="ldrow"><div class="spin"></div>Memuat...</div></div>
+  </div>
+</div>
+<!-- AI SCAN OVERLAY -->
+<div class="ai-scan-ov" id="aiScanOv">
+  <div class="ai-scan-box">
+    <div class="ai-scan-img-wrap" id="aiScanImgWrap">
+      <img id="aiScanPreview" src="" alt="preview">
+      <div class="ai-scan-line" id="aiScanLine"></div>
+      <div class="ai-scan-corners">
+        <span class="asc tl"></span><span class="asc tr"></span>
+        <span class="asc bl"></span><span class="asc br"></span>
+      </div>
+    </div>
+    <div class="ai-scan-status" id="aiScanStatus">
+      <div class="ai-scan-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="ai-scan-lbl" id="aiScanLbl">Menganalisis gambar...</div>
+    </div>
+    <button class="ai-scan-cancel" id="aiScanCancel" onclick="cancelAiScan()" style="display:none">Batal</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
