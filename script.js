@@ -550,7 +550,7 @@ function renderCards(rows){
     const cards=txs.map((r,ri)=>{
       const isIn=r.jenis==='Pemasukan',cls=isIn?'inc':'spd',arr=isIn?'↓':'↑';
       const eb=editMode?`<button class="edit-btn" onclick="openEdit(${r.rowIndex})">${IC.edit} Edit</button>`:'';
-      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s" onclick="openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div><div class="dc-kat">${r.kategori}</div></div><div><div class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</div><div class="dc-badge ${cls}">${isIn?IC.in:IC.out} ${r.jenis}</div></div></div><div class="dc-tags">${r.pembayaran?`<span class="dtag">${r.pembayaran}</span>`:''} ${r.metode?`<span class="dtag">${r.metode}</span>`:''} ${r.bulan?`<span class="dtag">${r.bulan}</span>`:''} ${eb}</div>${r.detail?`<div class="dc-ket">${r.detail}</div>`:''}</div>`;
+      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s" onclick="event.stopPropagation();openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div><div class="dc-kat">${r.kategori}</div></div><div><div class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</div><div class="dc-badge ${cls}">${isIn?IC.in:IC.out} ${r.jenis}</div></div></div><div class="dc-tags">${r.pembayaran?`<span class="dtag">${r.pembayaran}</span>`:''} ${r.metode?`<span class="dtag">${r.metode}</span>`:''} ${r.bulan?`<span class="dtag">${r.bulan}</span>`:''} ${eb}</div>${r.detail?`<div class="dc-ket">${r.detail}</div>`:''}</div>`;
     }).join('');
     return`<div class="date-group"><div class="dg-header"><div class="dg-dot"></div><span class="dg-date">${IC.cal} ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
   }).join('');
@@ -1538,6 +1538,7 @@ function openBudgetRataDetail(){
 
 // ═══ POPUP: STRUK TRANSAKSI ═══
 function openStrukDetail(rowIdx){
+  try{
   if(editMode)return; // jangan popup kalau edit mode aktif
   const r=allRows.find(x=>x.rowIndex===rowIdx);if(!r)return;
   const t=document.getElementById('bsTitle');
@@ -1584,4 +1585,5 @@ function openStrukDetail(rowIdx){
       <div class="bs-struk-footer-txt">SE_REAL · ${new Date().toLocaleDateString('id-ID')}</div>
     </div>
   </div>`;
+  }catch(e){console.error('struk error',e)}
 }
