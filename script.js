@@ -702,8 +702,8 @@ async function loadMetode(){
       const pct=total>0?Math.round(val/total*100):0;
       // Warna & inisial per bank
       const bankMap={
-        'jago':     {bg:'#FF6B2B',color:'#fff',init:'J'},
-        'seabank':  {bg:'#00B14F',color:'#fff',init:'SB'},
+        'jago':     {bg:'#F5C518',color:'#1a1a1a',init:'J'},
+        'seabank':  {bg:'#FF6B2B',color:'#fff',init:'SB'},
         'bca':      {bg:'#0066AE',color:'#fff',init:'BCA'},
         'bri':      {bg:'#003087',color:'#fff',init:'BRI'},
         'bni':      {bg:'#F37021',color:'#fff',init:'BNI'},
@@ -714,14 +714,18 @@ async function loadMetode(){
         'shopeepay':{bg:'#EE4D2D',color:'#fff',init:'SP'},
         'linkaja':  {bg:'#E82529',color:'#fff',init:'LA'},
         'jenius':   {bg:'#2B6CB0',color:'#fff',init:'JN'},
-        'cash':     {bg:'#34d399',color:'#064e3b',init:'💵'},
         'transfer': {bg:'#60a5fa',color:'#1e3a5f',init:'TF'},
         'qris':     {bg:'#a855f7',color:'#fff',init:'QR'},
       };
       const key=bank.toLowerCase().replace(/[^a-z]/g,'');
       const found=Object.keys(bankMap).find(k=>key.includes(k));
-      const style=found?bankMap[found]:{bg:'rgba(168,85,247,0.5)',color:'#fff',init:bank.slice(0,2).toUpperCase()};
-      const ico=`<span style="background:${style.bg};color:${style.color};font-size:0.55rem;font-weight:800;letter-spacing:-0.02em;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${style.init}</span>`;
+      let ico;
+      if(key.includes('cash')){
+        ico=`<span style="background:#34d399;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#064e3b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/></svg></span>`;
+      } else {
+        const style=found?bankMap[found]:{bg:'rgba(168,85,247,0.5)',color:'#fff',init:bank.slice(0,2).toUpperCase()};
+        ico=`<span style="background:${style.bg};color:${style.color};font-size:0.55rem;font-weight:800;letter-spacing:-0.02em;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${style.init}</span>`;
+      }
       return`<div class="bank-item" style="animation-delay:${i*0.05}s"><div class="bank-ico" style="background:transparent;padding:0">${ico}</div><div class="bank-info"><div class="bank-name">${bank}</div><div class="bank-sub">${pct}% dari total</div><div class="bank-bar-wrap"><div class="bank-bar-fill" style="width:0%" data-w="${pct}"></div></div></div><div class="bank-val">${rpShort(val)}</div></div>`;
     }).join('');
     setTimeout(()=>{document.querySelectorAll('.bank-bar-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
