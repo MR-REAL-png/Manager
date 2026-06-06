@@ -161,7 +161,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .period-badge-val{font-size:0.78rem;font-weight:700;color:#fff;margin-top:1px}
 .period-badge-days{font-size:0.68rem;color:var(--ac);font-weight:800;flex-shrink:0}
 /* STATS */
-.stat-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}.stat-row4{grid-template-columns:1fr 1fr!important}
 .stat3{border-radius:var(--rsm);padding:12px 8px;position:relative;overflow:hidden;border:1px solid var(--glass-bdr);background:var(--glass);box-sizing:border-box;transition:transform .2s}
 .stat3.tap-card{cursor:pointer}
 .stat3.tap-card:active{transform:scale(0.96)}
