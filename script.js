@@ -884,7 +884,7 @@ async function doDelete(){
 // ═══ PENGATURAN ═══
 function loadSettings(){
   const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');
-  if(s.username){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=s.username});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=s.username;}
+  if(s.username){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=s.username});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=s.username;const dt=document.querySelector('.drawer-title');if(dt)dt.textContent=s.username;}
   if(s.notifEnabled!==undefined)notifEnabled=s.notifEnabled;
   if(s.alertPct)alertPct=s.alertPct;
   if(s.adminPassword)adminPassword=s.adminPassword;
@@ -1024,7 +1024,7 @@ async function saveSettModal(){
     const a=document.createElement('a');a.href=url;a.download=`transaksi_${from||'all'}_${to||'all'}.csv`;a.click();
     URL.revokeObjectURL(url);toast('CSV diunduh!','ok');closeOv(null,'ovSett');return;
   }
-  if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=val;const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('Nama diperbarui','ok')}}
+  if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=val;const dt=document.querySelector('.drawer-title');if(dt)dt.textContent=val;const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('Nama diperbarui','ok')}}
   else if(settModalType==='anggaran'){
     (dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income')).forEach((k,i)=>{const el=document.getElementById('bgt_'+i);if(el&&el.value)budgets[k]=Number(el.value);else if(el&&!el.value)delete budgets[k]});localStorage.setItem('mm_budgets',JSON.stringify(budgets));toast('Anggaran disimpan','ok')}
   else if(settModalType==='alertpct'){const val=Number(document.getElementById('alertPctInput').value);if(val>=50&&val<=100){alertPct=val;document.getElementById('alertPctLabel').textContent=`${alertPct}% dari anggaran`;saveSettingsStorage();toast('Batas diperbarui','ok')}}
