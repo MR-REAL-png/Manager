@@ -545,7 +545,7 @@ function renderCards(rows){
     const cards=txs.map((r,ri)=>{
       const isIn=r.jenis==='Pemasukan',cls=isIn?'inc':'spd',arr=isIn?'↓':'↑';
       const eb=editMode?`<button class="edit-btn" onclick="openEdit(${r.rowIndex})">${IC.edit} Edit</button>`:'';
-      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s"><div class="dc-row1"><div><div class="dc-kat">${r.kategori}</div></div><div><div class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</div><div class="dc-badge ${cls}">${isIn?IC.in:IC.out} ${r.jenis}</div></div></div><div class="dc-tags">${r.pembayaran?`<span class="dtag" style="display:inline-flex;align-items:center;gap:3px"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/></svg>${r.pembayaran}</span>`:''} ${r.metode?`<span class="dtag" style="display:inline-flex;align-items:center;gap:3px"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z"/></svg>${r.metode}</span>`:''} ${r.bulan?`<span class="dtag" style="display:inline-flex;align-items:center;gap:3px"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>${r.bulan}</span>`:''} ${eb}</div>${r.detail?`<div class="dc-ket" style="display:flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>${r.detail}</div>`:''}</div>`;
+      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s"><div class="dc-row1"><div><div class="dc-kat">${r.kategori}</div></div><div><div class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</div><div class="dc-badge ${cls}">${isIn?IC.in:IC.out} ${r.jenis}</div></div></div><div class="dc-tags">${r.pembayaran?`<span class="dtag">${r.pembayaran}</span>`:''} ${r.metode?`<span class="dtag">${r.metode}</span>`:''} ${r.bulan?`<span class="dtag">${r.bulan}</span>`:''} ${eb}</div>${r.detail?`<div class="dc-ket">${r.detail}</div>`:''}</div>`;
     }).join('');
     return`<div class="date-group"><div class="dg-header"><div class="dg-dot"></div><span class="dg-date">${IC.cal} ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
   }).join('');
@@ -700,8 +700,29 @@ async function loadMetode(){
     const ba=Object.entries(bb).sort((a,b)=>b[1]-a[1]);
     document.getElementById('bankList').innerHTML=ba.map(([bank,val],i)=>{
       const pct=total>0?Math.round(val/total*100):0;
-      const ico=IC.bank;
-      return`<div class="bank-item" style="animation-delay:${i*0.05}s"><div class="bank-ico">${ico}</div><div class="bank-info"><div class="bank-name">${bank}</div><div class="bank-sub">${pct}% dari total</div><div class="bank-bar-wrap"><div class="bank-bar-fill" style="width:0%" data-w="${pct}"></div></div></div><div class="bank-val">${rpShort(val)}</div></div>`;
+      // Warna & inisial per bank
+      const bankMap={
+        'jago':     {bg:'#FF6B2B',color:'#fff',init:'J'},
+        'seabank':  {bg:'#00B14F',color:'#fff',init:'SB'},
+        'bca':      {bg:'#0066AE',color:'#fff',init:'BCA'},
+        'bri':      {bg:'#003087',color:'#fff',init:'BRI'},
+        'bni':      {bg:'#F37021',color:'#fff',init:'BNI'},
+        'mandiri':  {bg:'#003087',color:'#F5A623',init:'M'},
+        'dana':     {bg:'#118EEA',color:'#fff',init:'D'},
+        'ovo':      {bg:'#4C3494',color:'#fff',init:'OVO'},
+        'gopay':    {bg:'#00AED6',color:'#fff',init:'GP'},
+        'shopeepay':{bg:'#EE4D2D',color:'#fff',init:'SP'},
+        'linkaja':  {bg:'#E82529',color:'#fff',init:'LA'},
+        'jenius':   {bg:'#2B6CB0',color:'#fff',init:'JN'},
+        'cash':     {bg:'#34d399',color:'#064e3b',init:'💵'},
+        'transfer': {bg:'#60a5fa',color:'#1e3a5f',init:'TF'},
+        'qris':     {bg:'#a855f7',color:'#fff',init:'QR'},
+      };
+      const key=bank.toLowerCase().replace(/[^a-z]/g,'');
+      const found=Object.keys(bankMap).find(k=>key.includes(k));
+      const style=found?bankMap[found]:{bg:'rgba(168,85,247,0.5)',color:'#fff',init:bank.slice(0,2).toUpperCase()};
+      const ico=`<span style="background:${style.bg};color:${style.color};font-size:0.55rem;font-weight:800;letter-spacing:-0.02em;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${style.init}</span>`;
+      return`<div class="bank-item" style="animation-delay:${i*0.05}s"><div class="bank-ico" style="background:transparent;padding:0">${ico}</div><div class="bank-info"><div class="bank-name">${bank}</div><div class="bank-sub">${pct}% dari total</div><div class="bank-bar-wrap"><div class="bank-bar-fill" style="width:0%" data-w="${pct}"></div></div></div><div class="bank-val">${rpShort(val)}</div></div>`;
     }).join('');
     setTimeout(()=>{document.querySelectorAll('.bank-bar-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
   }catch(e){toast('Gagal load metode','err')}
