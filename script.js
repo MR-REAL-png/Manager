@@ -1585,3 +1585,171 @@ function openStrukDetail(rowIdx){
   </div>`;
   }catch(e){console.error('struk error',e)}
 }
+
+
+// ═══════════════════════════════════════════════
+// AI SCAN — Gemini Image Parser
+// ═══════════════════════════════════════════════
+
+let aiScanAbort = false;
+
+function triggerAiScan() {
+  document.getElementById('aiImageInput').value = '';
+  document.getElementById('aiImageInput').click();
+}
+
+function cancelAiScan() {
+  aiScanAbort = true;
+  closeAiScanOv();
+}
+
+function closeAiScanOv() {
+  const ov = document.getElementById('aiScanOv');
+  if (ov) ov.classList.remove('open');
+}
+
+function openAiScanOv(imgSrc) {
+  aiScanAbort = false;
+  const ov    = document.getElementById('aiScanOv');
+  const prev  = document.getElementById('aiScanPreview');
+  const lbl   = document.getElementById('aiScanLbl');
+  const cancel= document.getElementById('aiScanCancel');
+  const line  = document.getElementById('aiScanLine');
+
+  prev.src = imgSrc;
+  lbl.textContent = 'Menganalisis gambar...';
+  cancel.style.display = 'block';
+  line.style.animationPlayState = 'running';
+  ov.classList.add('open');
+}
+
+function setAiScanStatus(msg) {
+  const lbl = document.getElementById('aiScanLbl');
+  if (lbl) lbl.textContent = msg;
+}
+
+async function handleAiImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('File harus berupa gambar','err'); return; }
+
+  // Convert to base64
+  const base64 = await new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = () => res(reader.result.split(',')[1]);
+    reader.onerror = () => rej(new Error('Gagal baca gambar'));
+    reader.readAsDataURL(file);
+  });
+
+  // Show scan overlay with preview
+  const previewUrl = URL.createObjectURL(file);
+  openAiScanOv(previewUrl);
+
+  try {
+    setAiScanStatus('Menganalisis gambar...');
+
+    const res = await fetch(`${API_URL}/api/parse-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: base64,
+        mimeType: file.type,
+        categories: (dbOpts.kategoris || []),
+        banks: (dbOpts.banks || [])
+      })
+    });
+
+    if (aiScanAbort) return;
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Error ${res.status}`);
+    }
+
+    setAiScanStatus('Memproses hasil...');
+    const data = await res.json();
+
+    if (aiScanAbort) return;
+
+    // Brief success pause so user sees the scan complete
+    await new Promise(r => setTimeout(r, 600));
+    closeAiScanOv();
+    URL.revokeObjectURL(previewUrl);
+
+    // Fill form fields from AI result
+    fillFormFromAI(data);
+    toast(`${IC.ok.replace('width:20px;height:20px','width:13px;height:13px;vertical-align:-2px;margin-right:3px')} Data berhasil di-scan!`, 'ok');
+
+  } catch (e) {
+    if (aiScanAbort) return;
+    closeAiScanOv();
+    URL.revokeObjectURL(previewUrl);
+    toast('Scan gagal: ' + e.message, 'err');
+    console.error('[AI Scan]', e);
+  }
+}
+
+function fillFormFromAI(data) {
+  // Tanggal
+  if (data.tanggal) {
+    try {
+      // Normalize to YYYY-MM-DD
+      let tgl = data.tanggal;
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(tgl)) {
+        const [d,m,y] = tgl.split('/');
+        tgl = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      }
+      document.getElementById('inTgl').value = tgl;
+      syncBulan('in');
+    } catch(e) { /* keep default date */ }
+  }
+
+  // Jenis
+  if (data.jenis) {
+    const jenisEl = document.getElementById('inJenis');
+    const mapped = data.jenis.toLowerCase().includes('masuk') ? 'Pemasukan' : 'Pengeluaran';
+    jenisEl.value = mapped;
+    onJenisChange('in');
+
+    // Wait a tick for kategori options to load, then set
+    setTimeout(() => {
+      if (data.kategori) {
+        const katEl = document.getElementById('inKat');
+        const opts = Array.from(katEl.options).map(o => o.value.toLowerCase());
+        const match = opts.findIndex(o => o.includes(data.kategori.toLowerCase()) || data.kategori.toLowerCase().includes(o.replace(/[^a-z]/g,'')));
+        if (match >= 0) katEl.selectedIndex = match;
+      }
+    }, 150);
+  }
+
+  // Nominal
+  if (data.nominal) {
+    const nom = String(data.nominal).replace(/[^0-9]/g,'');
+    document.getElementById('inNom').value = nom;
+  }
+
+  // Metode
+  if (data.metode) {
+    const metodeEl = document.getElementById('inMetode');
+    const ml = data.metode.toLowerCase();
+    if (ml.includes('cash') || ml.includes('tunai')) metodeEl.value = 'Cash';
+    else if (ml.includes('qris') || ml.includes('qr')) metodeEl.value = 'QRIS';
+    else if (ml.includes('transfer') || ml.includes('debit') || ml.includes('kredit')) metodeEl.value = 'Transfer';
+    onMetodeChange('in');
+
+    // Bank
+    if (data.bank) {
+      setTimeout(() => {
+        const bankEl = document.getElementById('inBank');
+        const opts = Array.from(bankEl.options).map(o => o.value.toLowerCase());
+        const match = opts.findIndex(o => o && data.bank.toLowerCase().includes(o));
+        if (match >= 0) bankEl.selectedIndex = match;
+      }, 200);
+    }
+  }
+
+  // Keterangan
+  if (data.keterangan) {
+    document.getElementById('inKet').value = data.keterangan;
+  }
+}
