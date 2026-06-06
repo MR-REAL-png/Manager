@@ -1,7 +1,7 @@
 @font-face {
-  font-family: 'Rupalro';
-  src: url('fonts/rupalro-Regular.woff2') format('woff2'),
-       url('fonts/rupalro-Regular.woff') format('woff');
+  font-family: 'CustomFont';
+  src: url('fonts/font.woff2') format('woff2'),
+       url('fonts/font.woff') format('woff');
   font-weight: normal;
   font-display: swap;
 }
@@ -66,7 +66,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .hdr-menu-btn:active{transform:scale(0.93)}
 .brand-ico{width:32px;height:32px;border-radius:0;overflow:visible;flex-shrink:0;border:none;background:transparent}
 .brand-ico img{width:100%;height:100%;object-fit:cover;mix-blend-mode:screen;filter:brightness(1.2) contrast(1.1)}
-.brand-name{font-family:'Rupalro',var(--ffd),serif;font-size:1.25rem;font-weight:normal;background:linear-gradient(90deg,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline-block;letter-spacing:0.12em;text-transform:uppercase;margin-top:4px}
+.brand-name{font-family:'CustomFont',var(--ffd),serif;font-size:1.25rem;font-weight:normal;background:linear-gradient(90deg,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline-block;text-transform:uppercase;margin-top:4px}
 [data-theme="ocean"] .brand-name{background:none;-webkit-text-fill-color:#fff}
 .hdr-clock{flex:1;text-align:center;min-width:0}
 .hdr-clock-time{font-size:0.84rem;font-weight:700;color:#fff;letter-spacing:0.04em}
@@ -335,7 +335,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .sett-profile{padding:20px 14px;text-align:center;border-bottom:1px solid var(--bdr)}
 .sett-avatar{width:60px;height:60px;border-radius:0;overflow:visible;margin:0 auto 8px;border:none;background:transparent;display:flex;align-items:center;justify-content:center}
 .sett-avatar img{width:100%;height:100%;object-fit:cover;mix-blend-mode:screen}
-.sett-username{font-family:'Rupalro',var(--ffd),serif;font-size:1.2rem;font-weight:normal;color:#fff}
+.sett-username{font-family:'CustomFont',var(--ffd),serif;font-size:1.2rem;font-weight:normal;color:#fff}
 /* TARGET FORM */
 .tgt-form{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .tgt-result{background:linear-gradient(135deg,rgba(168,85,247,0.2),rgba(236,72,153,0.15));border:1px solid rgba(168,85,247,0.3);border-radius:var(--rsm);padding:14px;margin-top:12px;display:none}
