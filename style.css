@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Rupalro';
+  src: url('fonts/rupalro-Regular.woff2') format('woff2'),
+       url('fonts/rupalro-Regular.woff') format('woff');
+  font-weight: normal;
+  font-display: swap;
+}
+
 :root{
   --bg:#0f0c29;--bg2:#1a1640;--sur:rgba(255,255,255,0.08);
   --bdr:rgba(255,255,255,0.1);--bdr2:rgba(255,255,255,0.18);
@@ -58,7 +66,8 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .hdr-menu-btn:active{transform:scale(0.93)}
 .brand-ico{width:32px;height:32px;border-radius:0;overflow:visible;flex-shrink:0;border:none;background:transparent}
 .brand-ico img{width:100%;height:100%;object-fit:cover;mix-blend-mode:screen;filter:brightness(1.2) contrast(1.1)}
-.brand-name{font-family:var(--ffd);font-size:0.92rem;font-weight:700;background:linear-gradient(90deg,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.brand-name{font-family:'Rupalro',var(--ffd),serif;font-size:1rem;font-weight:normal;background:linear-gradient(90deg,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;display:inline-block;padding-bottom:3px}
+.brand-name::after{content:'';position:absolute;bottom:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,#a855f7,#ec4899);border-radius:2px;opacity:0.8}
 [data-theme="ocean"] .brand-name{background:none;-webkit-text-fill-color:#fff}
 .hdr-clock{flex:1;text-align:center;min-width:0}
 .hdr-clock-time{font-size:0.84rem;font-weight:700;color:#fff;letter-spacing:0.04em}
