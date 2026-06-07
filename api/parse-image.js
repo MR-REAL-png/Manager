@@ -139,8 +139,7 @@ Aturan:
     }],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 256,
-      responseMimeType: 'application/json',
+      maxOutputTokens: 2048,
     },
   };
 
