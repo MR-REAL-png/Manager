@@ -1,4 +1,4 @@
-// api/parse-image.js — Vercel Serverless
+/// api/parse-image.js — Vercel Serverless
 // Menerima: { imageBase64, mimeType, categories[], banks[] }
 // Mengembalikan: { tanggal, jenis, kategori, nominal, metode, bank, keterangan }
 //
@@ -49,6 +49,22 @@ async function callGemini(apiKey, payload) {
   }
 
   return data;
+}
+
+function extractJSON(rawText) {
+  // 1. Strip markdown fences
+  let clean = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+  // 2. Coba parse langsung
+  try { return JSON.parse(clean); } catch {}
+
+  // 3. Cari { ... } pertama yang valid (handle thinking/preamble dari gemini-2.5)
+  const match = clean.match(/\{[\s\S]*\}/);
+  if (match) {
+    try { return JSON.parse(match[0]); } catch {}
+  }
+
+  return null;
 }
 
 export default async function handler(req, res) {
@@ -102,14 +118,17 @@ Aturan:
         { text: prompt },
       ],
     }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 1024,
+      thinkingConfig: { thinkingBudget: 0 }, // matikan thinking → response lebih bersih
+    },
   };
 
   // ── Retry loop: coba setiap key, dengan jeda saat gagal ──────────────────
   let lastError = null;
 
   for (let attempt = 0; attempt < keys.length; attempt++) {
-    // Jika bukan percobaan pertama, tunggu dulu sebelum retry
     if (attempt > 0) {
       const delay = RETRY_DELAYS[attempt - 1] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1];
       console.log(`[parse-image] Menunggu ${delay}ms sebelum coba key ke-${attempt + 1}...`);
@@ -123,15 +142,16 @@ Aturan:
       console.log(`[parse-image] Mencoba ${keyLabel}...`);
       const geminiData = await callGemini(key, payload);
 
-      const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const clean   = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      // Gabungkan semua parts (gemini-2.5 bisa multi-part)
+      const parts = geminiData?.candidates?.[0]?.content?.parts || [];
+      const rawText = parts.map(p => p.text || '').join('');
 
-      let parsed;
-      try {
-        parsed = JSON.parse(clean);
-      } catch (e) {
-        console.error(`[parse-image] ${keyLabel} JSON parse error. Raw:`, rawText);
-        // JSON gagal parse bukan masalah key, langsung return error
+      console.log(`[parse-image] ${keyLabel} raw (first 300):`, rawText.substring(0, 300));
+
+      const parsed = extractJSON(rawText);
+
+      if (!parsed) {
+        console.error(`[parse-image] ${keyLabel} tidak bisa parse JSON. Raw:`, rawText);
         return res.status(422).json({
           error: 'AI tidak bisa mengekstrak data. Coba foto lebih jelas atau dari sudut berbeda.',
         });
@@ -140,24 +160,18 @@ Aturan:
       // Sanitize nominal
       parsed.nominal = parseInt(String(parsed.nominal ?? '0').replace(/[^0-9]/g, ''), 10) || 0;
 
-      console.log(`[parse-image] Berhasil dengan ${keyLabel}`);
+      console.log(`[parse-image] Berhasil dengan ${keyLabel}:`, JSON.stringify(parsed));
       return res.status(200).json(parsed);
 
     } catch (err) {
       lastError = err;
       console.warn(`[parse-image] ${keyLabel} gagal: ${err.message} (status ${err.status})`);
 
-      // Hanya retry jika rate-limit atau server error — bukan error client (4xx selain 429)
       const shouldRetry = err.isLimit || err.isServer;
-      if (!shouldRetry) {
-        // Error lain (mis. invalid key 401/403) → langsung berhenti
-        break;
-      }
-      // Lanjut ke key berikutnya
+      if (!shouldRetry) break;
     }
   }
 
-  // Semua key gagal
   const isRateLimit = lastError?.isLimit;
   console.error('[parse-image] Semua key gagal. Last error:', lastError?.message);
   return res.status(isRateLimit ? 429 : 502).json({
