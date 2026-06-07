@@ -1,4 +1,4 @@
-/// api/parse-image.js — Vercel Serverless
+// api/parse-image.js — Vercel Serverless
 // Menerima: { imageBase64, mimeType, categories[], banks[] }
 // Mengembalikan: { tanggal, jenis, kategori, nominal, metode, bank, keterangan }
 //
@@ -121,7 +121,6 @@ Aturan:
     generationConfig: {
       temperature: 0.1,
       maxOutputTokens: 1024,
-      thinkingConfig: { thinkingBudget: 0 }, // matikan thinking → response lebih bersih
     },
   };
 
