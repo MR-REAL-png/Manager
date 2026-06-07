@@ -1328,19 +1328,21 @@ function setTheme(t,save=true){
 function toggleTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
   const next=cur==='ocean'?'cosmic':'ocean';
-  // Ripple dari posisi tombol toggle
-  const btn=document.getElementById('drawerThemeToggle')||document.getElementById('themeToggle');
-  if(btn){
-    const rect=btn.getBoundingClientRect();
-    const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
-    const maxDim=Math.max(window.innerWidth,window.innerHeight)*2.5;
-    const ripple=document.createElement('div');
-    ripple.className='theme-ripple';
-    ripple.style.cssText=`width:${maxDim}px;height:${maxDim}px;left:${cx-maxDim/2}px;top:${cy-maxDim/2}px;background:${next==='ocean'?'rgba(56,189,248,0.18)':'rgba(168,85,247,0.18)'}`;
-    document.body.appendChild(ripple);
-    setTimeout(()=>ripple.remove(),650);
-  }
-  setTheme(next);
+  // Slide-down curtain dari atas
+  const curtain=document.createElement('div');
+  curtain.style.cssText=`
+    position:fixed;top:0;left:0;right:0;
+    height:100vh;z-index:99998;pointer-events:none;
+    background:${next==='ocean'
+      ?'linear-gradient(160deg,#0c3460 0%,#0a4a8c 50%,#0c3460 100%)'
+      :'linear-gradient(160deg,#0f0c29 0%,#302b63 50%,#24243e 100%)'};
+    transform:translateY(-100%);
+    animation:themeCurtain 0.55s cubic-bezier(0.4,0,0.2,1) forwards;
+  `;
+  document.body.appendChild(curtain);
+  // Ganti tema di tengah animasi (saat curtain menutupi layar)
+  setTimeout(()=>setTheme(next),260);
+  setTimeout(()=>curtain.remove(),600);
 }
 
 // ═══ AVG DETAIL ═══
