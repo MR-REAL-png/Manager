@@ -1754,19 +1754,28 @@ function fillFormFromAI(data) {
     // Set kategori setelah onJenisChange populate options
     setTimeout(() => {
       if (data.kategori) {
-        const katEl = document.getElementById('inKat');
-        const aiKat = data.kategori.toLowerCase().trim();
+        const katEl  = document.getElementById('inKat');
         const opts   = Array.from(katEl.options);
-        // Strip emoji & simbol, bandingkan kata kunci
-        let match = opts.findIndex(o => {
-          const val = o.value.replace(/[^\w\s]/gu, '').toLowerCase().trim();
-          return val.includes(aiKat) || aiKat.includes(val) || val === aiKat;
+        // Strip semua non-alphanumeric untuk perbandingan
+        const stripFn = s => s.replace(/[^\w\s]/gu, '').replace(/\s+/g, ' ').toLowerCase().trim();
+        const aiKat  = stripFn(data.kategori);
+
+        // 1. Exact match setelah strip
+        let match = opts.findIndex(o => stripFn(o.value) === aiKat);
+
+        // 2. Contains match
+        if (match < 0) match = opts.findIndex(o => {
+          const v = stripFn(o.value);
+          return v.includes(aiKat) || aiKat.includes(v);
         });
+
+        // 3. Kata pertama match
         if (match < 0) {
-          // Fallback: cari kata pertama yang cocok
-          const firstWord = aiKat.split(/\s+/)[0];
-          match = opts.findIndex(o => o.value.toLowerCase().includes(firstWord));
+          const firstWord = aiKat.split(' ')[0];
+          if (firstWord.length > 2)
+            match = opts.findIndex(o => stripFn(o.value).includes(firstWord));
         }
+
         if (match >= 0) katEl.selectedIndex = match;
       }
     }, 150);
@@ -1790,9 +1799,15 @@ function fillFormFromAI(data) {
     // Bank
     if (data.bank) {
       setTimeout(() => {
-        const bankEl = document.getElementById('inBank');
-        const opts = Array.from(bankEl.options).map(o => o.value.toLowerCase());
-        const match = opts.findIndex(o => o && data.bank.toLowerCase().includes(o));
+        const bankEl  = document.getElementById('inBank');
+        const opts    = Array.from(bankEl.options);
+        const stripFn = s => s.replace(/[^\w\s]/gu, '').replace(/\s+/g, ' ').toLowerCase().trim();
+        const aiBank  = stripFn(data.bank);
+
+        let match = opts.findIndex(o => {
+          const v = stripFn(o.value);
+          return v === aiBank || v.includes(aiBank) || aiBank.includes(v);
+        });
         if (match >= 0) bankEl.selectedIndex = match;
       }, 200);
     }
