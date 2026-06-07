@@ -1804,12 +1804,20 @@ function fillFormFromAI(data) {
         const stripFn = s => s.replace(/[^\w\s]/gu, '').replace(/\s+/g, ' ').toLowerCase().trim();
         const aiBank  = stripFn(data.bank);
 
-        let match = opts.findIndex(o => {
+        // Exact match dulu
+        let match = opts.findIndex(o => stripFn(o.value) === aiBank);
+        // Contains match
+        if (match < 0) match = opts.findIndex(o => {
           const v = stripFn(o.value);
-          return v === aiBank || v.includes(aiBank) || aiBank.includes(v);
+          return v.includes(aiBank) || aiBank.includes(v);
         });
+        // Kata pertama
+        if (match < 0) {
+          const fw = aiBank.split(' ')[0];
+          if (fw.length > 1) match = opts.findIndex(o => stripFn(o.value).includes(fw));
+        }
         if (match >= 0) bankEl.selectedIndex = match;
-      }, 200);
+      }, 350);
     }
   }
 
