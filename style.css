@@ -192,26 +192,49 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .srch-wrap input{border:none;background:none;outline:none;font-size:13px!important;font-weight:500;color:#fff;flex:1;min-width:0}
 .srch-wrap input::placeholder{color:var(--tx3)}
 .fsel{height:32px;padding:0 8px;border-radius:50px;border:1.5px solid var(--glass-bdr);background:var(--glass);color:#fff;font-size:13px!important;font-weight:600;cursor:pointer;appearance:none;-webkit-appearance:none;flex:1;min-width:0}
-.dlist{display:flex;flex-direction:column;gap:6px;width:100%}
-.date-group{margin-bottom:14px;width:100%}
-.dg-header{display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:0 2px}
-.dg-dot{width:7px;height:7px;border-radius:50%;background:var(--ac);flex-shrink:0;box-shadow:0 0 6px var(--ac)}
-.dg-date{font-size:0.65rem;font-weight:700;color:var(--tx2);flex:1}
+/* ── DATA LIST / TIMELINE ── */
+.dlist{display:flex;flex-direction:column;gap:0;width:100%}
+
+/* timeline wrapper */
+.date-group{margin-bottom:16px;width:100%;position:relative;padding-left:26px}
+/* garis vertikal */
+.date-group::before{content:'';position:absolute;left:6px;top:10px;bottom:0;width:2px;background:rgba(255,255,255,0.06);border-radius:2px;z-index:0}
+
+/* date header */
+.dg-header{display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:0;position:relative}
+.dg-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;position:absolute;left:-22px;z-index:2;border:2px solid var(--bg)}
+.dg-dot.spd{background:var(--red);box-shadow:0 0 8px rgba(248,113,113,0.7),0 0 16px rgba(248,113,113,0.3)}
+.dg-dot.inc{background:var(--grn);box-shadow:0 0 8px rgba(52,211,153,0.7),0 0 16px rgba(52,211,153,0.3)}
+.dg-dot.mix{background:linear-gradient(135deg,var(--grn) 50%,var(--red) 50%);box-shadow:0 0 8px rgba(168,85,247,0.6)}
+.dg-date{font-size:0.65rem;font-weight:700;color:var(--tx2);flex:1;display:flex;align-items:center;gap:4px}
 .dg-kas{font-size:0.65rem;font-weight:800;flex-shrink:0}
 .dg-kas.g{color:var(--grn)}.dg-kas.r{color:var(--red)}
 .dg-cards{display:flex;flex-direction:column;gap:5px}
-.dc{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);padding:10px 12px;border-left:3px solid transparent;animation:cardIn .25s var(--ease) both;transition:transform .15s}
+
+/* transaction card */
+.dc{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);padding:9px 11px;border-left:3px solid transparent;animation:cardIn .25s var(--ease) both;transition:transform .15s;position:relative;overflow:hidden}
 .dc:active{transform:scale(0.99)}
-.dc.inc{background:rgba(52,211,153,0.1);border-left-color:var(--grn)}
-.dc.spd{background:rgba(248,113,113,0.1);border-left-color:var(--red)}
-.dc-row1{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:4px}
-.dc-kat{font-weight:700;font-size:0.84rem;flex:1;color:#fff;word-break:break-word}
+.dc.inc{background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.25);border-left-color:var(--grn)}
+.dc.spd{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.22);border-left-color:var(--red)}
+
+/* baris 1: kategori | nominal */
+.dc-row1{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:0}
+.dc-left{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.dc-kat{font-weight:700;font-size:0.84rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-right{flex-shrink:0}
 .dc-nom{font-weight:800;font-size:0.84rem;font-family:var(--ffd);white-space:nowrap}
 .dc-nom.inc{color:var(--grn)}.dc-nom.spd{color:var(--red)}
-.dc-badge{display:inline-flex;align-items:center;gap:2px;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:50px;margin-top:2px}
-.dc-badge.inc{background:var(--grn-bg);color:var(--grn)}.dc-badge.spd{background:var(--red-bg);color:var(--red)}
-.dc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;padding-top:5px;border-top:1px solid var(--bdr);align-items:center}
-.dtag{font-size:0.62rem;color:var(--tx2);font-weight:600;background:rgba(255,255,255,0.1);padding:0 8px;height:20px;border-radius:50px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;line-height:1;gap:3px;vertical-align:middle}
+
+/* garis pembatas */
+.dc-divider{height:1px;background:rgba(255,255,255,0.08);margin:7px 0}
+
+/* baris 2: tags kiri | keterangan kanan */
+.dc-tags{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:nowrap}
+.dtag{font-size:0.62rem;color:var(--tx2);font-weight:600;background:rgba(255,255,255,0.1);padding:0 8px;height:20px;border-radius:50px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;line-height:1;gap:3px;flex-shrink:0}
+.dc-ket-inline{font-size:0.63rem;color:var(--tx3);font-style:italic;text-align:right;flex-shrink:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+
+/* edit row */
+.dc-edit-row{margin-top:6px;display:flex;justify-content:flex-end}
 .dc-ket{font-size:0.65rem;color:var(--tx3);margin-top:3px;font-style:italic}
 .edit-btn{padding:3px 10px;border-radius:50px;border:1.5px solid var(--ac);background:rgba(168,85,247,0.15);color:var(--ac);cursor:pointer;font-size:0.62rem;font-weight:700;white-space:nowrap}
 .edit-mode-btn{padding:4px 12px;border-radius:50px;border:1.5px solid var(--bdr2);background:var(--glass);color:var(--tx2);cursor:pointer;font-size:0.68rem;font-weight:700;white-space:nowrap}
