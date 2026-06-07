@@ -151,6 +151,7 @@ function openInputModal(){
   document.getElementById('inKet').value='';
   renderQuickKat();
   document.getElementById('ovInput').classList.add('open');
+  updateAiScanBtn(); // sinkron cooldown timer jika masih berjalan
 }
 
 // ═══ API ═══
@@ -1592,8 +1593,42 @@ function openStrukDetail(rowIdx){
 // ═══════════════════════════════════════════════
 
 let aiScanAbort = false;
+let aiScanCooldown = 0;      // sisa detik cooldown
+let aiScanCooldownTimer = null;
+
+function startAiCooldown(seconds) {
+  aiScanCooldown = seconds;
+  clearInterval(aiScanCooldownTimer);
+  updateAiScanBtn();
+  aiScanCooldownTimer = setInterval(() => {
+    aiScanCooldown--;
+    updateAiScanBtn();
+    if (aiScanCooldown <= 0) {
+      clearInterval(aiScanCooldownTimer);
+      aiScanCooldown = 0;
+      updateAiScanBtn();
+    }
+  }, 1000);
+}
+
+function updateAiScanBtn() {
+  const btn = document.getElementById('btnAiScan');
+  if (!btn) return;
+  if (aiScanCooldown > 0) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor  = 'not-allowed';
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Tunggu ${aiScanCooldown}d`;
+  } else {
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor  = '';
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>Scan AI`;
+  }
+}
 
 function triggerAiScan() {
+  if (aiScanCooldown > 0) return;
   document.getElementById('aiImageInput').value = '';
   document.getElementById('aiImageInput').click();
 }
@@ -1686,6 +1721,11 @@ async function handleAiImageUpload(event) {
     URL.revokeObjectURL(previewUrl);
     toast('Scan gagal: ' + e.message, 'err');
     console.error('[AI Scan]', e);
+    // Cooldown: 503 high demand → 30d, rate limit → 15d, lainnya → 10d
+    const msg = e.message || '';
+    const cd  = msg.includes('high demand') || msg.includes('503') ? 30
+               : msg.includes('rate-limit') || msg.includes('429') ? 15 : 10;
+    startAiCooldown(cd);
   }
 }
 
