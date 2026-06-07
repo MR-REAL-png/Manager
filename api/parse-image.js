@@ -58,10 +58,29 @@ function extractJSON(rawText) {
   // 2. Coba parse langsung
   try { return JSON.parse(clean); } catch {}
 
-  // 3. Cari { ... } pertama yang valid (handle thinking/preamble dari gemini-2.5)
+  // 3. Cari { ... } pertama yang valid
   const match = clean.match(/\{[\s\S]*\}/);
   if (match) {
     try { return JSON.parse(match[0]); } catch {}
+  }
+
+  // 4. Handle JSON terpotong: ambil dari { sampai akhir, tutup manual
+  const start = clean.indexOf('{');
+  if (start >= 0) {
+    let partial = clean.slice(start);
+    // Tutup string yang terbuka dan object-nya
+    // Hapus baris terakhir yang tidak lengkap
+    const lines = partial.split('\n');
+    while (lines.length > 1) {
+      const last = lines[lines.length - 1].trim();
+      // Baris valid jika diakhiri , atau }
+      if (last.endsWith(',') || last.endsWith('}') || last === '') break;
+      lines.pop();
+    }
+    partial = lines.join('\n').trim();
+    // Pastikan ditutup dengan }
+    if (!partial.endsWith('}')) partial += '\n}';
+    try { return JSON.parse(partial); } catch {}
   }
 
   return null;
@@ -120,7 +139,7 @@ Aturan:
     }],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 512,
     },
   };
 
@@ -179,3 +198,4 @@ Aturan:
       : (lastError?.message || 'Gagal menghubungi Gemini AI'),
   });
 }
+
