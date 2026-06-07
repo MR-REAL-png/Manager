@@ -139,7 +139,8 @@ Aturan:
     }],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 512,
+      maxOutputTokens: 256,
+      responseMimeType: 'application/json',
     },
   };
 
@@ -198,4 +199,3 @@ Aturan:
       : (lastError?.message || 'Gagal menghubungi Gemini AI'),
   });
 }
-
