@@ -539,7 +539,7 @@ function syncFilterBulan(){
 
 function renderCards(rows){
   const el=document.getElementById('dataList');
-  if(!rows.length){el.innerHTML=`<div class="empty"><div class="ei">${IC.chart}</div><p>Belum ada data</p></div>`;return}
+  if(!rows.length){el.innerHTML=`<div class="empty-state"><div class="empty-ico">💸</div><div class="empty-title">Belum ada transaksi</div><div class="empty-sub">Tap <strong>+</strong> untuk menambahkan transaksi pertama</div></div>`;return}
   const sorted=[...rows].sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
   const totM=rows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
   const totK=rows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
@@ -557,7 +557,7 @@ function renderCards(rows){
       const tags=[r.pembayaran,r.metode].filter(Boolean).map(t=>`<span class="dtag">${t}</span>`).join('');
       const ketHtml=r.detail?`<span class="dc-ket-inline">${r.detail}</span>`:'';
       const editHtml=eb?`<div class="dc-edit-row">${eb}</div>`:'';
-      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s" onclick="event.stopPropagation();openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags">${tags}${ketHtml}</div>${editHtml}</div>`;
+      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s" onclick="event.stopPropagation();openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags"><div class="dc-tags-left">${tags}</div>${ketHtml}</div>${editHtml}</div>`;
     }).join('');
     return`<div class="date-group"><div class="dg-header"><div class="dg-dot ${dotCls}"></div><span class="dg-date">${IC.cal} ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
   }).join('');
@@ -1325,7 +1325,23 @@ function setTheme(t,save=true){
   const tl=document.getElementById('themeLabel');if(tl)tl.textContent=isOcean?'Ocean (Edit Mode)':'Cosmic (Default)';
   const dl=document.getElementById('drawerThemeLbl');if(dl)dl.innerHTML=`<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor' style='width:15px;height:15px;vertical-align:middle;margin-right:4px'><path stroke-linecap='round' stroke-linejoin='round' d='M4.098 19.902a3.75 3.75 0 0 0 5.304 0l6.401-6.402M6.75 21A3.75 3.75 0 0 1 3 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 0 0 3.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008Z'/></svg> Tema: \${isOcean?'Ocean':'Cosmic'}`;
 }
-function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme');setTheme(cur==='ocean'?'cosmic':'ocean')}
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='ocean'?'cosmic':'ocean';
+  // Ripple dari posisi tombol toggle
+  const btn=document.getElementById('drawerThemeToggle')||document.getElementById('themeToggle');
+  if(btn){
+    const rect=btn.getBoundingClientRect();
+    const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+    const maxDim=Math.max(window.innerWidth,window.innerHeight)*2.5;
+    const ripple=document.createElement('div');
+    ripple.className='theme-ripple';
+    ripple.style.cssText=`width:${maxDim}px;height:${maxDim}px;left:${cx-maxDim/2}px;top:${cy-maxDim/2}px;background:${next==='ocean'?'rgba(56,189,248,0.18)':'rgba(168,85,247,0.18)'}`;
+    document.body.appendChild(ripple);
+    setTimeout(()=>ripple.remove(),650);
+  }
+  setTheme(next);
+}
 
 // ═══ AVG DETAIL ═══
 function openAvgDetail(){
