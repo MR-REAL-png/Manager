@@ -1711,12 +1711,22 @@ function fillFormFromAI(data) {
     jenisEl.value = mapped;
     onJenisChange('in');
 
-    // Wait a tick for kategori options to load, then set
+    // Set kategori setelah onJenisChange populate options
     setTimeout(() => {
       if (data.kategori) {
         const katEl = document.getElementById('inKat');
-        const opts = Array.from(katEl.options).map(o => o.value.toLowerCase());
-        const match = opts.findIndex(o => o.includes(data.kategori.toLowerCase()) || data.kategori.toLowerCase().includes(o.replace(/[^a-z]/g,'')));
+        const aiKat = data.kategori.toLowerCase().trim();
+        const opts   = Array.from(katEl.options);
+        // Strip emoji & simbol, bandingkan kata kunci
+        let match = opts.findIndex(o => {
+          const val = o.value.replace(/[^\w\s]/gu, '').toLowerCase().trim();
+          return val.includes(aiKat) || aiKat.includes(val) || val === aiKat;
+        });
+        if (match < 0) {
+          // Fallback: cari kata pertama yang cocok
+          const firstWord = aiKat.split(/\s+/)[0];
+          match = opts.findIndex(o => o.value.toLowerCase().includes(firstWord));
+        }
         if (match >= 0) katEl.selectedIndex = match;
       }
     }, 150);
