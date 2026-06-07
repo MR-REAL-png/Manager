@@ -859,13 +859,13 @@ function checkBudgetAlerts(byKatArr){
 
 async function submitInput(){
   const tgl=document.getElementById('inTgl').value,jenis=document.getElementById('inJenis').value;
-  const kat=document.getElementById('inKat').value,nom=document.getElementById('inNom').value;
+  const kat=document.getElementById('inKat').value,nom=getNomVal('inNom');
   const metode=document.getElementById('inMetode').value,bank=document.getElementById('inBank').value;
   const ket=document.getElementById('inKet').value,bulan=document.getElementById('inBulan').value;
   if(!tgl||!jenis||!kat||!nom){toast('Lengkapi field wajib','err');return}
   document.getElementById('inLoad').style.display='flex';document.getElementById('btnSimpan').disabled=true;
   try{
-    await sheetsAppend([[tgl,bulan,kat,Number(nom),metode,ket,bank,jenis]]);
+    await sheetsAppend([[tgl,bulan,kat,nom,metode,ket,bank,jenis]]);
     saveRecentKat(kat,jenis);toast('Data tersimpan!','ok');closeOv(null,'ovInput');allRows=[];
     if(document.getElementById('pg-data').classList.contains('on'))loadData();
     if(document.getElementById('pg-dashboard').classList.contains('on'))loadDashboard();
@@ -1386,6 +1386,16 @@ function countUp(id,target,prefix=''){
   const steps=40,step=900/steps;let cur=0;
   const timer=setInterval(()=>{cur+=target/steps;if(cur>=target){cur=target;clearInterval(timer)}el.textContent=prefix+rp(Math.round(cur))},step);
 }
+function fmtNom(el) {
+  // Simpan posisi cursor
+  const raw = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+  if (raw === '') { el.value = ''; return; }
+  el.value = Number(raw).toLocaleString('id-ID');
+}
+function getNomVal(id) {
+  // Baca nilai nominal tanpa titik pemisah
+  return Number((document.getElementById(id).value || '0').replace(/\./g, '').replace(/[^0-9]/g, '')) || 0;
+}
 function safeHTML(s){if(typeof s==='string'&&s.includes('<svg')){return s}const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 function toast(msg,type=''){
   const el=document.getElementById('toast');
@@ -1783,8 +1793,9 @@ function fillFormFromAI(data) {
 
   // Nominal
   if (data.nominal) {
-    const nom = String(data.nominal).replace(/[^0-9]/g,'');
-    document.getElementById('inNom').value = nom;
+    const nomRaw = String(data.nominal).replace(/[^0-9]/g,'');
+    const nomEl  = document.getElementById('inNom');
+    nomEl.value  = nomRaw ? Number(nomRaw).toLocaleString('id-ID') : '';
   }
 
   // Metode
