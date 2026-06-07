@@ -756,25 +756,22 @@ body{transition:background 0.4s ease}
 #cosmicBg,#oceanBg{transition:opacity 0.4s ease}
 
 /* ── BOTTOM NAV OPSI 3: navbar memeluk FAB ── */
-.bnav{position:relative}
 .bnav::before{
   content:'';
-  position:absolute;
-  top:-18px;
+  position:fixed;
+  bottom:62px;
   left:50%;
   transform:translateX(-50%);
-  width:80px;
-  height:36px;
+  width:90px;
+  height:40px;
   border-radius:50%;
-  background:radial-gradient(ellipse at center,rgba(168,85,247,0.28) 0%,transparent 75%);
+  background:radial-gradient(ellipse at center,rgba(168,85,247,0.32) 0%,transparent 72%);
   pointer-events:none;
-  z-index:0;
+  z-index:9998;
 }
 [data-theme="ocean"] .bnav::before{
-  background:radial-gradient(ellipse at center,rgba(56,189,248,0.28) 0%,transparent 75%);
+  background:radial-gradient(ellipse at center,rgba(56,189,248,0.32) 0%,transparent 72%);
 }
-/* bnav overflow visible agar glow FAB tidak terpotong */
-.bnav{overflow:visible}
 
 /* ── THEME RIPPLE ── */
 .theme-ripple{
