@@ -548,12 +548,18 @@ function renderCards(rows){
   const grouped={};sorted.forEach(r=>{if(!grouped[r.tanggal])grouped[r.tanggal]=[];grouped[r.tanggal].push(r)});
   const html=Object.entries(grouped).map(([tgl,txs],gi)=>{
     const dk=txs.reduce((s,r)=>r.jenis==='Pemasukan'?s+r.nominal:s-r.nominal,0);
+    const hasIn=txs.some(r=>r.jenis==='Pemasukan'),hasOut=txs.some(r=>r.jenis==='Pengeluaran');
+    const dotCls=hasIn&&hasOut?'mix':hasIn?'inc':'spd';
     const cards=txs.map((r,ri)=>{
       const isIn=r.jenis==='Pemasukan',cls=isIn?'inc':'spd',arr=isIn?'↓':'↑';
-      const eb=editMode?`<button class="edit-btn" onclick="openEdit(${r.rowIndex})">${IC.edit} Edit</button>`:'';
-      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s" onclick="event.stopPropagation();openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div><div class="dc-kat">${r.kategori}</div></div><div><div class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</div><div class="dc-badge ${cls}">${isIn?IC.in:IC.out} ${r.jenis}</div></div></div><div class="dc-tags">${r.pembayaran?`<span class="dtag">${r.pembayaran}</span>`:''} ${r.metode?`<span class="dtag">${r.metode}</span>`:''} ${r.bulan?`<span class="dtag">${r.bulan}</span>`:''} ${eb}</div>${r.detail?`<div class="dc-ket">${r.detail}</div>`:''}</div>`;
+      const eb=editMode?`<button class="edit-btn" onclick="event.stopPropagation();openEdit(${r.rowIndex})">${IC.edit} Edit</button>`:'';
+      const kat=r.kategori||'';
+      const tags=[r.pembayaran,r.metode].filter(Boolean).map(t=>`<span class="dtag">${t}</span>`).join('');
+      const ketHtml=r.detail?`<span class="dc-ket-inline">${r.detail}</span>`:'';
+      const editHtml=eb?`<div class="dc-edit-row">${eb}</div>`:'';
+      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s" onclick="event.stopPropagation();openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags">${tags}${ketHtml}</div>${editHtml}</div>`;
     }).join('');
-    return`<div class="date-group"><div class="dg-header"><div class="dg-dot"></div><span class="dg-date">${IC.cal} ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
+    return`<div class="date-group"><div class="dg-header"><div class="dg-dot ${dotCls}"></div><span class="dg-date">${IC.cal} ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
   }).join('');
   el.innerHTML=strip+html;
 }
