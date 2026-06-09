@@ -236,6 +236,7 @@ function goPage(p){
   else if(p==='kalender')renderKalender();
   else if(p==='notif')loadNotif();
   else if(p==='target-sett')loadTargetSett();
+  else if(p==='sett')updateExportInfoUI();
 }
 function doRefresh(){
   const p=document.querySelector('.page.on');if(!p)return;
@@ -1100,7 +1101,7 @@ async function saveSettModal(){
     const blob=new Blob([header+'\n'+csv],{type:'text/csv'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=`transaksi_${from||'all'}_${to||'all'}.csv`;a.click();
-    URL.revokeObjectURL(url);toast('CSV diunduh!','ok');closeOv(null,'ovSett');return;
+    URL.revokeObjectURL(url);saveExportLog('csv',from,to);toast('CSV diunduh!','ok');closeOv(null,'ovSett');return;
   }
   if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=val;const dt=document.querySelector('.drawer-title');if(dt)dt.textContent=val;const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('Nama diperbarui','ok')}}
   else if(settModalType==='anggaran'){
@@ -1141,6 +1142,27 @@ function updateExpCount(){
   if(el)el.textContent=count+' transaksi';
 }
 
+function saveExportLog(type,from,to){
+  const log=JSON.parse(localStorage.getItem('mm_export_log')||'{}');
+  log[type]={date:new Date().toISOString(),from,to};
+  localStorage.setItem('mm_export_log',JSON.stringify(log));
+  updateExportInfoUI();
+}
+function updateExportInfoUI(){
+  const log=JSON.parse(localStorage.getItem('mm_export_log')||'{}');
+  const fmt=d=>{if(!d)return'';const dt=new Date(d);return`${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`};
+  const fmtDate=iso=>{if(!iso)return'';return fmt(iso)};
+  const csvEl=document.getElementById('csvExportInfo');
+  const gsEl=document.getElementById('gsheetExportInfo');
+  if(csvEl&&log.csv){
+    const {date,from,to}=log.csv;
+    csvEl.textContent=`Terakhir: ${fmtDate(date)}${from&&to?' · '+fmt(from+'T00:00:00')+'–'+fmt(to+'T00:00:00'):''}`;
+  }
+  if(gsEl&&log.gsheet){
+    const {date,from,to}=log.gsheet;
+    gsEl.textContent=`Terakhir: ${fmtDate(date)}${from&&to?' · '+fmt(from+'T00:00:00')+'–'+fmt(to+'T00:00:00'):''}`;
+  }
+}
 function triggerExportGSheet(){
   const from=document.getElementById('expFrom')?.value;
   const to=document.getElementById('expTo')?.value;
@@ -1242,6 +1264,7 @@ async function doExportGSheet(from,to,bln){
     await new Promise(r=>setTimeout(r,1500));
 
     if(json.success===true){
+      saveExportLog('gsheet',from,to);
       toast(rows.length+' baris berhasil dikirim ke GSheet!','ok');
       await new Promise(r=>setTimeout(r,1000));
       closeOv(null,'ovSett');
@@ -1250,6 +1273,7 @@ async function doExportGSheet(from,to,bln){
       resetGSheetBtn(btn);
     } else {
       if(res.ok){
+        saveExportLog('gsheet',from,to);
         toast(rows.length+' baris berhasil dikirim ke GSheet!','ok');
         await new Promise(r=>setTimeout(r,1500));
         closeOv(null,'ovSett');
