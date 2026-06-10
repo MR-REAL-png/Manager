@@ -1150,17 +1150,12 @@ function saveExportLog(type,from,to){
 }
 function updateExportInfoUI(){
   const log=JSON.parse(localStorage.getItem('mm_export_log')||'{}');
-  const fmt=d=>{if(!d)return'';const dt=new Date(d);return`${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`};
-  const fmtDate=iso=>{if(!iso)return'';return fmt(iso)};
-  const csvEl=document.getElementById('csvExportInfo');
+  const fmt=iso=>{if(!iso)return'';const d=new Date(iso);return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`};
   const gsEl=document.getElementById('gsheetExportInfo');
-  if(csvEl&&log.csv){
-    const {date,from,to}=log.csv;
-    csvEl.textContent=`Terakhir: ${fmtDate(date)}${from&&to?' · '+fmt(from+'T00:00:00')+'–'+fmt(to+'T00:00:00'):''}`;
-  }
   if(gsEl&&log.gsheet){
-    const {date,from,to}=log.gsheet;
-    gsEl.textContent=`Terakhir: ${fmtDate(date)}${from&&to?' · '+fmt(from+'T00:00:00')+'–'+fmt(to+'T00:00:00'):''}`;
+    const{date,from,to}=log.gsheet;
+    gsEl.textContent=`GSheet: ${fmt(date)}${from&&to?' · '+fmt(from+'T00:00:00')+'–'+fmt(to+'T00:00:00'):''}`;
+    gsEl.style.display='block';
   }
 }
 function triggerExportGSheet(){
@@ -1319,7 +1314,8 @@ function exportCSV(){
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn-ok" style="flex:1;font-size:0.78rem" onclick="saveSettModal()">${IC.save} Download CSV</button>
       <button class="btn-ok" id="btnExportGSheet" style="flex:1;font-size:0.78rem;background:linear-gradient(135deg,#34a853,#0f9d58)" onclick="triggerExportGSheet()">${IC.upload}Export ke GSheet</button>
-    </div>`;
+    </div>
+    <div id="gsheetLastInfo" style="margin-top:6px;text-align:right;font-size:0.6rem;color:var(--tx3);font-style:italic;min-height:14px">${(()=>{const l=JSON.parse(localStorage.getItem('mm_export_log')||'{}');if(!l.gsheet)return'';const fmt=iso=>{if(!iso)return'';const d=new Date(iso);return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`};const{date,from,to}=l.gsheet;return`GSheet: ${fmt(date)}${from&&to?' · '+fmt(from+'T00:00:00')+'–'+fmt(to+'T00:00:00'):''}`;})()}</div>`;
   const _ft=document.querySelector('#ovSett .modal-ft');if(_ft)_ft.style.display='none';
   document.getElementById('ovSett').classList.add('open');
 }
