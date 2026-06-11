@@ -236,7 +236,6 @@ function goPage(p){
   else if(p==='kalender')renderKalender();
   else if(p==='notif')loadNotif();
   else if(p==='target-sett')loadTargetSett();
-  else if(p==='sett')updateExportInfoUI();
 }
 function doRefresh(){
   const p=document.querySelector('.page.on');if(!p)return;
@@ -1101,7 +1100,7 @@ async function saveSettModal(){
     const blob=new Blob([header+'\n'+csv],{type:'text/csv'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=`transaksi_${from||'all'}_${to||'all'}.csv`;a.click();
-    URL.revokeObjectURL(url);saveExportLog('csv',from,to);toast('CSV diunduh!','ok');closeOv(null,'ovSett');return;
+    URL.revokeObjectURL(url);toast('CSV diunduh!','ok');closeOv(null,'ovSett');return;
   }
   if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=val;const dt=document.querySelector('.drawer-title');if(dt)dt.textContent=val;const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('Nama diperbarui','ok')}}
   else if(settModalType==='anggaran'){
@@ -1142,22 +1141,6 @@ function updateExpCount(){
   if(el)el.textContent=count+' transaksi';
 }
 
-function saveExportLog(type,from,to){
-  const log=JSON.parse(localStorage.getItem('mm_export_log')||'{}');
-  log[type]={date:new Date().toISOString(),from,to};
-  localStorage.setItem('mm_export_log',JSON.stringify(log));
-  updateExportInfoUI();
-}
-function updateExportInfoUI(){
-  const log=JSON.parse(localStorage.getItem('mm_export_log')||'{}');
-  const fmt=iso=>{if(!iso)return'';const d=new Date(iso);return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`};
-  const gsEl=document.getElementById('gsheetExportInfo');
-  if(gsEl&&log.gsheet){
-    const{date,from,to}=log.gsheet;
-    gsEl.textContent=`GSheet: ${fmt(date)}${from&&to?' · '+fmt(from+'T00:00:00')+'–'+fmt(to+'T00:00:00'):''}`;
-    gsEl.style.display='block';
-  }
-}
 function triggerExportGSheet(){
   const from=document.getElementById('expFrom')?.value;
   const to=document.getElementById('expTo')?.value;
@@ -1259,7 +1242,6 @@ async function doExportGSheet(from,to,bln){
     await new Promise(r=>setTimeout(r,1500));
 
     if(json.success===true){
-      saveExportLog('gsheet',from,to);
       toast(rows.length+' baris berhasil dikirim ke GSheet!','ok');
       await new Promise(r=>setTimeout(r,1000));
       closeOv(null,'ovSett');
@@ -1268,7 +1250,6 @@ async function doExportGSheet(from,to,bln){
       resetGSheetBtn(btn);
     } else {
       if(res.ok){
-        saveExportLog('gsheet',from,to);
         toast(rows.length+' baris berhasil dikirim ke GSheet!','ok');
         await new Promise(r=>setTimeout(r,1500));
         closeOv(null,'ovSett');
@@ -1314,8 +1295,7 @@ function exportCSV(){
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn-ok" style="flex:1;font-size:0.78rem" onclick="saveSettModal()">${IC.save} Download CSV</button>
       <button class="btn-ok" id="btnExportGSheet" style="flex:1;font-size:0.78rem;background:linear-gradient(135deg,#34a853,#0f9d58)" onclick="triggerExportGSheet()">${IC.upload}Export ke GSheet</button>
-    </div>
-    <div id="gsheetLastInfo" style="margin-top:6px;text-align:right;font-size:0.6rem;color:var(--tx3);font-style:italic;min-height:14px">${(()=>{const l=JSON.parse(localStorage.getItem('mm_export_log')||'{}');if(!l.gsheet)return'';const fmt=iso=>{if(!iso)return'';const d=new Date(iso);return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`};const{date,from,to}=l.gsheet;return`GSheet: ${fmt(date)}${from&&to?' · '+fmt(from+'T00:00:00')+'–'+fmt(to+'T00:00:00'):''}`;})()}</div>`;
+    </div>`;
   const _ft=document.querySelector('#ovSett .modal-ft');if(_ft)_ft.style.display='none';
   document.getElementById('ovSett').classList.add('open');
 }
