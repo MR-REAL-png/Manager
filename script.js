@@ -295,7 +295,8 @@ async function loadDashboard(){
     if(elAvgBudget){elAvgBudget.textContent=kas<=0?'—':rpShort(avgBudget);elAvgBudget.style.color=kas<=0?'var(--red)':'#fbbf24';}
     avgDetailData={totalFleksibel:totalFleks,totalDays:totalDaysPeriode,avgHarian,byKategori:byKatFleksArr,kas,masuk,keluar,sisaHari:sisaHariNow,avgBudget,startDate,endDate};
     // Hide komposisi jika ada budget sebelum render
-    const _budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+    const _bKey=getBudgetMonthKey(new Date(startDate).getFullYear(),new Date(startDate).getMonth());
+    const _budgets=getBudgetsForMonth(_bKey);
     const _hasBudget=Object.values(_budgets).some(v=>Number(v)>0);
     const _kompSec=document.getElementById('kompSection');
     if(_kompSec)_kompSec.style.display=_hasBudget?'none':'';
@@ -404,8 +405,10 @@ function renderChartHarian(rows){
 
 function renderBudget(byCat){
   const el=document.getElementById('budgetList');
-  // Sembunyikan komposisi jika sudah ada budget
-  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  // Gunakan budget bulan aktif
+  const {startDate}=getActivePeriodResolved();
+  const bKey=getBudgetMonthKey(startDate.getFullYear(),startDate.getMonth());
+  const budgets=getBudgetsForMonth(bKey);
   const hasBudget=Object.values(budgets).some(v=>Number(v)>0);
   const kompSec=document.getElementById('kompSection');
   if(kompSec)kompSec.style.display=hasBudget?'none':'';
@@ -460,7 +463,10 @@ function renderBudgetMonitor(byCat){
   const el=document.getElementById('budgetMonitor');
   const secLbl=document.getElementById('bmonSecLbl');
   if(!el||!secLbl)return;
-  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  // Gunakan budget bulan aktif periode
+  const {startDate}=getActivePeriodResolved();
+  const bKey=getBudgetMonthKey(startDate.getFullYear(),startDate.getMonth());
+  const budgets=getBudgetsForMonth(bKey);
   const allItems=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
     const budget=budgets[k.kategori];
     const pct=Math.min(Math.round(k.nominal/budget*100),999);
@@ -828,7 +834,8 @@ async function loadNotif(){
     const now=new Date(),b=MOS[now.getMonth()],t=String(now.getFullYear());
     const rows=allRows.filter(r=>r.bulan===b&&r.tanggal.startsWith(t)&&r.jenis==='Pengeluaran');
     const bk=groupBy(rows,'kategori');
-    const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+    const notifBKey=getBudgetMonthKey(now.getFullYear(),now.getMonth());
+    const budgets=getBudgetsForMonth(notifBKey);
     Object.entries(bk).forEach(([kat,txs])=>{
       const total=txs.reduce((s,r)=>s+r.nominal,0),budget=budgets[kat]||0;
       if(budget>0){
@@ -857,7 +864,9 @@ function renderNotif(){
 }
 
 function checkBudgetAlerts(byKatArr){
-  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  const {startDate}=getActivePeriodResolved();
+  const bKey=getBudgetMonthKey(new Date(startDate).getFullYear(),new Date(startDate).getMonth());
+  const budgets=getBudgetsForMonth(bKey);
   const hw=byKatArr.some(k=>{const b=budgets[k.kategori]||0;return b>0&&k.nominal>=b});
   const badge=document.getElementById('notifBadge');
   if(badge)badge.style.display=hw?'inline':'none';
@@ -964,14 +973,29 @@ function openSettModal(type){
     title.innerHTML=`${IC.tag.replace('width:20px;height:20px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Anggaran per Kategori`;
     body.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
     document.getElementById('ovSett').classList.add('open');
+    // Reset ke bulan saat ini setiap kali buka
+    anggaranModalYear = new Date().getFullYear();
+    anggaranModalMonth = new Date().getMonth();
     const renderAnggaran=()=>{
-      const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+      const key=getBudgetMonthKey(anggaranModalYear,anggaranModalMonth);
+      const budgets=getBudgetsForMonth(key);
       const kats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
       if(!kats.length){body.innerHTML=`<div class="empty"><div class="ei">${IC.tag}</div><p>Belum ada kategori.<br>Tambahkan transaksi pengeluaran dulu.</p></div>`;return}
-      // Hitung total anggaran dari nilai yang tersimpan
       const totalAnggaranSimpan=kats.reduce((s,k)=>s+(Number(budgets[k])||0),0);
+      const allV2=getAllBudgetsV2();
+      const hasOtherMonths=Object.keys(allV2).length>0;
+      const prevDate=new Date(anggaranModalYear,anggaranModalMonth-1,1);
+      const prevKey=getBudgetMonthKey(prevDate.getFullYear(),prevDate.getMonth());
+      const prevBudgets=allV2[prevKey]||{};
+      const canCopy=Object.keys(prevBudgets).length>0&&!Object.keys(budgets).length;
       body.innerHTML=`
-        <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran bulanan per kategori. Kosongkan untuk tidak ada limit.</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--glass);border:1px solid var(--bdr2);border-radius:12px;padding:8px 12px">
+          <button onclick="anggaranNavMonth(-1)" style="background:none;border:none;color:var(--tx2);cursor:pointer;padding:4px 8px;font-size:1.2rem;line-height:1">‹</button>
+          <span id="anggaranMonthLbl" style="font-size:0.85rem;font-weight:600;color:#fff">${MOS[anggaranModalMonth]} ${anggaranModalYear}</span>
+          <button onclick="anggaranNavMonth(1)" style="background:none;border:none;color:var(--tx2);cursor:pointer;padding:4px 8px;font-size:1.2rem;line-height:1">›</button>
+        </div>
+        ${canCopy?`<button onclick="anggaranCopyPrev()" style="width:100%;margin-bottom:10px;padding:8px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);border-radius:8px;color:var(--grn);font-size:0.75rem;cursor:pointer">📋 Salin dari ${MOS[prevDate.getMonth()]} ${prevDate.getFullYear()}</button>`:''}
+        <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran per kategori untuk <b style="color:#c084fc">${MOS[anggaranModalMonth]} ${anggaranModalYear}</b>. Kosongkan untuk tidak ada limit.</p>
         ${kats.map((k,i)=>{
           const id='bgt_'+i;
           const val=budgets[k]||'';
@@ -982,7 +1006,7 @@ function openSettModal(type){
           <span id="anggaranTotalVal" style="font-size:0.88rem;font-weight:700;color:#c084fc">${totalAnggaranSimpan>0?rp(totalAnggaranSimpan):'—'}</span>
         </div>
         <div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:0.7rem;color:var(--grn);margin-top:6px">
-          Budget akan muncul di notifikasi jika pengeluaran melebihi batas.
+          Budget tersimpan per bulan. Navigasi ‹ › untuk lihat/edit bulan lain.
         </div>`;
     };
     // Pastikan data & kategori ter-load sebelum render
@@ -1073,6 +1097,54 @@ function removeCustomKat(name){
   renderKategoriModal();fetchDBOptions();
 }
 
+// ═══ ANGGARAN PER BULAN ═══
+// Key format: "YYYY-MM" → { KategoriA: 150000, KategoriB: 500000, ... }
+// Storage: mm_budgets_v2 = { "2025-06": {...}, "2025-07": {...} }
+
+function getBudgetMonthKey(year, month) {
+  // month: 0-based
+  return `${year}-${String(month+1).padStart(2,'0')}`;
+}
+
+function getAllBudgetsV2() {
+  return JSON.parse(localStorage.getItem('mm_budgets_v2') || '{}');
+}
+
+function getBudgetsForMonth(key) {
+  const all = getAllBudgetsV2();
+  // Fallback: jika bulan ini belum ada, coba migrate dari mm_budgets lama
+  if (!all[key]) {
+    const legacy = JSON.parse(localStorage.getItem('mm_budgets') || '{}');
+    if (Object.keys(legacy).length > 0) return legacy;
+    return {};
+  }
+  return all[key] || {};
+}
+
+function saveBudgetsForMonth(key, budgets) {
+  const all = getAllBudgetsV2();
+  all[key] = budgets;
+  localStorage.setItem('mm_budgets_v2', JSON.stringify(all));
+}
+
+function copyBudgetFromPrevMonth(targetKey) {
+  const all = getAllBudgetsV2();
+  const [y, m] = targetKey.split('-').map(Number);
+  const prevDate = new Date(y, m-2, 1); // m-1 karena 0-based, lalu -1 lagi = bulan sebelumnya
+  const prevKey = getBudgetMonthKey(prevDate.getFullYear(), prevDate.getMonth());
+  const prev = all[prevKey] || {};
+  if (Object.keys(prev).length > 0) {
+    all[targetKey] = { ...prev };
+    localStorage.setItem('mm_budgets_v2', JSON.stringify(all));
+    return true;
+  }
+  return false;
+}
+
+// State untuk modal anggaran
+let anggaranModalYear = new Date().getFullYear();
+let anggaranModalMonth = new Date().getMonth();
+
 // ═══ TOTAL ANGGARAN (live update) ═══
 function updateAnggaranTotal(){
   const inputs=document.querySelectorAll('#settModalBody input[data-kat]');
@@ -1080,6 +1152,67 @@ function updateAnggaranTotal(){
   inputs.forEach(inp=>{const v=Number(inp.value);if(v>0)total+=v;});
   const el=document.getElementById('anggaranTotalVal');
   if(el)el.textContent=total>0?rp(total):'—';
+}
+
+function anggaranNavMonth(dir){
+  // Simpan nilai saat ini sebelum pindah bulan
+  const key=getBudgetMonthKey(anggaranModalYear,anggaranModalMonth);
+  const budgets=getBudgetsForMonth(key);
+  const inputs=document.querySelectorAll('#settModalBody input[data-kat]');
+  let hasInput=false;
+  inputs.forEach(inp=>{if(inp.value){hasInput=true;budgets[inp.dataset.kat]=Number(inp.value);}else{delete budgets[inp.dataset.kat];}});
+  if(hasInput)saveBudgetsForMonth(key,budgets);
+
+  // Navigasi bulan
+  anggaranModalMonth+=dir;
+  if(anggaranModalMonth>11){anggaranModalMonth=0;anggaranModalYear++;}
+  if(anggaranModalMonth<0){anggaranModalMonth=11;anggaranModalYear--;}
+
+  // Re-render modal
+  const newKey=getBudgetMonthKey(anggaranModalYear,anggaranModalMonth);
+  const newBudgets=getBudgetsForMonth(newKey);
+  const kats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
+  const totalAnggaranSimpan=kats.reduce((s,k)=>s+(Number(newBudgets[k])||0),0);
+  const allV2=getAllBudgetsV2();
+  const prevDate=new Date(anggaranModalYear,anggaranModalMonth-1,1);
+  const prevKey=getBudgetMonthKey(prevDate.getFullYear(),prevDate.getMonth());
+  const prevBudgets=allV2[prevKey]||{};
+  const canCopy=Object.keys(prevBudgets).length>0&&!Object.keys(newBudgets).length;
+  const body=document.getElementById('settModalBody');
+  body.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--glass);border:1px solid var(--bdr2);border-radius:12px;padding:8px 12px">
+      <button onclick="anggaranNavMonth(-1)" style="background:none;border:none;color:var(--tx2);cursor:pointer;padding:4px 8px;font-size:1.2rem;line-height:1">‹</button>
+      <span id="anggaranMonthLbl" style="font-size:0.85rem;font-weight:600;color:#fff">${MOS[anggaranModalMonth]} ${anggaranModalYear}</span>
+      <button onclick="anggaranNavMonth(1)" style="background:none;border:none;color:var(--tx2);cursor:pointer;padding:4px 8px;font-size:1.2rem;line-height:1">›</button>
+    </div>
+    ${canCopy?`<button onclick="anggaranCopyPrev()" style="width:100%;margin-bottom:10px;padding:8px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);border-radius:8px;color:var(--grn);font-size:0.75rem;cursor:pointer">📋 Salin dari ${MOS[prevDate.getMonth()]} ${prevDate.getFullYear()}</button>`:''}
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Set batas anggaran per kategori untuk <b style="color:#c084fc">${MOS[anggaranModalMonth]} ${anggaranModalYear}</b>. Kosongkan untuk tidak ada limit.</p>
+    ${kats.map((k,i)=>{
+      const id='bgt_'+i;
+      const val=newBudgets[k]||'';
+      return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" data-kat="${k}" placeholder="Rp — tidak ada limit" value="${val}" min="0" oninput="updateAnggaranTotal()"></div>`;
+    }).join('')}
+    <div id="anggaranTotalBox" style="margin-top:10px;padding:10px 12px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);border-radius:10px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:0.75rem;color:var(--tx2)">${IC.chart.replace('width:20px;height:20px','width:13px;height:13px;vertical-align:-2px;margin-right:4px')} Total Anggaran</span>
+      <span id="anggaranTotalVal" style="font-size:0.88rem;font-weight:700;color:#c084fc">${totalAnggaranSimpan>0?rp(totalAnggaranSimpan):'—'}</span>
+    </div>
+    <div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:0.7rem;color:var(--grn);margin-top:6px">
+      Budget tersimpan per bulan. Navigasi ‹ › untuk lihat/edit bulan lain.
+    </div>`;
+}
+
+function anggaranCopyPrev(){
+  const prevDate=new Date(anggaranModalYear,anggaranModalMonth-1,1);
+  const prevKey=getBudgetMonthKey(prevDate.getFullYear(),prevDate.getMonth());
+  const allV2=getAllBudgetsV2();
+  const prev=allV2[prevKey]||{};
+  if(!Object.keys(prev).length){toast('Tidak ada data bulan lalu','err');return;}
+  const targetKey=getBudgetMonthKey(anggaranModalYear,anggaranModalMonth);
+  saveBudgetsForMonth(targetKey,{...prev});
+  toast(`Disalin dari ${MOS[prevDate.getMonth()]} ${prevDate.getFullYear()}`,'ok');
+  // Re-render dengan data yang baru disalin — trigger nav 0 (stay, tapi re-render)
+  anggaranModalMonth--;
+  anggaranNavMonth(1);
 }
 
 async function saveSettModal(){
@@ -1104,7 +1237,16 @@ async function saveSettModal(){
   }
   if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=val;const dt=document.querySelector('.drawer-title');if(dt)dt.textContent=val;const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('Nama diperbarui','ok')}}
   else if(settModalType==='anggaran'){
-    (dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income')).forEach((k,i)=>{const el=document.getElementById('bgt_'+i);if(el&&el.value)budgets[k]=Number(el.value);else if(el&&!el.value)delete budgets[k]});localStorage.setItem('mm_budgets',JSON.stringify(budgets));toast('Anggaran disimpan','ok')}
+    const key=getBudgetMonthKey(anggaranModalYear,anggaranModalMonth);
+    const budgets=getBudgetsForMonth(key);
+    (dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income')).forEach((k,i)=>{
+      const el=document.getElementById('bgt_'+i);
+      if(el&&el.value)budgets[k]=Number(el.value);
+      else if(el&&!el.value)delete budgets[k];
+    });
+    saveBudgetsForMonth(key,budgets);
+    toast(`Anggaran ${MOS[anggaranModalMonth]} ${anggaranModalYear} disimpan`,'ok');
+  }
   else if(settModalType==='alertpct'){const val=Number(document.getElementById('alertPctInput').value);if(val>=50&&val<=100){alertPct=val;document.getElementById('alertPctLabel').textContent=`${alertPct}% dari anggaran`;saveSettingsStorage();toast('Batas diperbarui','ok')}}
   else if(settModalType==='periode'){
     const from=document.getElementById('periodeFrom')?.value;
@@ -1510,7 +1652,8 @@ function openBudItemDetail(kat){
     return d>=sd&&d<=ed&&r.jenis==='Pengeluaran'&&r.kategori===kat;
   }).sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
   const total=txs.reduce((s,r)=>s+r.nominal,0);
-  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  const bsdKey=getBudgetMonthKey(new Date(startDate).getFullYear(),new Date(startDate).getMonth());
+  const budgets=getBudgetsForMonth(bsdKey);
   const budget=budgets[kat]||0;
   const hasBudget=budget>0;
   const pct=hasBudget?Math.min(Math.round(total/budget*100),999):null;
