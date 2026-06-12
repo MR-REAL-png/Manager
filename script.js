@@ -34,6 +34,75 @@ const ADMIN_PASS_DEFAULT='sheril';
 
 let allRows=[],dbOpts={banks:[],kategoris:[],metodes:[],jenis:[]};
 let isAdmin=false,editMode=false;
+
+// ═══ USER UID ═══
+// ID unik per user, generate sekali dan simpan di localStorage selamanya
+function getUserUID(){
+  let uid=localStorage.getItem('mm_uid');
+  if(!uid){
+    uid='uid_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);
+    localStorage.setItem('mm_uid',uid);
+  }
+  return uid;
+}
+
+// ═══ SETTINGS SYNC ═══
+// Kumpulkan semua settings lokal jadi satu object
+function collectSettings(){
+  return{
+    mm_budgets_v2:   JSON.parse(localStorage.getItem('mm_budgets_v2')||'{}'),
+    mm_custom_kats:  JSON.parse(localStorage.getItem('mm_custom_kats')||'[]'),
+    mm_custom_banks: JSON.parse(localStorage.getItem('mm_custom_banks')||'[]'),
+    mm_fixed_cats:   JSON.parse(localStorage.getItem('mm_fixed_cats')||'[]'),
+    mm_periode:      JSON.parse(localStorage.getItem('mm_periode')||'{}'),
+    mm_settings:     JSON.parse(localStorage.getItem('mm_settings')||'{}'),
+    mm_t:            localStorage.getItem('mm_t')||'cosmic',
+  };
+}
+
+// Terapkan settings dari Supabase ke localStorage
+function applySettings(data){
+  if(!data)return;
+  if(data.mm_budgets_v2)  localStorage.setItem('mm_budgets_v2',  JSON.stringify(data.mm_budgets_v2));
+  if(data.mm_custom_kats) localStorage.setItem('mm_custom_kats', JSON.stringify(data.mm_custom_kats));
+  if(data.mm_custom_banks)localStorage.setItem('mm_custom_banks',JSON.stringify(data.mm_custom_banks));
+  if(data.mm_fixed_cats)  localStorage.setItem('mm_fixed_cats',  JSON.stringify(data.mm_fixed_cats));
+  if(data.mm_periode)     localStorage.setItem('mm_periode',     JSON.stringify(data.mm_periode));
+  if(data.mm_settings)    localStorage.setItem('mm_settings',    JSON.stringify(data.mm_settings));
+  if(data.mm_t)           localStorage.setItem('mm_t',           data.mm_t);
+  // Terapkan ke variabel runtime
+  const s=data.mm_settings||{};
+  if(s.notifEnabled!==undefined)notifEnabled=s.notifEnabled;
+  if(s.alertPct)alertPct=s.alertPct;
+  if(s.adminPassword)adminPassword=s.adminPassword;
+  if(data.mm_t)setTheme(data.mm_t,false);
+}
+
+// Push settings ke Supabase (fire and forget, tidak blokir UI)
+async function pushSettings(){
+  try{
+    const uid=getUserUID();
+    await fetch(`${API_URL}/api/sheets?action=save-settings`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uid,data:collectSettings()})
+    });
+  }catch(e){console.warn('pushSettings gagal:',e);}
+}
+
+// Pull settings dari Supabase saat app load
+async function pullSettings(){
+  try{
+    const uid=getUserUID();
+    const res=await fetch(`${API_URL}/api/sheets?action=get-settings&uid=${uid}`);
+    if(!res.ok)return;
+    const json=await res.json();
+    if(json.success&&json.data){
+      applySettings(json.data);
+      console.log('Settings berhasil disinkron dari Supabase');
+    }
+  }catch(e){console.warn('pullSettings gagal:',e);}
+}
 let chartKat=null,chartTab=null,chartRekap=null,chartMetode=null,chartKal=null,chartHarian=null;
 let toastT,avgDetailData=null;
 let kalYear=new Date().getFullYear(),kalMonth=new Date().getMonth();
@@ -1089,12 +1158,12 @@ function renderKatRataModal(){
 function removeCustomBank(name){
   let a=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
   a=a.filter(b=>b!==name);localStorage.setItem('mm_custom_banks',JSON.stringify(a));
-  renderRekeningModal();fetchDBOptions();
+  renderRekeningModal();fetchDBOptions();pushSettings();
 }
 function removeCustomKat(name){
   let a=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');
   a=a.filter(k=>k!==name);localStorage.setItem('mm_custom_kats',JSON.stringify(a));
-  renderKategoriModal();fetchDBOptions();
+  renderKategoriModal();fetchDBOptions();pushSettings();
 }
 
 // ═══ ANGGARAN PER BULAN ═══
@@ -1246,27 +1315,28 @@ async function saveSettModal(){
     });
     saveBudgetsForMonth(key,budgets);
     toast(`Anggaran ${MOS[anggaranModalMonth]} ${anggaranModalYear} disimpan`,'ok');
+    pushSettings();
   }
-  else if(settModalType==='alertpct'){const val=Number(document.getElementById('alertPctInput').value);if(val>=50&&val<=100){alertPct=val;document.getElementById('alertPctLabel').textContent=`${alertPct}% dari anggaran`;saveSettingsStorage();toast('Batas diperbarui','ok')}}
+  else if(settModalType==='alertpct'){const val=Number(document.getElementById('alertPctInput').value);if(val>=50&&val<=100){alertPct=val;document.getElementById('alertPctLabel').textContent=`${alertPct}% dari anggaran`;saveSettingsStorage();pushSettings();toast('Batas diperbarui','ok')}}
   else if(settModalType==='periode'){
     const from=document.getElementById('periodeFrom')?.value;
     const to=document.getElementById('periodeTo')?.value;
-    if(from&&to){localStorage.setItem('mm_periode',JSON.stringify({startDate:from,endDate:to}));updatePeriodUI();loadDashboard();toast('Periode disimpan','ok')}
+    if(from&&to){localStorage.setItem('mm_periode',JSON.stringify({startDate:from,endDate:to}));updatePeriodUI();loadDashboard();pushSettings();toast('Periode disimpan','ok')}
   }
   else if(settModalType==='katrata'){
     const checks=document.querySelectorAll('#settModalBody input[type=checkbox]');
     const excl=[];checks.forEach(c=>{if(c.checked)excl.push(c.value)});
-    localStorage.setItem('mm_fixed_cats',JSON.stringify(excl));updateKatRataLabel();toast('Kategori disimpan','ok');
+    localStorage.setItem('mm_fixed_cats',JSON.stringify(excl));updateKatRataLabel();pushSettings();toast('Kategori disimpan','ok');
   }
   else if(settModalType==='rekening'){
     const val=document.getElementById('newBankInput')?.value.trim();
-    if(val){const a=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_banks',JSON.stringify(a));fetchDBOptions();toast('Rekening ditambah','ok')}else toast('Sudah ada','err')}
+    if(val){const a=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_banks',JSON.stringify(a));fetchDBOptions();pushSettings();toast('Rekening ditambah','ok')}else toast('Sudah ada','err')}
   }
   else if(settModalType==='kategori'){
     const val=document.getElementById('newKatInput')?.value.trim();
-    if(val){const a=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_kats',JSON.stringify(a));fetchDBOptions();toast('Kategori ditambah','ok')}else toast('Sudah ada','err')}
+    if(val){const a=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_kats',JSON.stringify(a));fetchDBOptions();pushSettings();toast('Kategori ditambah','ok')}else toast('Sudah ada','err')}
   }
-  else if(settModalType==='password'){const old=document.getElementById('passOld').value,nw=document.getElementById('passNew').value,cf=document.getElementById('passConf').value;if(old!==adminPassword){toast('Password lama salah','err');return}if(nw!==cf){toast('Konfirmasi tidak cocok','err');return}if(nw.length<4){toast('Min 4 karakter','err');return}adminPassword=nw;saveSettingsStorage();toast('Password diperbarui','ok')}
+  else if(settModalType==='password'){const old=document.getElementById('passOld').value,nw=document.getElementById('passNew').value,cf=document.getElementById('passConf').value;if(old!==adminPassword){toast('Password lama salah','err');return}if(nw!==cf){toast('Konfirmasi tidak cocok','err');return}if(nw.length<4){toast('Min 4 karakter','err');return}adminPassword=nw;saveSettingsStorage();pushSettings();toast('Password diperbarui','ok')}
   closeOv(null,'ovSett');
 }
 
@@ -1454,7 +1524,7 @@ function updateKatRataLabel(){
   const el=document.getElementById('katRataLabel');if(el)el.textContent=`${excl.length} kategori dikecualikan`;
 }
 function saveSettingsStorage(){const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.notifEnabled=notifEnabled;s.alertPct=alertPct;s.adminPassword=adminPassword;localStorage.setItem('mm_settings',JSON.stringify(s))}
-function toggleNotif(){notifEnabled=!notifEnabled;const nt=document.getElementById('notifToggle');if(nt)nt.classList.toggle('on',notifEnabled);saveSettingsStorage();toast(notifEnabled?'Notifikasi aktif':'Notifikasi nonaktif','ok')}
+function toggleNotif(){notifEnabled=!notifEnabled;const nt=document.getElementById('notifToggle');if(nt)nt.classList.toggle('on',notifEnabled);saveSettingsStorage();pushSettings();toast(notifEnabled?'Notifikasi aktif':'Notifikasi nonaktif','ok')}
 function resetPeriode(){localStorage.removeItem('mm_periode');updatePeriodUI();closeOv(null,'ovSett');loadDashboard();toast('Periode direset ke otomatis','ok')}
 
 // ═══ THEME ═══
@@ -1570,7 +1640,7 @@ function toast(msg,type=''){
 }
 
 // ═══ INIT ═══
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async()=>{
   initParticles();initOceanParticles();
   updateClock();loadTheme();loadSettings();initLogo();
   document.getElementById('inTgl').value=getLocalDate();syncBulan('in');
@@ -1581,6 +1651,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(tgtFrom)tgtFrom.value=MOS[now.getMonth()];
   if(tgtTo){const nextM=Math.min(now.getMonth()+5,11);tgtTo.value=MOS[nextM]}
   updatePeriodUI();
+  // Pull settings dari Supabase dulu, baru load dashboard
+  await pullSettings();
   fetchDBOptions().then(()=>loadDashboard());
 });
 
