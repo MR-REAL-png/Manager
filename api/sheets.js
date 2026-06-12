@@ -29,7 +29,6 @@ module.exports = async function handler(req, res) {
     // APPEND - tambah transaksi baru
     if (req.method === 'POST' && action === 'append') {
       const { values } = req.body;
-      // values adalah array: [tanggal, bulan, kategori, nominal, pembayaran, detail, metode, jenis]
       const rows = values.map(v => ({
         tanggal:    v[0],
         bulan:      v[1],
@@ -53,7 +52,6 @@ module.exports = async function handler(req, res) {
     // UPDATE - edit transaksi berdasarkan id
     if (req.method === 'PUT' && action === 'update') {
       const { id, values } = req.body;
-      // values adalah array: [tanggal, bulan, kategori, nominal, pembayaran, detail, metode, jenis]
       const row = {
         tanggal:    values[0],
         bulan:      values[1],
@@ -83,6 +81,40 @@ module.exports = async function handler(req, res) {
         .from('transaksi')
         .delete()
         .eq('id', id);
+
+      if (error) throw error;
+      return res.status(200).json({ success: true });
+    }
+
+    // ═══ SETTINGS ═══
+
+    // GET SETTINGS - ambil settings berdasarkan user id
+    if (req.method === 'GET' && action === 'get-settings') {
+      const { uid } = req.query;
+      if (!uid) return res.status(400).json({ error: 'uid required' });
+
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('data, updated_at')
+        .eq('id', uid)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+      return res.status(200).json({ success: true, data: data?.data || null, updated_at: data?.updated_at || null });
+    }
+
+    // SAVE SETTINGS - simpan/update settings
+    if (req.method === 'POST' && action === 'save-settings') {
+      const { uid, data: settingsData } = req.body;
+      if (!uid) return res.status(400).json({ error: 'uid required' });
+
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          id: uid,
+          data: settingsData,
+          updated_at: new Date().toISOString()
+        });
 
       if (error) throw error;
       return res.status(200).json({ success: true });
