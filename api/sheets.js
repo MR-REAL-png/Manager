@@ -120,7 +120,64 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    return res.status(400).json({ error: 'Invalid action' });
+    // ═══ AUTH ═══
+
+    // REGISTER - daftar user baru
+    if (req.method === 'POST' && action === 'register') {
+      const { username, pin } = req.body;
+      if (!username || !pin) return res.status(400).json({ error: 'username dan pin wajib diisi' });
+      if (pin.length !== 6) return res.status(400).json({ error: 'PIN harus 6 digit' });
+
+      // Cek apakah PIN sudah dipakai user lain
+      const { data: existing } = await supabase
+        .from('users')
+        .select('username')
+        .eq('pin', pin)
+        .single();
+      if (existing) return res.status(400).json({ error: 'PIN sudah digunakan, pilih PIN lain' });
+
+      const { error } = await supabase
+        .from('users')
+        .insert({ username, pin });
+
+      if (error && error.code === '23505') return res.status(400).json({ error: 'Username sudah terdaftar' });
+      if (error) throw error;
+      return res.status(200).json({ success: true, username });
+    }
+
+    // LOGIN - verifikasi PIN, cari user yang cocok
+    if (req.method === 'POST' && action === 'login') {
+      const { pin } = req.body;
+      if (!pin || pin.length !== 6) return res.status(400).json({ error: 'PIN harus 6 digit' });
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('username')
+        .eq('pin', pin)
+        .single();
+
+      if (error || !data) return res.status(401).json({ error: 'PIN salah' });
+      return res.status(200).json({ success: true, username: data.username });
+    }
+
+    // CHANGE PIN
+    if (req.method === 'POST' && action === 'changepin') {
+      const { username, oldPin, newPin } = req.body;
+      if (!username || !oldPin || !newPin) return res.status(400).json({ error: 'Data tidak lengkap' });
+      if (newPin.length !== 6) return res.status(400).json({ error: 'PIN baru harus 6 digit' });
+
+      // Verifikasi PIN lama
+      const { data: user } = await supabase.from('users').select('username').eq('username', username).eq('pin', oldPin).single();
+      if (!user) return res.status(401).json({ error: 'PIN lama salah' });
+
+      // Cek PIN baru tidak bentrok dengan user lain
+      const { data: conflict } = await supabase.from('users').select('username').eq('pin', newPin).single();
+      if (conflict && conflict.username !== username) return res.status(400).json({ error: 'PIN sudah digunakan user lain' });
+
+      const { error } = await supabase.from('users').update({ pin: newPin }).eq('username', username);
+      if (error) throw error;
+      return res.status(200).json({ success: true });
+    }
 
   } catch (error) {
     console.error('Supabase error:', error);
