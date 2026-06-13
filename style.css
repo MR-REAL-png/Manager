@@ -923,20 +923,32 @@ body{transition:background 0.4s ease}
    DOMPET - ATM CARDS
 ══════════════════════════════════ */
 .atm-carousel{
-  display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
-  gap:0;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;
-  scrollbar-width:none;padding-bottom:4px;
+  display:flex;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  gap:12px;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  padding:4px 16px 8px;
+  margin:0 -16px;
 }
 .atm-carousel::-webkit-scrollbar{display:none}
 
 .atm-card{
-  flex:0 0 100%;scroll-snap-align:center;
-  height:180px;border-radius:18px;
-  position:relative;overflow:hidden;
-  cursor:pointer;transition:transform 0.2s ease;
+  flex:0 0 calc(100% - 40px);
+  scroll-snap-align:center;
+  height:185px;
+  border-radius:18px;
+  position:relative;
+  overflow:hidden;
   box-shadow:0 8px 32px rgba(0,0,0,0.3);
+  transition:transform 0.2s ease, box-shadow 0.2s ease;
 }
-.atm-card.active{transform:scale(1.01)}
+.atm-card.active{
+  transform:scale(1.01);
+  box-shadow:0 12px 40px rgba(0,0,0,0.4);
+}
 
 /* Dots carousel */
 .atm-dots{
