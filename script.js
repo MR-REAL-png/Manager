@@ -6,6 +6,41 @@ const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const CHART_COLORS=['#a78bfa','#f472b6','#60a5fa','#fb923c','#34d399','#818cf8','#fbbf24','#4ade80','#f87171','#e879f9','#38bdf8','#a3e635'];
 const MONTH_COLORS=['#818cf8','#c084fc','#f472b6','#60a5fa','#34d399','#fb923c','#a78bfa','#4ade80','#fbbf24','#e879f9','#38bdf8','#f87171'];
 
+// ═══ SUPABASE REALTIME ═══
+// Anon key aman dipakai di frontend (read-only public access)
+const SUPABASE_URL='https://sskntgmjcrvfgtajazpn.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNza250Z21qY3J2Zmd0YWphenBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzOTUzMDcsImV4cCI6MjA5NTk3MTMwN30.v7EUvi5brdI3sokJJk3B6lAGhXfltPDqJy9uiu-Ni7o';
+
+let _supabaseClient=null;
+function getSupabaseClient(){
+  if(_supabaseClient)return _supabaseClient;
+  if(typeof window.supabase==='undefined')return null;
+  _supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  return _supabaseClient;
+}
+
+function initRealtimeSync(){
+  const uid=getUserUID();
+  if(!uid)return;
+  const sb=getSupabaseClient();
+  if(!sb)return;
+  sb.channel('settings-sync')
+    .on('postgres_changes',{
+      event:'UPDATE',
+      schema:'public',
+      table:'user_settings',
+      filter:`id=eq.${uid}`
+    },payload=>{
+      console.log('Realtime: settings updated');
+      if(payload.new?.data){
+        applySettings(payload.new.data);
+        fetchDBOptions().then(()=>loadDashboard());
+        toast('Settings disinkron','ok');
+      }
+    })
+    .subscribe();
+}
+
 // ═══ SVG ICONS (Heroicons) ═══
 const IC = {
   in:  '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:13px;height:13px;vertical-align:middle"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"/></svg>',
@@ -127,6 +162,7 @@ async function pinSubmit(){
         hidePinOverlay();
         // Pull settings dengan UID baru
         await pullSettings();
+        initRealtimeSync();
         fetchDBOptions().then(()=>loadDashboard());
       }else{
         pinShakeError(json.error||'PIN salah');
@@ -1859,6 +1895,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
         localStorage.setItem('mm_uid',s.username);
         hidePinOverlay();
         await pullSettings();
+        initRealtimeSync();
         fetchDBOptions().then(()=>loadDashboard());
         return;
       }
