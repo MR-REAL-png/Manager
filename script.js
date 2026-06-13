@@ -102,7 +102,7 @@ function initPinOverlay(){
 
 function showPinOverlay(){
   const ov=document.getElementById('pinOverlay');
-  if(ov)ov.classList.remove('hidden');
+  if(ov){ov.style.display='flex';ov.classList.remove('hidden');}
   pinBuffer='';
   pinMode='login';
   renderPinDots();
@@ -166,6 +166,7 @@ async function pinSubmit(){
         localStorage.setItem('mm_session',JSON.stringify({username:json.username}));
         localStorage.setItem('mm_uid',json.username);
         hidePinOverlay();
+        updateProfileUI();
         // Pull settings dengan UID baru
         await pullSettings();
         initRealtimeSync();
@@ -208,6 +209,7 @@ async function pinSubmit(){
         localStorage.setItem('mm_session',JSON.stringify({username:json.username}));
         localStorage.setItem('mm_uid',json.username);
         hidePinOverlay();
+        updateProfileUI();
         fetchDBOptions().then(()=>loadDashboard());
       }else{
         pinShakeError(json.error||'Gagal mendaftar');
@@ -240,6 +242,21 @@ function pinToggleMode(){
     document.getElementById('pinNameWrap').style.display='none';
     document.getElementById('pinSwitch').textContent='Belum punya akun? Daftar';
     document.getElementById('pinError').textContent='';
+  }
+}
+
+function updateProfileUI(){
+  const uid=getUserUID();
+  if(!uid)return;
+  // Tampilkan nama user login di setting profil
+  const el=document.getElementById('settUserLogin');
+  if(el)el.textContent=uid;
+  // Avatar inisial
+  const av=document.getElementById('settAvatar');
+  if(av){
+    const initials=uid.slice(0,2).toUpperCase();
+    av.style.cssText=`width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;color:#fff;margin:0 auto 8px;box-shadow:0 4px 16px rgba(168,85,247,0.4)`;
+    av.textContent=initials;
   }
 }
 
@@ -1900,6 +1917,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
       if(s.username){
         localStorage.setItem('mm_uid',s.username);
         hidePinOverlay();
+        updateProfileUI();
         await pullSettings();
         initRealtimeSync();
         fetchDBOptions().then(()=>loadDashboard());
