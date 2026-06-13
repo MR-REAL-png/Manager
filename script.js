@@ -42,7 +42,7 @@ function initRealtimeSync(){
         lastUpdatedAt=json.updated_at;
       }
     }catch(e){/* silent fail */}
-  },10000);
+  },5000);
 }
 
 // ═══ SVG ICONS (Heroicons) ═══
