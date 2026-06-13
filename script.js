@@ -23,22 +23,27 @@ function initRealtimeSync(){
   const uid=getUserUID();
   if(!uid)return;
   const sb=getSupabaseClient();
-  if(!sb)return;
+  if(!sb){console.warn('Supabase client tidak tersedia');return;}
+  // Unsubscribe channel lama jika ada
+  sb.removeAllChannels();
   sb.channel('settings-sync')
     .on('postgres_changes',{
-      event:'UPDATE',
+      event:'*',
       schema:'public',
-      table:'user_settings',
-      filter:`id=eq.${uid}`
+      table:'user_settings'
     },payload=>{
-      console.log('Realtime: settings updated');
+      // Filter manual berdasarkan UID
+      if(payload.new?.id!==uid)return;
+      console.log('Realtime: settings updated untuk',uid);
       if(payload.new?.data){
         applySettings(payload.new.data);
         fetchDBOptions().then(()=>loadDashboard());
         toast('Settings disinkron','ok');
       }
     })
-    .subscribe();
+    .subscribe(status=>{
+      console.log('Realtime status:',status);
+    });
 }
 
 // ═══ SVG ICONS (Heroicons) ═══
