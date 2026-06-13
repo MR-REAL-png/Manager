@@ -71,6 +71,8 @@ const IC = {
 };
 
 
+const ADMIN_PASS_DEFAULT='sheril';
+
 // ═══ GLOBAL STATE ═══
 let allRows=[],dbOpts={banks:[],kategoris:[],metodes:[],jenis:[]};
 let isAdmin=false,editMode=false;
