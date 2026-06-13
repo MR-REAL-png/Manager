@@ -1039,7 +1039,7 @@ function initATMCarousel(banks,renderMutasi){
     cur=Math.max(0,Math.min(total-1,idx));
     cards.forEach((c,i)=>c.classList.toggle('active',i===cur));
     dots.forEach((d,i)=>d.classList.toggle('active',i===cur));
-    // Scroll ke kartu yang tepat
+    // Force snap ke kartu yang tepat
     const card=cards[cur];
     if(card){
       const offset=card.offsetLeft-carousel.offsetLeft-(carousel.offsetWidth-card.offsetWidth)/2;
@@ -1052,22 +1052,29 @@ function initATMCarousel(banks,renderMutasi){
     if(list)list.innerHTML=renderMutasi(banks[cur]);
   };
 
+  // Snap ke kartu pertama saat init
+  goTo(0);
+
   carousel.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;},{passive:true});
   carousel.addEventListener('touchend',e=>{
     const diff=startX-e.changedTouches[0].clientX;
-    if(Math.abs(diff)<40)return;
-    goTo(diff>0?cur+1:cur-1);
+    if(Math.abs(diff)<30)return; // threshold lebih kecil agar responsif
+    const nextIdx=diff>0?cur+1:cur-1;
+    // Selalu force snap — baik mentok maupun tidak
+    goTo(nextIdx);
   },{passive:true});
 
-  // Juga update saat scroll berhenti (untuk swipe native)
+  // Update saat scroll berhenti (fallback untuk swipe native)
   let scrollTimer;
   carousel.addEventListener('scroll',()=>{
     clearTimeout(scrollTimer);
     scrollTimer=setTimeout(()=>{
-      const cardW=cards[0]?.offsetWidth||carousel.offsetWidth;
+      const cardW=cards[0]?.offsetWidth+12||carousel.offsetWidth; // +12 untuk gap
       const newIdx=Math.round(carousel.scrollLeft/cardW);
-      if(newIdx!==cur){cur=newIdx;goTo(cur);}
-    },150);
+      const clamped=Math.max(0,Math.min(total-1,newIdx));
+      // Selalu re-snap agar tidak stuck di tengah
+      goTo(clamped);
+    },120);
   },{passive:true});
 }
 
@@ -1101,7 +1108,7 @@ function openTransferModal(){
         ${banks.map(b=>`<option>${b}</option>`).join('')}
       </select>
     </div>
-    <div class="fr"><label>Nominal</label><input class="fi" type="text" id="trNominal" placeholder="Rp 0" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.')"></div>
+    <div class="fr"><label>Nominal</label><input class="fi" type="text" id="trNominal" placeholder="Rp 0" inputmode="numeric" oninput="fmtTransferNom(this)"></div>
     <div class="fr"><label>Catatan (opsional)</label><input class="fi" type="text" id="trCatatan" placeholder="Contoh: bayar utang"></div>
     <div class="fr"><label>Tanggal</label><input class="fi" type="date" id="trTanggal" value="${getLocalDate()}"></div>`;
   modal.classList.add('open');
@@ -1842,7 +1849,7 @@ async function saveSettModal(){
   else if(settModalType==='transfer'){
     const dari=document.getElementById('trDari')?.value;
     const ke=document.getElementById('trKe')?.value;
-    const nominal=Number(document.getElementById('trNominal')?.value.replace(/\./g,''));
+    const nominal=Number(document.getElementById('trNominal')?.value.replace(/\./g,'').replace(/[^0-9]/g,''));
     const catatan=document.getElementById('trCatatan')?.value||'';
     const tanggal=document.getElementById('trTanggal')?.value;
     if(!dari){toast('Pilih rekening asal','err');return;}
@@ -1851,22 +1858,24 @@ async function saveSettModal(){
     if(!nominal||nominal<=0){toast('Nominal harus lebih dari 0','err');return;}
     if(!tanggal){toast('Pilih tanggal','err');return;}
     const uid=getUserUID();
-    const doSave=async(retry=0)=>{
-      try{
-        const r=await fetch(`${API_URL}/api/sheets?action=save-transfer`,{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({uid,dari,ke,nominal,catatan,tanggal})
-        });
-        const j=await r.json();
-        if(j.success){closeSettModal();toast('Transfer berhasil dicatat','ok');loadDompet();}
-        else toast(j.error||'Gagal menyimpan transfer','err');
-      }catch(e){
-        if(retry<2){setTimeout(()=>doSave(retry+1),1500);}
-        else toast('Gagal terhubung, coba lagi','err');
-      }
-    };
-    doSave();
+    // Disable tombol Simpan agar tidak bisa klik ganda
+    const btnOk=document.querySelector('#ovSett .btn-ok');
+    if(btnOk){btnOk.disabled=true;btnOk.textContent='Menyimpan...';}
+    try{
+      const r=await fetch(`${API_URL}/api/sheets?action=save-transfer`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({uid,dari,ke,nominal,catatan,tanggal})
+      });
+      const j=await r.json();
+      if(j.success){closeOv(null,'ovSett');toast('Transfer berhasil dicatat','ok');loadDompet();}
+      else toast(j.error||'Gagal menyimpan transfer','err');
+    }catch(e){
+      toast('Gagal terhubung, coba lagi','err');
+    }finally{
+      if(btnOk){btnOk.disabled=false;btnOk.textContent='Simpan';}
+    }
+    return; // jangan lanjut ke closeOv di bawah
   }
   else if(settModalType==='rekening'){
     const val=document.getElementById('newBankInput')?.value.trim();
@@ -2167,6 +2176,11 @@ function fmtNom(el) {
   const raw = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
   if (raw === '') { el.value = ''; return; }
   el.value = Number(raw).toLocaleString('id-ID');
+}
+function fmtTransferNom(el){
+  const raw=el.value.replace(/\./g,'').replace(/[^0-9]/g,'');
+  if(raw===''){el.value='';return;}
+  el.value=Number(raw).toLocaleString('id-ID');
 }
 function getNomVal(id) {
   // Baca nilai nominal tanpa titik pemisah
