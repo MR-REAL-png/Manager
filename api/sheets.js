@@ -99,7 +99,7 @@ module.exports = async function handler(req, res) {
         .eq('id', uid)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+      if (error && error.code !== 'PGRST116') throw error;
       return res.status(200).json({ success: true, data: data?.data || null, updated_at: data?.updated_at || null });
     }
 
@@ -128,7 +128,6 @@ module.exports = async function handler(req, res) {
       if (!username || !pin) return res.status(400).json({ error: 'username dan pin wajib diisi' });
       if (pin.length !== 6) return res.status(400).json({ error: 'PIN harus 6 digit' });
 
-      // Cek apakah PIN sudah dipakai user lain
       const { data: existing } = await supabase
         .from('users')
         .select('username')
@@ -145,7 +144,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true, username });
     }
 
-    // LOGIN - verifikasi PIN, cari user yang cocok
+    // LOGIN - verifikasi PIN
     if (req.method === 'POST' && action === 'login') {
       const { pin } = req.body;
       if (!pin || pin.length !== 6) return res.status(400).json({ error: 'PIN harus 6 digit' });
@@ -166,11 +165,9 @@ module.exports = async function handler(req, res) {
       if (!username || !oldPin || !newPin) return res.status(400).json({ error: 'Data tidak lengkap' });
       if (newPin.length !== 6) return res.status(400).json({ error: 'PIN baru harus 6 digit' });
 
-      // Verifikasi PIN lama
       const { data: user } = await supabase.from('users').select('username').eq('username', username).eq('pin', oldPin).single();
       if (!user) return res.status(401).json({ error: 'PIN lama salah' });
 
-      // Cek PIN baru tidak bentrok dengan user lain
       const { data: conflict } = await supabase.from('users').select('username').eq('pin', newPin).single();
       if (conflict && conflict.username !== username) return res.status(400).json({ error: 'PIN sudah digunakan user lain' });
 
@@ -178,6 +175,8 @@ module.exports = async function handler(req, res) {
       if (error) throw error;
       return res.status(200).json({ success: true });
     }
+
+    // ═══ TRANSFERS ═══
 
     // GET TRANSFERS
     if (req.method === 'GET' && action === 'get-transfers') {
@@ -204,14 +203,28 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // UPDATE TRANSFER
+    if (req.method === 'PUT' && action === 'update-transfer') {
+      const { uid, id, dari, ke, nominal, catatan, tanggal } = req.body;
+      if (!uid || !id) return res.status(400).json({ error: 'Data tidak lengkap' });
+      const { error } = await supabase
+        .from('transfers')
+        .update({ dari, ke, nominal, catatan, tanggal })
+        .eq('id', id)
+        .eq('user_id', uid);
+      if (error) throw error;
+      return res.status(200).json({ success: true });
+    }
+
     // DELETE TRANSFER
     if (req.method === 'DELETE' && action === 'delete-transfer') {
-      const { id } = req.body;
+      const { uid, id } = req.body;
       if (!id) return res.status(400).json({ error: 'id required' });
       const { error } = await supabase
         .from('transfers')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', uid);
       if (error) throw error;
       return res.status(200).json({ success: true });
     }
@@ -221,4 +234,3 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 };
-
