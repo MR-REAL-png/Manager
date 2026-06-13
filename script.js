@@ -254,7 +254,7 @@ function updateProfileUI(){
   // Avatar tetap pakai logo SE_REAL
   const av=document.getElementById('settAvatar');
   if(av){
-    av.style.cssText=`width:64px;height:64px;border-radius:20px;background:url('${LOGO_URL}') center/cover;margin:0 auto 8px;box-shadow:0 4px 16px rgba(168,85,247,0.4)`;
+    av.style.cssText=`width:64px;height:64px;border-radius:20px;background:url('${LOGO_URL}') center/cover;margin:0 auto 8px`;
     av.textContent='';
   }
 }
