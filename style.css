@@ -918,3 +918,35 @@ body{transition:background 0.4s ease}
   font-size:0.7rem;color:var(--tx3);margin-bottom:4px;
   text-align:center;
 }
+
+/* ══════════════════════════════════
+   DOMPET - ATM CARDS
+══════════════════════════════════ */
+.atm-carousel{
+  display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+  gap:0;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;padding-bottom:4px;
+}
+.atm-carousel::-webkit-scrollbar{display:none}
+
+.atm-card{
+  flex:0 0 100%;scroll-snap-align:center;
+  height:180px;border-radius:18px;
+  position:relative;overflow:hidden;
+  cursor:pointer;transition:transform 0.2s ease;
+  box-shadow:0 8px 32px rgba(0,0,0,0.3);
+}
+.atm-card.active{transform:scale(1.01)}
+
+/* Dots carousel */
+.atm-dots{
+  display:flex;justify-content:center;gap:6px;margin-top:10px;
+}
+.atm-dots span{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--tx3);transition:all 0.3s ease;
+}
+.atm-dots span.active{
+  width:18px;border-radius:3px;
+  background:var(--ac);
+}
