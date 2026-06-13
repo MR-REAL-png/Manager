@@ -989,7 +989,7 @@ async function loadDompet(){
         const arah=isMasuk?'↓ Masuk dari':'↑ Keluar ke';
         const counterpart=isMasuk?t.dari:t.ke;
         return`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--glass);border:1px solid var(--bdr2);border-radius:12px;margin-bottom:8px">
+          <div onclick="openEditTransfer('${encodeURIComponent(JSON.stringify(t))}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--glass);border:1px solid var(--bdr2);border-radius:12px;margin-bottom:8px;cursor:pointer;active:opacity:0.8">
             <div style="display:flex;align-items:center;gap:10px">
               <div style="width:36px;height:36px;border-radius:50%;background:${isMasuk?'rgba(52,211,153,0.15)':'rgba(248,113,113,0.15)'};display:flex;align-items:center;justify-content:center;color:${warna}">${icTransfer}</div>
               <div>
@@ -997,7 +997,10 @@ async function loadDompet(){
                 <div style="font-size:0.65rem;color:var(--tx3)">${t.tanggal}${t.catatan?` · ${t.catatan}`:''}</div>
               </div>
             </div>
-            <div style="font-size:0.9rem;font-weight:700;color:${warna}">${isMasuk?'+':'-'}${rp(t.nominal)}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:0.9rem;font-weight:700;color:${warna}">${isMasuk?'+':'-'}${rp(t.nominal)}</div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/></svg>
+            </div>
           </div>`;
       }).join('');
     };
@@ -1033,48 +1036,53 @@ function initATMCarousel(banks,renderMutasi){
   const total=banks.length;
   const cards=carousel.querySelectorAll('.atm-card');
   const dots=document.querySelectorAll('#atmDots span');
-  let startX=0;
+  let startX=0,startScroll=0,isDragging=false;
 
-  const goTo=(idx)=>{
+  const snapTo=(idx,animate=true)=>{
     cur=Math.max(0,Math.min(total-1,idx));
     cards.forEach((c,i)=>c.classList.toggle('active',i===cur));
     dots.forEach((d,i)=>d.classList.toggle('active',i===cur));
-    // Force snap ke kartu yang tepat
     const card=cards[cur];
     if(card){
       const offset=card.offsetLeft-carousel.offsetLeft-(carousel.offsetWidth-card.offsetWidth)/2;
-      carousel.scrollTo({left:offset,behavior:'smooth'});
+      if(animate){
+        carousel.style.scrollBehavior='smooth';
+        carousel.scrollLeft=offset;
+        setTimeout(()=>{carousel.style.scrollBehavior='auto';},400);
+      }else{
+        carousel.style.scrollBehavior='auto';
+        carousel.scrollLeft=offset;
+      }
     }
-    // Update label dan mutasi
     const lbl=document.getElementById('mutasiLabel');
     const list=document.getElementById('transferList');
-    if(lbl)lbl.textContent=`Mutasi Transfer — ${banks[cur]}`;
+    if(lbl)lbl.textContent=`Mutasi Transfer \u2014 ${banks[cur]}`;
     if(list)list.innerHTML=renderMutasi(banks[cur]);
   };
 
-  // Snap ke kartu pertama saat init
-  goTo(0);
+  // Snap ke kartu pertama saat init (tanpa animasi)
+  snapTo(0,false);
 
-  carousel.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;},{passive:true});
-  carousel.addEventListener('touchend',e=>{
-    const diff=startX-e.changedTouches[0].clientX;
-    if(Math.abs(diff)<30)return; // threshold lebih kecil agar responsif
-    const nextIdx=diff>0?cur+1:cur-1;
-    // Selalu force snap — baik mentok maupun tidak
-    goTo(nextIdx);
+  carousel.addEventListener('touchstart',e=>{
+    isDragging=true;
+    startX=e.touches[0].clientX;
+    startScroll=carousel.scrollLeft;
+    carousel.style.scrollBehavior='auto';
   },{passive:true});
 
-  // Update saat scroll berhenti (fallback untuk swipe native)
-  let scrollTimer;
-  carousel.addEventListener('scroll',()=>{
-    clearTimeout(scrollTimer);
-    scrollTimer=setTimeout(()=>{
-      const cardW=cards[0]?.offsetWidth+12||carousel.offsetWidth; // +12 untuk gap
-      const newIdx=Math.round(carousel.scrollLeft/cardW);
-      const clamped=Math.max(0,Math.min(total-1,newIdx));
-      // Selalu re-snap agar tidak stuck di tengah
-      goTo(clamped);
-    },120);
+  carousel.addEventListener('touchmove',e=>{
+    if(!isDragging)return;
+    const dx=startX-e.touches[0].clientX;
+    carousel.scrollLeft=startScroll+dx;
+  },{passive:true});
+
+  carousel.addEventListener('touchend',e=>{
+    if(!isDragging)return;
+    isDragging=false;
+    const diff=startX-e.changedTouches[0].clientX;
+    let nextIdx=cur;
+    if(Math.abs(diff)>40){nextIdx=diff>0?cur+1:cur-1;}
+    snapTo(nextIdx,true);
   },{passive:true});
 }
 
@@ -1085,6 +1093,56 @@ async function fetchTransfers(){
     const json=await res.json();
     return json.success?json.data:[];
   }catch(e){return[];}
+}
+
+function openEditTransfer(encodedT){
+  const t=JSON.parse(decodeURIComponent(encodedT));
+  const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean))].sort();
+  const body=document.getElementById('settModalBody');
+  const title=document.getElementById('settModalTitle');
+  settModalType='edit-transfer';
+  // Simpan data transfer aktif untuk dipakai saat save/hapus
+  window._editTransferData=t;
+  title.innerHTML='\u270f\ufe0f Edit Transfer';
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:12px">Ubah atau hapus transfer ini.</p>
+    <div class="fr"><label>Dari Rekening</label>
+      <select class="fi" id="etDari">
+        ${banks.map(b=>`<option${b===t.dari?' selected':''}>${b}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fr"><label>Ke Rekening</label>
+      <select class="fi" id="etKe">
+        ${banks.map(b=>`<option${b===t.ke?' selected':''}>${b}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fr"><label>Nominal</label><input class="fi" type="text" id="etNominal" inputmode="numeric" value="${Number(t.nominal).toLocaleString('id-ID')}" oninput="fmtTransferNom(this)"></div>
+    <div class="fr"><label>Catatan (opsional)</label><input class="fi" type="text" id="etCatatan" value="${t.catatan||''}" placeholder="Contoh: bayar utang"></div>
+    <div class="fr"><label>Tanggal</label><input class="fi" type="date" id="etTanggal" value="${t.tanggal}"></div>
+    <div style="margin-top:4px">
+      <button onclick="deleteTransfer('${encodeURIComponent(JSON.stringify(t))}')" style="width:100%;padding:10px;background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.3);border-radius:10px;color:var(--red);font-size:0.8rem;font-weight:600;cursor:pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+        Hapus Transfer
+      </button>
+    </div>`;
+  document.getElementById('ovSett').classList.add('open');
+}
+
+async function deleteTransfer(encodedT){
+  const t=JSON.parse(decodeURIComponent(encodedT));
+  showConfirm('Hapus Transfer','Yakin ingin menghapus transfer ini?',async()=>{
+    try{
+      const uid=getUserUID();
+      const r=await fetch(`${API_URL}/api/sheets?action=delete-transfer`,{
+        method:'DELETE',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({uid,id:t.id})
+      });
+      const j=await r.json();
+      if(j.success){closeOv(null,'ovSett');toast('Transfer dihapus','ok');loadDompet();}
+      else toast(j.error||'Gagal hapus','err');
+    }catch(e){toast('Gagal terhubung','err');}
+  });
 }
 
 function openTransferModal(){
@@ -1876,6 +1934,34 @@ async function saveSettModal(){
       if(btnOk){btnOk.disabled=false;btnOk.textContent='Simpan';}
     }
     return; // jangan lanjut ke closeOv di bawah
+  }
+  else if(settModalType==='edit-transfer'){
+    const t=window._editTransferData;
+    if(!t){toast('Data tidak ditemukan','err');return;}
+    const dari=document.getElementById('etDari')?.value;
+    const ke=document.getElementById('etKe')?.value;
+    const nominal=Number(document.getElementById('etNominal')?.value.replace(/\./g,'').replace(/[^0-9]/g,''));
+    const catatan=document.getElementById('etCatatan')?.value||'';
+    const tanggal=document.getElementById('etTanggal')?.value;
+    if(!dari||!ke){toast('Pilih rekening','err');return;}
+    if(dari===ke){toast('Rekening tidak boleh sama','err');return;}
+    if(!nominal||nominal<=0){toast('Nominal harus lebih dari 0','err');return;}
+    if(!tanggal){toast('Pilih tanggal','err');return;}
+    const uid=getUserUID();
+    const btnOk=document.querySelector('#ovSett .btn-ok');
+    if(btnOk){btnOk.disabled=true;btnOk.textContent='Menyimpan...';}
+    try{
+      const r=await fetch(`${API_URL}/api/sheets?action=update-transfer`,{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({uid,id:t.id,dari,ke,nominal,catatan,tanggal})
+      });
+      const j=await r.json();
+      if(j.success){closeOv(null,'ovSett');toast('Transfer diperbarui','ok');loadDompet();}
+      else toast(j.error||'Gagal update','err');
+    }catch(e){toast('Gagal terhubung','err');}
+    finally{if(btnOk){btnOk.disabled=false;btnOk.textContent='Simpan';}}
+    return;
   }
   else if(settModalType==='rekening'){
     const val=document.getElementById('newBankInput')?.value.trim();
