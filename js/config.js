@@ -1,3 +1,4 @@
+window.onerror=function(msg,src,line){alert('ERR: '+msg+'\n'+src.split('/').pop()+':'+line);return false};
 const API_URL='https://manager-khaki-ten.vercel.app'; // Vercel → Supabase
 const GSHEET_URL='https://script.google.com/macros/s/AKfycbwHu6HvVRXHXNsNwtY2-DTRYY7AUAKcB9eEENTRxHulRiVHq3kJCNb_Cnt-6sycb4rDzw/exec';
 const LOGO_URL='https://raw.githubusercontent.com/MR-REAL-png/Manager/main/logo.png';
