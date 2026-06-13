@@ -35,7 +35,177 @@ const ADMIN_PASS_DEFAULT='sheril';
 let allRows=[],dbOpts={banks:[],kategoris:[],metodes:[],jenis:[]};
 let isAdmin=false,editMode=false;
 
-// ═══ USER UID ═══
+// ═══ PIN LOGIN ═══
+let pinBuffer='';
+let pinMode='login'; // 'login' | 'register' | 'confirm'
+let pinRegisterName='';
+let pinRegisterPin='';
+
+function initPinOverlay(){
+  // Cek apakah sudah login (ada session tersimpan)
+  const session=localStorage.getItem('mm_session');
+  if(session){
+    try{
+      const s=JSON.parse(session);
+      if(s.username){
+        // Langsung masuk, set UID
+        localStorage.setItem('mm_uid',s.username);
+        hidePinOverlay();
+        return;
+      }
+    }catch(e){}
+  }
+  // Cek apakah sudah ada user terdaftar
+  showPinOverlay();
+}
+
+function showPinOverlay(){
+  const ov=document.getElementById('pinOverlay');
+  if(ov)ov.classList.remove('hidden');
+  pinBuffer='';
+  pinMode='login';
+  renderPinDots();
+  document.getElementById('pinSubtitle').textContent='Masukkan PIN';
+  document.getElementById('pinNameWrap').style.display='none';
+  document.getElementById('pinSwitch').textContent='Belum punya akun? Daftar';
+  document.getElementById('pinError').textContent='';
+  // Init logo
+  const logo=document.getElementById('pinLogo');
+  if(logo)logo.style.backgroundImage=`url('https://raw.githubusercontent.com/MR-REAL-png/Manager/main/logo.png')`;
+}
+
+function hidePinOverlay(){
+  const ov=document.getElementById('pinOverlay');
+  if(ov){ov.classList.add('hidden');setTimeout(()=>{ov.style.display='none'},400);}
+}
+
+function pinKey(d){
+  if(pinBuffer.length>=6)return;
+  pinBuffer+=d;
+  renderPinDots();
+  if(pinBuffer.length===6){
+    setTimeout(()=>pinSubmit(),120);
+  }
+}
+
+function pinDel(){
+  if(!pinBuffer.length)return;
+  pinBuffer=pinBuffer.slice(0,-1);
+  renderPinDots();
+  document.getElementById('pinError').textContent='';
+}
+
+function renderPinDots(){
+  const dots=document.querySelectorAll('#pinDots span');
+  dots.forEach((d,i)=>{
+    d.classList.toggle('filled',i<pinBuffer.length);
+  });
+}
+
+function pinShakeError(msg){
+  document.getElementById('pinError').textContent=msg;
+  const dots=document.querySelectorAll('#pinDots span');
+  dots.forEach(d=>{d.classList.add('shake');setTimeout(()=>d.classList.remove('shake'),400);});
+  pinBuffer='';
+  setTimeout(()=>renderPinDots(),50);
+}
+
+async function pinSubmit(){
+  if(pinMode==='login'){
+    // Cari user berdasarkan PIN
+    try{
+      const res=await fetch(`${API_URL}/api/sheets?action=login`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({pin:pinBuffer})
+      });
+      const json=await res.json();
+      if(json.success){
+        // Simpan session
+        localStorage.setItem('mm_session',JSON.stringify({username:json.username}));
+        localStorage.setItem('mm_uid',json.username);
+        hidePinOverlay();
+        // Pull settings dengan UID baru
+        await pullSettings();
+        fetchDBOptions().then(()=>loadDashboard());
+      }else{
+        pinShakeError(json.error||'PIN salah');
+      }
+    }catch(e){
+      pinShakeError('Gagal terhubung ke server');
+    }
+  }
+  else if(pinMode==='register'){
+    // Simpan PIN sementara, minta konfirmasi
+    pinRegisterPin=pinBuffer;
+    pinBuffer='';
+    pinMode='confirm';
+    renderPinDots();
+    document.getElementById('pinSubtitle').textContent='Konfirmasi PIN kamu';
+    document.getElementById('pinError').textContent='';
+  }
+  else if(pinMode==='confirm'){
+    if(pinBuffer!==pinRegisterPin){
+      pinShakeError('PIN tidak cocok, coba lagi');
+      pinMode='register';
+      pinBuffer='';
+      renderPinDots();
+      document.getElementById('pinSubtitle').textContent='Buat PIN 6 digit';
+      return;
+    }
+    // Daftar ke Supabase
+    const name=document.getElementById('pinNameInput').value.trim()||'User';
+    try{
+      const res=await fetch(`${API_URL}/api/sheets?action=register`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username:name,pin:pinRegisterPin})
+      });
+      const json=await res.json();
+      if(json.success){
+        localStorage.setItem('mm_session',JSON.stringify({username:json.username}));
+        localStorage.setItem('mm_uid',json.username);
+        hidePinOverlay();
+        fetchDBOptions().then(()=>loadDashboard());
+      }else{
+        pinShakeError(json.error||'Gagal mendaftar');
+        pinMode='register';
+        pinBuffer='';
+        renderPinDots();
+        document.getElementById('pinSubtitle').textContent='Buat PIN 6 digit';
+      }
+    }catch(e){
+      pinShakeError('Gagal terhubung ke server');
+    }
+  }
+}
+
+function pinToggleMode(){
+  if(pinMode==='login'){
+    pinMode='register';
+    pinBuffer='';
+    renderPinDots();
+    document.getElementById('pinSubtitle').textContent='Buat PIN 6 digit';
+    document.getElementById('pinNameWrap').style.display='block';
+    document.getElementById('pinSwitch').textContent='Sudah punya akun? Masuk';
+    document.getElementById('pinError').textContent='';
+    document.getElementById('pinNameInput').focus();
+  }else{
+    pinMode='login';
+    pinBuffer='';
+    renderPinDots();
+    document.getElementById('pinSubtitle').textContent='Masukkan PIN';
+    document.getElementById('pinNameWrap').style.display='none';
+    document.getElementById('pinSwitch').textContent='Belum punya akun? Daftar';
+    document.getElementById('pinError').textContent='';
+  }
+}
+
+function pinLogout(){
+  localStorage.removeItem('mm_session');
+  localStorage.removeItem('mm_uid');
+  showPinOverlay();
+}
 // ID unik per user, generate sekali dan simpan di localStorage selamanya
 function getUserUID(){
   let uid=localStorage.getItem('mm_uid');
@@ -1038,6 +1208,16 @@ function openSettModal(type){
   settModalType=type;
   const title=document.getElementById('settModalTitle'),body=document.getElementById('settModalBody');
   if(type==='nama'){title.innerHTML=`${IC.edit.replace('width:12px;height:12px','width:14px;height:14px')} Ubah Nama`;const cur=document.getElementById('settUsername').textContent;body.innerHTML=`<div class="fr"><label>Nama Baru</label><input class="fi" type="text" id="settNamaInput" value="${cur}" placeholder="Nama kamu"></div>`}
+  else if(type==='changepin'){
+    title.innerHTML='🔑 Ganti PIN';
+    body.innerHTML=`
+      <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:14px">Masukkan PIN lama, lalu PIN baru sebanyak 2 kali.</p>
+      <div class="fr"><label>PIN Lama</label><input class="fi" type="password" id="pinOld" placeholder="6 digit" maxlength="6" inputmode="numeric"></div>
+      <div class="fr"><label>PIN Baru</label><input class="fi" type="password" id="pinNew" placeholder="6 digit" maxlength="6" inputmode="numeric"></div>
+      <div class="fr"><label>Konfirmasi PIN Baru</label><input class="fi" type="password" id="pinConf" placeholder="6 digit" maxlength="6" inputmode="numeric"></div>`;
+    document.getElementById('ovSett').classList.add('open');
+    return;
+  }
   else if(type==='anggaran'){
     title.innerHTML=`${IC.tag.replace('width:20px;height:20px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Anggaran per Kategori`;
     body.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
@@ -1327,6 +1507,25 @@ async function saveSettModal(){
     const checks=document.querySelectorAll('#settModalBody input[type=checkbox]');
     const excl=[];checks.forEach(c=>{if(c.checked)excl.push(c.value)});
     localStorage.setItem('mm_fixed_cats',JSON.stringify(excl));updateKatRataLabel();pushSettings();toast('Kategori disimpan','ok');
+  }
+  else if(settModalType==='changepin'){
+    const old=document.getElementById('pinOld')?.value;
+    const nw=document.getElementById('pinNew')?.value;
+    const cf=document.getElementById('pinConf')?.value;
+    if(!old||old.length!==6){toast('PIN lama harus 6 digit','err');return;}
+    if(!nw||nw.length!==6){toast('PIN baru harus 6 digit','err');return;}
+    if(nw!==cf){toast('Konfirmasi PIN tidak cocok','err');return;}
+    const uid=getUserUID();
+    // Verifikasi PIN lama dulu
+    fetch(`${API_URL}/api/sheets?action=login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:old})})
+    .then(r=>r.json()).then(async j=>{
+      if(!j.success){toast('PIN lama salah','err');return;}
+      // Update PIN di Supabase
+      const res=await fetch(`${API_URL}/api/sheets?action=changepin`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:uid,oldPin:old,newPin:nw})});
+      const data=await res.json();
+      if(data.success){closeSettModal();toast('PIN berhasil diubah','ok');}
+      else toast(data.error||'Gagal ganti PIN','err');
+    }).catch(()=>toast('Gagal terhubung','err'));
   }
   else if(settModalType==='rekening'){
     const val=document.getElementById('newBankInput')?.value.trim();
@@ -1651,9 +1850,22 @@ document.addEventListener('DOMContentLoaded',async()=>{
   if(tgtFrom)tgtFrom.value=MOS[now.getMonth()];
   if(tgtTo){const nextM=Math.min(now.getMonth()+5,11);tgtTo.value=MOS[nextM]}
   updatePeriodUI();
-  // Pull settings dari Supabase dulu, baru load dashboard
-  await pullSettings();
-  fetchDBOptions().then(()=>loadDashboard());
+  // Cek session login
+  const session=localStorage.getItem('mm_session');
+  if(session){
+    try{
+      const s=JSON.parse(session);
+      if(s.username){
+        localStorage.setItem('mm_uid',s.username);
+        hidePinOverlay();
+        await pullSettings();
+        fetchDBOptions().then(()=>loadDashboard());
+        return;
+      }
+    }catch(e){}
+  }
+  // Belum login — tampilkan PIN overlay
+  showPinOverlay();
 });
 
 
