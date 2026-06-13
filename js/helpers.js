@@ -196,37 +196,7 @@ function toast(msg,type=''){
   clearTimeout(toastT);toastT=setTimeout(()=>{el.className='toast'},3200);
 }
 
-// ═══ INIT ═══
-document.addEventListener('DOMContentLoaded',async()=>{
-  initParticles();initOceanParticles();
-  updateClock();loadTheme();loadSettings();initLogo();
-  document.getElementById('inTgl').value=getLocalDate();syncBulan('in');
-  const now=new Date();
-  document.getElementById('rekapTahun').value=String(now.getFullYear());
-  const tgtFrom=document.getElementById('tgtFrom');
-  const tgtTo=document.getElementById('tgtTo');
-  if(tgtFrom)tgtFrom.value=MOS[now.getMonth()];
-  if(tgtTo){const nextM=Math.min(now.getMonth()+5,11);tgtTo.value=MOS[nextM]}
-  updatePeriodUI();
-  // Cek session login
-  const session=localStorage.getItem('mm_session');
-  if(session){
-    try{
-      const s=JSON.parse(session);
-      if(s.username){
-        localStorage.setItem('mm_uid',s.username);
-        hidePinOverlay();
-        updateProfileUI();
-        await pullSettings();
-        initRealtimeSync();
-        fetchDBOptions().then(()=>loadDashboard());
-        return;
-      }
-    }catch(e){}
-  }
-  // Belum login — tampilkan PIN overlay
-  showPinOverlay();
-});
+
 
 
 
