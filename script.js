@@ -959,7 +959,6 @@ async function loadDompet(){
   try{
     if(!allRows.length)allRows=await fetchAllData();
     await fetchDBOptions();
-    // Hitung saldo per bank dari transaksi
     const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean))].sort();
     const saldoMap={};
     banks.forEach(b=>saldoMap[b]=0);
@@ -968,7 +967,6 @@ async function loadDompet(){
       if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]=(saldoMap[r.pembayaran]||0)+r.nominal;
       else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]=(saldoMap[r.pembayaran]||0)-r.nominal;
     });
-    // Tambah efek transfer dari tabel transfers
     const transfers=await fetchTransfers();
     transfers.forEach(t=>{
       saldoMap[t.dari]=(saldoMap[t.dari]||0)-t.nominal;
@@ -980,8 +978,30 @@ async function loadDompet(){
       return;
     }
 
-    // Render kartu
-    let activeIdx=0;
+    const icTransfer=`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"/></svg>`;
+
+    const renderMutasi=(bank)=>{
+      const filtered=transfers.filter(t=>t.dari===bank||t.ke===bank);
+      if(!filtered.length)return'<div style="text-align:center;padding:24px;color:var(--tx3);font-size:0.8rem">Belum ada transfer untuk rekening ini</div>';
+      return filtered.slice(0,20).map(t=>{
+        const isMasuk=t.ke===bank;
+        const warna=isMasuk?'var(--grn)':'var(--red)';
+        const arah=isMasuk?'↓ Masuk dari':'↑ Keluar ke';
+        const counterpart=isMasuk?t.dari:t.ke;
+        return`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--glass);border:1px solid var(--bdr2);border-radius:12px;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:${isMasuk?'rgba(52,211,153,0.15)':'rgba(248,113,113,0.15)'};display:flex;align-items:center;justify-content:center;color:${warna}">${icTransfer}</div>
+              <div>
+                <div style="font-size:0.82rem;font-weight:600;color:#fff">${arah} <span style="color:var(--ac)">${counterpart}</span></div>
+                <div style="font-size:0.65rem;color:var(--tx3)">${t.tanggal}${t.catatan?` · ${t.catatan}`:''}</div>
+              </div>
+            </div>
+            <div style="font-size:0.9rem;font-weight:700;color:${warna}">${isMasuk?'+':'-'}${rp(t.nominal)}</div>
+          </div>`;
+      }).join('');
+    };
+
     el.innerHTML=`
       <div style="margin-bottom:16px">
         <div class="atm-carousel" id="atmCarousel">
@@ -991,54 +1011,63 @@ async function loadDompet(){
           ${banks.map((_,i)=>`<span class="${i===0?'active':''}"></span>`).join('')}
         </div>
       </div>
-      <!-- Transfer -->
       <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
         <button onclick="openTransferModal()" style="display:flex;align-items:center;gap:6px;padding:10px 18px;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;border-radius:12px;color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></svg>
-          Transfer
+          ${icTransfer} Transfer
         </button>
       </div>
-      <!-- Mutasi transfer -->
-      <div class="sec-lbl">Mutasi Transfer</div>
-      <div id="transferList">
-        ${transfers.length?transfers.slice(0,20).map(t=>`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--glass);border:1px solid var(--bdr2);border-radius:12px;margin-bottom:8px">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:36px;height:36px;border-radius:50%;background:rgba(168,85,247,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem">↔️</div>
-              <div>
-                <div style="font-size:0.82rem;font-weight:600;color:#fff">${t.dari} → ${t.ke}</div>
-                <div style="font-size:0.65rem;color:var(--tx3)">${t.tanggal}${t.catatan?` · ${t.catatan}`:''}</div>
-              </div>
-            </div>
-            <div style="font-size:0.9rem;font-weight:700;color:#c084fc">${rp(t.nominal)}</div>
-          </div>`).join('')
-        :'<div style="text-align:center;padding:24px;color:var(--tx3);font-size:0.8rem">Belum ada transfer</div>'}
-      </div>`;
+      <div class="sec-lbl" id="mutasiLabel">Mutasi Transfer — ${banks[0]}</div>
+      <div id="transferList">${renderMutasi(banks[0])}</div>`;
 
-    // Init carousel swipe
-    initATMCarousel(banks.length);
+    initATMCarousel(banks,renderMutasi);
   }catch(e){
     el.innerHTML=`<div class="empty-state"><div class="empty-ico">⚠️</div><div class="empty-title">Gagal memuat</div></div>`;
     console.error(e);
   }
 }
 
-function initATMCarousel(total){
+function initATMCarousel(banks,renderMutasi){
   const carousel=document.getElementById('atmCarousel');
   if(!carousel)return;
   let cur=0;
+  const total=banks.length;
   const cards=carousel.querySelectorAll('.atm-card');
   const dots=document.querySelectorAll('#atmDots span');
   let startX=0;
-  carousel.addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});
+
+  const goTo=(idx)=>{
+    cur=Math.max(0,Math.min(total-1,idx));
+    cards.forEach((c,i)=>c.classList.toggle('active',i===cur));
+    dots.forEach((d,i)=>d.classList.toggle('active',i===cur));
+    // Scroll ke kartu yang tepat
+    const card=cards[cur];
+    if(card){
+      const offset=card.offsetLeft-carousel.offsetLeft-(carousel.offsetWidth-card.offsetWidth)/2;
+      carousel.scrollTo({left:offset,behavior:'smooth'});
+    }
+    // Update label dan mutasi
+    const lbl=document.getElementById('mutasiLabel');
+    const list=document.getElementById('transferList');
+    if(lbl)lbl.textContent=`Mutasi Transfer — ${banks[cur]}`;
+    if(list)list.innerHTML=renderMutasi(banks[cur]);
+  };
+
+  carousel.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;},{passive:true});
   carousel.addEventListener('touchend',e=>{
     const diff=startX-e.changedTouches[0].clientX;
     if(Math.abs(diff)<40)return;
-    if(diff>0&&cur<total-1)cur++;
-    else if(diff<0&&cur>0)cur--;
-    cards.forEach((c,i)=>c.classList.toggle('active',i===cur));
-    dots.forEach((d,i)=>d.classList.toggle('active',i===cur));
-    carousel.scrollTo({left:cur*carousel.offsetWidth,behavior:'smooth'});
+    goTo(diff>0?cur+1:cur-1);
+  },{passive:true});
+
+  // Juga update saat scroll berhenti (untuk swipe native)
+  let scrollTimer;
+  carousel.addEventListener('scroll',()=>{
+    clearTimeout(scrollTimer);
+    scrollTimer=setTimeout(()=>{
+      const cardW=cards[0]?.offsetWidth||carousel.offsetWidth;
+      const newIdx=Math.round(carousel.scrollLeft/cardW);
+      if(newIdx!==cur){cur=newIdx;goTo(cur);}
+    },150);
   },{passive:true});
 }
 
@@ -1072,7 +1101,7 @@ function openTransferModal(){
         ${banks.map(b=>`<option>${b}</option>`).join('')}
       </select>
     </div>
-    <div class="fr"><label>Nominal</label><input class="fi" type="number" id="trNominal" placeholder="Rp 0" min="0"></div>
+    <div class="fr"><label>Nominal</label><input class="fi" type="text" id="trNominal" placeholder="Rp 0" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.')"></div>
     <div class="fr"><label>Catatan (opsional)</label><input class="fi" type="text" id="trCatatan" placeholder="Contoh: bayar utang"></div>
     <div class="fr"><label>Tanggal</label><input class="fi" type="date" id="trTanggal" value="${getLocalDate()}"></div>`;
   modal.classList.add('open');
@@ -1813,7 +1842,7 @@ async function saveSettModal(){
   else if(settModalType==='transfer'){
     const dari=document.getElementById('trDari')?.value;
     const ke=document.getElementById('trKe')?.value;
-    const nominal=Number(document.getElementById('trNominal')?.value);
+    const nominal=Number(document.getElementById('trNominal')?.value.replace(/\./g,''));
     const catatan=document.getElementById('trCatatan')?.value||'';
     const tanggal=document.getElementById('trTanggal')?.value;
     if(!dari){toast('Pilih rekening asal','err');return;}
@@ -1822,14 +1851,22 @@ async function saveSettModal(){
     if(!nominal||nominal<=0){toast('Nominal harus lebih dari 0','err');return;}
     if(!tanggal){toast('Pilih tanggal','err');return;}
     const uid=getUserUID();
-    fetch(`${API_URL}/api/sheets?action=save-transfer`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid,dari,ke,nominal,catatan,tanggal})
-    }).then(r=>r.json()).then(j=>{
-      if(j.success){closeSettModal();toast('Transfer berhasil dicatat','ok');loadDompet();}
-      else toast(j.error||'Gagal menyimpan transfer','err');
-    }).catch(()=>toast('Gagal terhubung','err'));
+    const doSave=async(retry=0)=>{
+      try{
+        const r=await fetch(`${API_URL}/api/sheets?action=save-transfer`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({uid,dari,ke,nominal,catatan,tanggal})
+        });
+        const j=await r.json();
+        if(j.success){closeSettModal();toast('Transfer berhasil dicatat','ok');loadDompet();}
+        else toast(j.error||'Gagal menyimpan transfer','err');
+      }catch(e){
+        if(retry<2){setTimeout(()=>doSave(retry+1),1500);}
+        else toast('Gagal terhubung, coba lagi','err');
+      }
+    };
+    doSave();
   }
   else if(settModalType==='rekening'){
     const val=document.getElementById('newBankInput')?.value.trim();
