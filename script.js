@@ -556,6 +556,7 @@ function goPage(p){
     loadData();
   }
   else if(p==='tabungan'&&document.getElementById('tabContent').style.display!=='none')loadTabungan();
+  else if(p==='dompet')loadDompet();
   else if(p==='rekap')loadRekap();
   else if(p==='metode')loadMetode();
   else if(p==='kalender')renderKalender();
@@ -569,6 +570,7 @@ function doRefresh(){
   if(id==='dashboard')loadDashboard();
   else if(id==='data')loadData();
   else if(id==='tabungan')loadTabungan();
+  else if(id==='dompet')loadDompet();
   else if(id==='rekap')loadRekap();
   else if(id==='metode')loadMetode();
   else if(id==='notif')loadNotif();
@@ -900,7 +902,180 @@ function filterData(){
   renderCards(allRows.filter(r=>(!s||[r.kategori,r.detail,r.metode,r.pembayaran,r.bulan].join(' ').toLowerCase().includes(s))&&(!b||r.bulan===b)&&(!j||r.jenis===j)));
 }
 
-// ═══ TABUNGAN ═══
+// ═══ DOMPET ═══
+const BANK_THEMES={
+  'Jago':       {grad:'linear-gradient(135deg,#f59e0b,#f97316)',motif:'waves',txt:'#fff'},
+  'Cash':       {grad:'linear-gradient(135deg,#059669,#34d399)',motif:'cash',txt:'#fff'},
+  'BCA':        {grad:'linear-gradient(135deg,#1e40af,#3b82f6)',motif:'lines',txt:'#fff'},
+  'Seabank':    {grad:'linear-gradient(135deg,#ea580c,#f97316)',motif:'triangles',txt:'#fff'},
+  'Dana':       {grad:'linear-gradient(135deg,#2563eb,#7c3aed)',motif:'circles',txt:'#fff'},
+  'Shopeepay':  {grad:'linear-gradient(135deg,#dc2626,#f97316)',motif:'dots',txt:'#fff'},
+  'GoPay':      {grad:'linear-gradient(135deg,#047857,#10b981)',motif:'waves',txt:'#fff'},
+  'OVO':        {grad:'linear-gradient(135deg,#6d28d9,#8b5cf6)',motif:'circles',txt:'#fff'},
+  'default':    {grad:'linear-gradient(135deg,#7c3aed,#ec4899)',motif:'dots',txt:'#fff'},
+};
+
+function getBankTheme(name){
+  const key=Object.keys(BANK_THEMES).find(k=>name.toLowerCase().includes(k.toLowerCase()));
+  return BANK_THEMES[key]||BANK_THEMES.default;
+}
+
+function getBankMotifSVG(motif,color='rgba(255,255,255,0.15)'){
+  if(motif==='waves')return`<svg style="position:absolute;bottom:0;right:0;width:60%;opacity:0.3" viewBox="0 0 200 100"><path d="M0,50 Q50,20 100,50 T200,50 T300,50" fill="none" stroke="${color}" stroke-width="2"/><path d="M0,70 Q50,40 100,70 T200,70 T300,70" fill="none" stroke="${color}" stroke-width="2"/><path d="M0,30 Q50,0 100,30 T200,30 T300,30" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
+  if(motif==='lines')return`<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.15" viewBox="0 0 300 160">${Array.from({length:12},(_,i)=>`<line x1="0" y1="${i*15}" x2="300" y2="${i*15}" stroke="white" stroke-width="1"/>`).join('')}</svg>`;
+  if(motif==='circles')return`<svg style="position:absolute;right:-20px;bottom:-20px;width:55%;opacity:0.2" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="white" stroke-width="2"/><circle cx="60" cy="60" r="35" fill="none" stroke="white" stroke-width="2"/><circle cx="60" cy="60" r="20" fill="none" stroke="white" stroke-width="2"/></svg>`;
+  if(motif==='triangles')return`<svg style="position:absolute;right:0;top:0;width:50%;opacity:0.15" viewBox="0 0 150 150"><polygon points="75,10 140,130 10,130" fill="none" stroke="white" stroke-width="2"/><polygon points="75,40 120,120 30,120" fill="none" stroke="white" stroke-width="2"/></svg>`;
+  if(motif==='cash')return`<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.1" viewBox="0 0 300 160">${Array.from({length:8},(_,i)=>`<line x1="${i*40}" y1="0" x2="${i*40}" y2="160" stroke="white" stroke-width="1"/>`).join('')}${Array.from({length:6},(_,i)=>`<line x1="0" y1="${i*30}" x2="300" y2="${i*30}" stroke="white" stroke-width="1"/>`).join('')}</svg>`;
+  // dots
+  return`<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.15" viewBox="0 0 300 160">${Array.from({length:40},(_,i)=>`<circle cx="${(i%8)*40+20}" cy="${Math.floor(i/8)*35+20}" r="3" fill="white"/>`).join('')}</svg>`;
+}
+
+function renderATMCard(bank,saldo,isActive){
+  const theme=getBankTheme(bank);
+  const isCash=bank.toLowerCase()==='cash';
+  const inisial=isCash?'💵':bank.slice(0,2).toUpperCase();
+  return`
+    <div class="atm-card${isActive?' active':''}" style="background:${theme.grad}">
+      ${getBankMotifSVG(theme.motif)}
+      <!-- Chip -->
+      <div style="position:absolute;top:16px;left:16px;width:32px;height:24px;border-radius:4px;background:linear-gradient(135deg,rgba(255,215,0,0.8),rgba(255,165,0,0.6));border:1px solid rgba(255,215,0,0.5)"></div>
+      <!-- Inisial bank -->
+      <div style="position:absolute;top:12px;right:16px;font-size:${isCash?'1.4rem':'0.75rem'};font-weight:800;color:rgba(255,255,255,0.9);letter-spacing:0.05em">${inisial}</div>
+      <!-- Saldo -->
+      <div style="position:absolute;bottom:28px;left:16px">
+        <div style="font-size:0.55rem;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Saldo</div>
+        <div style="font-size:1.15rem;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.3)">${rp(saldo)}</div>
+      </div>
+      <!-- Nama bank -->
+      <div style="position:absolute;bottom:10px;right:16px;font-size:0.65rem;color:rgba(255,255,255,0.8);font-weight:600">${bank}</div>
+    </div>`;
+}
+
+async function loadDompet(){
+  const el=document.getElementById('dompetContent');
+  if(!el)return;
+  el.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+  try{
+    if(!allRows.length)allRows=await fetchAllData();
+    await fetchDBOptions();
+    // Hitung saldo per bank dari transaksi
+    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean))].sort();
+    const saldoMap={};
+    banks.forEach(b=>saldoMap[b]=0);
+    allRows.forEach(r=>{
+      if(!r.pembayaran)return;
+      if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]=(saldoMap[r.pembayaran]||0)+r.nominal;
+      else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]=(saldoMap[r.pembayaran]||0)-r.nominal;
+    });
+    // Tambah efek transfer dari tabel transfers
+    const transfers=await fetchTransfers();
+    transfers.forEach(t=>{
+      saldoMap[t.dari]=(saldoMap[t.dari]||0)-t.nominal;
+      saldoMap[t.ke]=(saldoMap[t.ke]||0)+t.nominal;
+    });
+
+    if(!banks.length){
+      el.innerHTML='<div class="empty-state"><div class="empty-ico">💳</div><div class="empty-title">Belum ada rekening</div><div class="empty-sub">Tambahkan transaksi dengan pilih rekening</div></div>';
+      return;
+    }
+
+    // Render kartu
+    let activeIdx=0;
+    el.innerHTML=`
+      <div style="margin-bottom:16px">
+        <div class="atm-carousel" id="atmCarousel">
+          ${banks.map((b,i)=>renderATMCard(b,saldoMap[b]||0,i===0)).join('')}
+        </div>
+        <div class="atm-dots" id="atmDots">
+          ${banks.map((_,i)=>`<span class="${i===0?'active':''}"></span>`).join('')}
+        </div>
+      </div>
+      <!-- Transfer -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+        <button onclick="openTransferModal()" style="display:flex;align-items:center;gap:6px;padding:10px 18px;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;border-radius:12px;color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></svg>
+          Transfer
+        </button>
+      </div>
+      <!-- Mutasi transfer -->
+      <div class="sec-lbl">Mutasi Transfer</div>
+      <div id="transferList">
+        ${transfers.length?transfers.slice(0,20).map(t=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--glass);border:1px solid var(--bdr2);border-radius:12px;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:rgba(168,85,247,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem">↔️</div>
+              <div>
+                <div style="font-size:0.82rem;font-weight:600;color:#fff">${t.dari} → ${t.ke}</div>
+                <div style="font-size:0.65rem;color:var(--tx3)">${t.tanggal}${t.catatan?` · ${t.catatan}`:''}</div>
+              </div>
+            </div>
+            <div style="font-size:0.9rem;font-weight:700;color:#c084fc">${rp(t.nominal)}</div>
+          </div>`).join('')
+        :'<div style="text-align:center;padding:24px;color:var(--tx3);font-size:0.8rem">Belum ada transfer</div>'}
+      </div>`;
+
+    // Init carousel swipe
+    initATMCarousel(banks.length);
+  }catch(e){
+    el.innerHTML=`<div class="empty-state"><div class="empty-ico">⚠️</div><div class="empty-title">Gagal memuat</div></div>`;
+    console.error(e);
+  }
+}
+
+function initATMCarousel(total){
+  const carousel=document.getElementById('atmCarousel');
+  if(!carousel)return;
+  let cur=0;
+  const cards=carousel.querySelectorAll('.atm-card');
+  const dots=document.querySelectorAll('#atmDots span');
+  let startX=0;
+  carousel.addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});
+  carousel.addEventListener('touchend',e=>{
+    const diff=startX-e.changedTouches[0].clientX;
+    if(Math.abs(diff)<40)return;
+    if(diff>0&&cur<total-1)cur++;
+    else if(diff<0&&cur>0)cur--;
+    cards.forEach((c,i)=>c.classList.toggle('active',i===cur));
+    dots.forEach((d,i)=>d.classList.toggle('active',i===cur));
+    carousel.scrollTo({left:cur*carousel.offsetWidth,behavior:'smooth'});
+  },{passive:true});
+}
+
+async function fetchTransfers(){
+  try{
+    const uid=getUserUID();
+    const res=await fetch(`${API_URL}/api/sheets?action=get-transfers&uid=${uid}`);
+    const json=await res.json();
+    return json.success?json.data:[];
+  }catch(e){return[];}
+}
+
+function openTransferModal(){
+  const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean))].sort();
+  const body=document.getElementById('settModalBody');
+  const title=document.getElementById('settModalTitle');
+  const modal=document.getElementById('ovSett');
+  settModalType='transfer';
+  title.innerHTML='↔️ Transfer Saldo';
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:12px">Pindahkan saldo antar rekening.</p>
+    <div class="fr"><label>Dari Rekening</label>
+      <select class="fi" id="trDari">
+        <option value="">— Pilih —</option>
+        ${banks.map(b=>`<option>${b}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fr"><label>Ke Rekening</label>
+      <select class="fi" id="trKe">
+        <option value="">— Pilih —</option>
+        ${banks.map(b=>`<option>${b}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fr"><label>Nominal</label><input class="fi" type="number" id="trNominal" placeholder="Rp 0" min="0"></div>
+    <div class="fr"><label>Catatan (opsional)</label><input class="fi" type="text" id="trCatatan" placeholder="Contoh: bayar utang"></div>
+    <div class="fr"><label>Tanggal</label><input class="fi" type="date" id="trTanggal" value="${getLocalDate()}"></div>`;
+  modal.classList.add('open');
+}
 function showTab(){document.getElementById('tabLock').style.display='none';document.getElementById('tabContent').style.display='block';loadTabungan()}
 function hideTab(){document.getElementById('tabContent').style.display='none';document.getElementById('tabLock').style.display='block'}
 
@@ -1393,23 +1568,44 @@ function openSettModal(type){
 function renderRekeningModal(){
   const body=document.getElementById('settModalBody');
   const customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
+  const defaultBanks=(dbOpts.banks||[]).filter(b=>!customBanks.includes(b));
+  const renderChip=(b,isCustom)=>`
+    <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--glass);border:1px solid ${isCustom?'rgba(168,85,247,0.4)':'var(--bdr2)'};border-radius:50px;font-size:0.75rem;color:${isCustom?'#c084fc':'var(--tx2)'}">
+      ${b}
+      ${isCustom?`<button onclick="removeCustomBank('${b}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:0 0 0 4px;display:flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button>`:''}
+    </div>`;
   body.innerHTML=`
     <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px">Tambah rekening/dompet digital kustom.</p>
     <div class="fr"><label>Nama Rekening</label><input class="fi" type="text" id="newBankInput" placeholder="Contoh: BCA, Jago, Dana"></div>
-    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
-      ${customBanks.map(b=>`<div style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--glass);border:1px solid var(--bdr2);border-radius:50px;font-size:0.75rem;color:var(--tx2)">${b}<button onclick="removeCustomBank('${b}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:0 0 0 4px;display:flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button></div>`).join('')}
-    </div>`;
+    ${defaultBanks.length||customBanks.length?`
+    <div style="margin-top:4px;margin-bottom:6px;font-size:0.65rem;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em">Rekening tersedia</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      ${defaultBanks.map(b=>renderChip(b,false)).join('')}
+      ${customBanks.map(b=>renderChip(b,true)).join('')}
+    </div>`:''}
+    <div style="margin-top:8px;font-size:0.65rem;color:var(--tx3)">💡 Rekening ungu = kustom (bisa dihapus)</div>`;
 }
 
 function renderKategoriModal(){
   const body=document.getElementById('settModalBody');
   const customKats=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');
+  const allKats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
+  const defaultKats=allKats.filter(k=>!customKats.includes(k));
+  const renderChip=(k,isCustom)=>`
+    <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--glass);border:1px solid ${isCustom?'rgba(168,85,247,0.4)':'var(--bdr2)'};border-radius:50px;font-size:0.75rem;color:${isCustom?'#c084fc':'var(--tx2)'}">
+      ${k}
+      ${isCustom?`<button onclick="removeCustomKat('${k}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:0 0 0 4px;display:flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button>`:''}
+    </div>`;
   body.innerHTML=`
     <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px">Tambah kategori pengeluaran kustom.</p>
     <div class="fr"><label>Nama Kategori</label><input class="fi" type="text" id="newKatInput" placeholder="Contoh: Hobi, Olahraga"></div>
-    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
-      ${customKats.map(k=>`<div style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--glass);border:1px solid var(--bdr2);border-radius:50px;font-size:0.75rem;color:var(--tx2)">${k}<button onclick="removeCustomKat('${k}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:0 0 0 4px;display:flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button></div>`).join('')}
-    </div>`;
+    ${defaultKats.length||customKats.length?`
+    <div style="margin-top:4px;margin-bottom:6px;font-size:0.65rem;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em">Kategori tersedia</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      ${defaultKats.map(k=>renderChip(k,false)).join('')}
+      ${customKats.map(k=>renderChip(k,true)).join('')}
+    </div>`:''}
+    <div style="margin-top:8px;font-size:0.65rem;color:var(--tx3)">💡 Kategori ungu = kustom (bisa dihapus)</div>`;
 }
 
 function renderKatRataModal(){
@@ -1611,6 +1807,27 @@ async function saveSettModal(){
       const data=await res.json();
       if(data.success){closeSettModal();toast('PIN berhasil diubah','ok');}
       else toast(data.error||'Gagal ganti PIN','err');
+    }).catch(()=>toast('Gagal terhubung','err'));
+  }
+  else if(settModalType==='transfer'){
+    const dari=document.getElementById('trDari')?.value;
+    const ke=document.getElementById('trKe')?.value;
+    const nominal=Number(document.getElementById('trNominal')?.value);
+    const catatan=document.getElementById('trCatatan')?.value||'';
+    const tanggal=document.getElementById('trTanggal')?.value;
+    if(!dari){toast('Pilih rekening asal','err');return;}
+    if(!ke){toast('Pilih rekening tujuan','err');return;}
+    if(dari===ke){toast('Rekening tidak boleh sama','err');return;}
+    if(!nominal||nominal<=0){toast('Nominal harus lebih dari 0','err');return;}
+    if(!tanggal){toast('Pilih tanggal','err');return;}
+    const uid=getUserUID();
+    fetch(`${API_URL}/api/sheets?action=save-transfer`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uid,dari,ke,nominal,catatan,tanggal})
+    }).then(r=>r.json()).then(j=>{
+      if(j.success){closeSettModal();toast('Transfer berhasil dicatat','ok');loadDompet();}
+      else toast(j.error||'Gagal menyimpan transfer','err');
     }).catch(()=>toast('Gagal terhubung','err'));
   }
   else if(settModalType==='rekening'){
