@@ -1130,19 +1130,23 @@ function openEditTransfer(encodedT){
 
 async function deleteTransfer(encodedT){
   const t=JSON.parse(decodeURIComponent(encodedT));
-  showConfirm('Hapus Transfer','Yakin ingin menghapus transfer ini?',async()=>{
-    try{
-      const uid=getUserUID();
-      const r=await fetch(`${API_URL}/api/sheets?action=delete-transfer`,{
-        method:'DELETE',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({uid,id:t.id})
-      });
-      const j=await r.json();
-      if(j.success){closeOv(null,'ovSett');toast('Transfer dihapus','ok');loadDompet();}
-      else toast(j.error||'Gagal hapus','err');
-    }catch(e){toast('Gagal terhubung','err');}
-  });
+  // Tutup ovSett dulu agar ovConfirm bisa muncul di atas
+  closeOv(null,'ovSett');
+  setTimeout(()=>{
+    showConfirm('Hapus Transfer','Yakin ingin menghapus transfer ini?',async()=>{
+      try{
+        const uid=getUserUID();
+        const r=await fetch(`${API_URL}/api/sheets?action=delete-transfer`,{
+          method:'DELETE',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({uid,id:t.id})
+        });
+        const j=await r.json();
+        if(j.success){toast('Transfer dihapus','ok');loadDompet();}
+        else toast(j.error||'Gagal hapus','err');
+      }catch(e){toast('Gagal terhubung','err');}
+    });
+  },200);
 }
 
 function openTransferModal(){
