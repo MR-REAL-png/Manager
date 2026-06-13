@@ -179,6 +179,43 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // GET TRANSFERS
+    if (req.method === 'GET' && action === 'get-transfers') {
+      const { uid } = req.query;
+      if (!uid) return res.status(400).json({ error: 'uid required' });
+      const { data, error } = await supabase
+        .from('transfers')
+        .select('*')
+        .eq('user_id', uid)
+        .order('tanggal', { ascending: false });
+      if (error) throw error;
+      return res.status(200).json({ success: true, data: data || [] });
+    }
+
+    // SAVE TRANSFER
+    if (req.method === 'POST' && action === 'save-transfer') {
+      const { uid, dari, ke, nominal, catatan, tanggal } = req.body;
+      if (!uid || !dari || !ke || !nominal || !tanggal)
+        return res.status(400).json({ error: 'Data tidak lengkap' });
+      const { error } = await supabase
+        .from('transfers')
+        .insert({ user_id: uid, dari, ke, nominal, catatan, tanggal });
+      if (error) throw error;
+      return res.status(200).json({ success: true });
+    }
+
+    // DELETE TRANSFER
+    if (req.method === 'DELETE' && action === 'delete-transfer') {
+      const { id } = req.body;
+      if (!id) return res.status(400).json({ error: 'id required' });
+      const { error } = await supabase
+        .from('transfers')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return res.status(200).json({ success: true });
+    }
+
   } catch (error) {
     console.error('Supabase error:', error);
     return res.status(500).json({ error: error.message });
