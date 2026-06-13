@@ -22,28 +22,27 @@ function getSupabaseClient(){
 function initRealtimeSync(){
   const uid=getUserUID();
   if(!uid)return;
-  const sb=getSupabaseClient();
-  if(!sb){console.warn('Supabase client tidak tersedia');return;}
-  // Unsubscribe channel lama jika ada
-  sb.removeAllChannels();
-  sb.channel('settings-sync')
-    .on('postgres_changes',{
-      event:'*',
-      schema:'public',
-      table:'user_settings'
-    },payload=>{
-      // Filter manual berdasarkan UID
-      if(payload.new?.id!==uid)return;
-      console.log('Realtime: settings updated untuk',uid);
-      if(payload.new?.data){
-        applySettings(payload.new.data);
-        fetchDBOptions().then(()=>loadDashboard());
-        toast('Settings disinkron','ok');
+  let lastUpdatedAt=null;
+
+  // Polling setiap 10 detik
+  setInterval(async()=>{
+    try{
+      const res=await fetch(`${API_URL}/api/sheets?action=get-settings&uid=${uid}`);
+      if(!res.ok)return;
+      const json=await res.json();
+      if(!json.success||!json.data)return;
+      // Cek apakah ada perubahan baru
+      if(json.updated_at&&json.updated_at!==lastUpdatedAt){
+        if(lastUpdatedAt!==null){
+          // Ada update baru dari device lain
+          applySettings(json.data);
+          fetchDBOptions().then(()=>loadDashboard());
+          toast('Settings disinkron','ok');
+        }
+        lastUpdatedAt=json.updated_at;
       }
-    })
-    .subscribe(status=>{
-      console.log('Realtime status:',status);
-    });
+    }catch(e){/* silent fail */}
+  },10000);
 }
 
 // ═══ SVG ICONS (Heroicons) ═══
