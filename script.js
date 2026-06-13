@@ -34,9 +34,11 @@ function initRealtimeSync(){
       // Cek apakah ada perubahan baru
       if(json.updated_at&&json.updated_at!==lastUpdatedAt){
         if(lastUpdatedAt!==null){
-          // Ada update baru dari device lain
           applySettings(json.data);
-          fetchDBOptions().then(()=>loadDashboard());
+          // Reset allRows supaya dashboard reload fresh
+          allRows=[];
+          await fetchDBOptions();
+          await loadDashboard();
           toast('Settings disinkron','ok');
         }
         lastUpdatedAt=json.updated_at;
@@ -684,9 +686,9 @@ function renderChartHarian(rows){
 
 function renderBudget(byCat){
   const el=document.getElementById('budgetList');
-  // Gunakan budget bulan aktif
-  const {startDate}=getActivePeriodResolved();
-  const bKey=getBudgetMonthKey(startDate.getFullYear(),startDate.getMonth());
+  // Gunakan bulan saat ini untuk budget
+  const now=new Date();
+  const bKey=getBudgetMonthKey(now.getFullYear(),now.getMonth());
   const budgets=getBudgetsForMonth(bKey);
   const hasBudget=Object.values(budgets).some(v=>Number(v)>0);
   const kompSec=document.getElementById('kompSection');
@@ -742,9 +744,9 @@ function renderBudgetMonitor(byCat){
   const el=document.getElementById('budgetMonitor');
   const secLbl=document.getElementById('bmonSecLbl');
   if(!el||!secLbl)return;
-  // Gunakan budget bulan aktif periode
-  const {startDate}=getActivePeriodResolved();
-  const bKey=getBudgetMonthKey(startDate.getFullYear(),startDate.getMonth());
+  // Gunakan bulan saat ini untuk budget
+  const now=new Date();
+  const bKey=getBudgetMonthKey(now.getFullYear(),now.getMonth());
   const budgets=getBudgetsForMonth(bKey);
   const allItems=byCat.filter(k=>budgets[k.kategori]>0).map(k=>{
     const budget=budgets[k.kategori];
