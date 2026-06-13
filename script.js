@@ -102,8 +102,13 @@ function initPinOverlay(){
 
 function showPinOverlay(){
   const ov=document.getElementById('pinOverlay');
-  if(ov){ov.style.display='flex';ov.classList.remove('hidden');}
+  if(ov){ov.style.display='flex';ov.classList.add('visible');ov.classList.remove('hidden');}
   pinBuffer='';
+  // Init cosmic stars
+  initPinStars();
+  // Update datetime
+  updatePinDatetime();
+  if(!window._pinDatetimeTimer)window._pinDatetimeTimer=setInterval(updatePinDatetime,1000);
   pinMode='login';
   renderPinDots();
   document.getElementById('pinSubtitle').textContent='Masukkan PIN';
@@ -117,7 +122,7 @@ function showPinOverlay(){
 
 function hidePinOverlay(){
   const ov=document.getElementById('pinOverlay');
-  if(ov){ov.classList.add('hidden');setTimeout(()=>{ov.style.display='none'},400);}
+  if(ov){ov.classList.add('hidden');ov.classList.remove('visible');setTimeout(()=>{ov.style.display='none'},400);}
 }
 
 function pinKey(d){
@@ -257,6 +262,29 @@ function updateProfileUI(){
     av.style.cssText=`width:64px;height:64px;border-radius:20px;background:url('${LOGO_URL}') center/cover;margin:0 auto 8px`;
     av.textContent='';
   }
+}
+
+function initPinStars(){
+  const c=document.getElementById('pinStars');
+  if(!c||c.children.length>0)return;
+  for(let i=0;i<20;i++){
+    const s=document.createElement('div');
+    s.className='pin-star';
+    s.style.cssText=`left:${Math.random()*100}%;width:${Math.random()*2+1}px;height:${Math.random()*2+1}px;animation-duration:${Math.random()*15+10}s;animation-delay:${Math.random()*10}s;opacity:${Math.random()*0.6+0.2}`;
+    c.appendChild(s);
+  }
+}
+
+function updatePinDatetime(){
+  const el=document.getElementById('pinDatetime');
+  if(!el)return;
+  const now=new Date();
+  const hari=HARI[now.getDay()];
+  const tgl=now.getDate();
+  const bln=MOS[now.getMonth()];
+  const jam=String(now.getHours()).padStart(2,'0');
+  const mnt=String(now.getMinutes()).padStart(2,'0');
+  el.textContent=`${hari}, ${tgl} ${bln} · ${jam}:${mnt}`;
 }
 
 function pinLogout(){
