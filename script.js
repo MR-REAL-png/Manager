@@ -251,12 +251,11 @@ function updateProfileUI(){
   // Tampilkan nama user login di setting profil
   const el=document.getElementById('settUserLogin');
   if(el)el.textContent=uid;
-  // Avatar inisial
+  // Avatar tetap pakai logo SE_REAL
   const av=document.getElementById('settAvatar');
   if(av){
-    const initials=uid.slice(0,2).toUpperCase();
-    av.style.cssText=`width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;color:#fff;margin:0 auto 8px;box-shadow:0 4px 16px rgba(168,85,247,0.4)`;
-    av.textContent=initials;
+    av.style.cssText=`width:64px;height:64px;border-radius:20px;background:url('${LOGO_URL}') center/cover;margin:0 auto 8px;box-shadow:0 4px 16px rgba(168,85,247,0.4)`;
+    av.textContent='';
   }
 }
 
