@@ -904,7 +904,7 @@ function filterData(){
 
 // ═══ DOMPET ═══
 const BANK_THEMES={
-  'Jago':       {grad:'linear-gradient(135deg,#f59e0b,#f97316)',motif:'waves',txt:'#fff'},
+  'Jago':       {grad:'linear-gradient(135deg,#d97706,#fbbf24)',motif:'waves',txt:'#fff'},
   'Cash':       {grad:'linear-gradient(135deg,#059669,#34d399)',motif:'cash',txt:'#fff'},
   'BCA':        {grad:'linear-gradient(135deg,#1e40af,#3b82f6)',motif:'lines',txt:'#fff'},
   'Seabank':    {grad:'linear-gradient(135deg,#ea580c,#f97316)',motif:'triangles',txt:'#fff'},
@@ -932,22 +932,23 @@ function getBankMotifSVG(motif,color='rgba(255,255,255,0.15)'){
 
 function renderATMCard(bank,saldo,isActive){
   const theme=getBankTheme(bank);
-  const isCash=bank.toLowerCase()==='cash';
-  const inisial=isCash?'💵':bank.slice(0,2).toUpperCase();
   return`
     <div class="atm-card${isActive?' active':''}" style="background:${theme.grad}">
       ${getBankMotifSVG(theme.motif)}
-      <!-- Chip -->
-      <div style="position:absolute;top:16px;left:16px;width:32px;height:24px;border-radius:4px;background:linear-gradient(135deg,rgba(255,215,0,0.8),rgba(255,165,0,0.6));border:1px solid rgba(255,215,0,0.5)"></div>
-      <!-- Inisial bank -->
-      <div style="position:absolute;top:12px;right:16px;font-size:${isCash?'1.4rem':'0.75rem'};font-weight:800;color:rgba(255,255,255,0.9);letter-spacing:0.05em">${inisial}</div>
-      <!-- Saldo -->
-      <div style="position:absolute;bottom:28px;left:16px">
-        <div style="font-size:0.55rem;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Saldo</div>
-        <div style="font-size:1.15rem;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.3)">${rp(saldo)}</div>
+      <!-- Chip silver -->
+      <div style="position:absolute;top:18px;left:18px;width:36px;height:26px;border-radius:5px;background:linear-gradient(135deg,#e0e0e0,#a8a8a8);border:1px solid rgba(255,255,255,0.4);box-shadow:inset 0 1px 2px rgba(255,255,255,0.5)">
+        <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,0.12);transform:translateY(-50%)"></div>
+        <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(0,0,0,0.1);transform:translateX(-50%)"></div>
       </div>
-      <!-- Nama bank -->
-      <div style="position:absolute;bottom:10px;right:16px;font-size:0.65rem;color:rgba(255,255,255,0.8);font-weight:600">${bank}</div>
+      <!-- Inisial pojok kanan atas -->
+      <div style="position:absolute;top:18px;right:18px;font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.55);letter-spacing:0.12em">${bank.slice(0,2).toUpperCase()}</div>
+      <!-- Saldo -->
+      <div style="position:absolute;bottom:36px;left:18px">
+        <div style="font-size:0.52rem;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:3px">Saldo</div>
+        <div style="font-size:1.2rem;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.25)">${rp(saldo)}</div>
+      </div>
+      <!-- Nama bank kanan bawah - lebih besar -->
+      <div style="position:absolute;bottom:16px;right:18px;font-size:1.05rem;font-weight:800;color:rgba(255,255,255,0.95);letter-spacing:0.03em;text-shadow:0 2px 6px rgba(0,0,0,0.2)">${bank}</div>
     </div>`;
 }
 
