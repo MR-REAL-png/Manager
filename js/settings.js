@@ -751,7 +751,9 @@ function onMetodeChange(pfx){fillBank(pfx==='in'?'inBank':'eBank',document.getEl
 function fillBank(id,metode){
   const sel=document.getElementById(id);if(!sel)return;
   if(metode==='Cash'){sel.innerHTML='<option value="💵 Cash">💵 Cash</option>';sel.value='💵 Cash';return}
-  const banks=(dbOpts.banks||[]).filter(b=>!b.toLowerCase().includes('cash'));
+  // Filter nilai metode bayar agar tidak muncul di dropdown Bank
+  const BUKAN_BANK=['cash','transfer','qris'];
+  const banks=(dbOpts.banks||[]).filter(b=>!BUKAN_BANK.includes(b.replace(/[^a-zA-Z]/g,'').toLowerCase()));
   sel.innerHTML='<option value="">— Pilih Bank —</option>'+banks.map(b=>`<option value="${b}">${b}</option>`).join('');
 }
 function getRecentKats(){try{return JSON.parse(localStorage.getItem('mm_recent_kat')||'[]')}catch(e){return[]}}
