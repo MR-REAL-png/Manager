@@ -6,7 +6,7 @@ async function submitInput(){
   if(!tgl||!jenis||!kat||!nom){toast('Lengkapi field wajib','err');return}
   document.getElementById('inLoad').style.display='flex';document.getElementById('btnSimpan').disabled=true;
   try{
-    await sheetsAppend([[tgl,bulan,kat,nom,metode,ket,bank,jenis]]);
+    await sheetsAppend([[tgl,bulan,kat,nom,bank,ket,metode,jenis]]);
     saveRecentKat(kat,jenis);toast('Data tersimpan!','ok');closeOv(null,'ovInput');allRows=[];
     if(document.getElementById('pg-data').classList.contains('on'))loadData();
     if(document.getElementById('pg-dashboard').classList.contains('on'))loadDashboard();
@@ -44,9 +44,9 @@ function openEdit(rowIdx){
   document.getElementById('eJenis').value=r.jenis;onJenisChange('e');
   setTimeout(()=>{
     document.getElementById('eKat').value=r.kategori;
-    document.getElementById('eMetode').value=r.pembayaran;
-    fillBank('eBank',r.pembayaran);
-    setTimeout(()=>{document.getElementById('eBank').value=r.metode},80);
+    document.getElementById('eMetode').value=r.metode;
+    fillBank('eBank',r.metode);
+    setTimeout(()=>{document.getElementById('eBank').value=r.pembayaran},80);
   },80);
   document.getElementById('eNom').value=r.nominal;document.getElementById('eKet').value=r.detail||'';
   document.getElementById('ovEdit').classList.add('open');
@@ -60,7 +60,7 @@ async function doEdit(){
   const d=document.getElementById('eKet').value,bln=document.getElementById('eBulan').value;
   if(!tgl||!j||!k||!n){toast('Lengkapi field','err');return}
   document.getElementById('eLoad').style.display='flex';
-  try{await sheetsUpdate(ri,[tgl,bln,k,Number(n),m,d,b,j]);toast('Diupdate!','ok');closeOv(null,'ovEdit');allRows=[];loadData()}
+  try{await sheetsUpdate(ri,[tgl,bln,k,Number(n),b,d,m,j]);toast('Diupdate!','ok');closeOv(null,'ovEdit');allRows=[];loadData()}
   catch(e){toast('Gagal update','err')}
   finally{document.getElementById('eLoad').style.display='none'}
 }
@@ -385,7 +385,7 @@ async function saveSettModal(){
     });
     if(!rows.length){toast('Tidak ada data','err');return}
     const header='Tanggal,Bulan,Kategori,Nominal,Pembayaran,Detail,Metode,Jenis';
-    const csv=rows.map(r=>`${r.tanggal},${r.bulan},"${r.kategori}",${r.nominal},"${r.pembayaran}","${r.detail||''}","${r.metode}",${r.jenis}`).join('\n');
+    const csv=rows.map(r=>`${r.tanggal},${r.bulan},"${r.kategori}",${r.nominal},"${r.metode}","${r.detail||''}","${r.pembayaran}",${r.jenis}`).join('\n');
     const blob=new Blob([header+'\n'+csv],{type:'text/csv'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=`transaksi_${from||'all'}_${to||'all'}.csv`;a.click();
