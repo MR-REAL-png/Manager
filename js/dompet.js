@@ -139,15 +139,7 @@ function initATMCarousel(banks,renderMutasi){
     dots.forEach((d,i)=>d.classList.toggle('active',i===cur));
     const card=cards[cur];
     if(card){
-      const offset=card.offsetLeft-carousel.offsetLeft-(carousel.offsetWidth-card.offsetWidth)/2;
-      if(animate){
-        carousel.style.scrollBehavior='smooth';
-        carousel.scrollLeft=offset;
-        setTimeout(()=>{carousel.style.scrollBehavior='auto';},400);
-      }else{
-        carousel.style.scrollBehavior='auto';
-        carousel.scrollLeft=offset;
-      }
+      carousel.scrollTo({left:card.offsetLeft,behavior:animate?'smooth':'auto'});
     }
     const lbl=document.getElementById('mutasiLabel');
     const list=document.getElementById('transferList');
@@ -163,12 +155,6 @@ function initATMCarousel(banks,renderMutasi){
     startX=e.touches[0].clientX;
     startScroll=carousel.scrollLeft;
     carousel.style.scrollBehavior='auto';
-  },{passive:true});
-
-  carousel.addEventListener('touchmove',e=>{
-    if(!isDragging)return;
-    const dx=startX-e.touches[0].clientX;
-    carousel.scrollLeft=startScroll+dx;
   },{passive:true});
 
   carousel.addEventListener('touchend',e=>{
