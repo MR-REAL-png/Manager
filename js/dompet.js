@@ -519,7 +519,7 @@ function kalPrev(){kalMonth--;if(kalMonth<0){kalMonth=11;kalYear--}renderKalende
 function kalNext(){kalMonth++;if(kalMonth>11){kalMonth=0;kalYear++}renderKalender()}
 
 // ═══ NOTIF ═══
-let notifications=[];
+
 async function loadNotif(){
   document.getElementById('notifList').innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
   try{
