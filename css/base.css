@@ -205,7 +205,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .srch-wrap:focus-within{border-color:var(--ac)}
 .srch-wrap input{border:none;background:none;outline:none;font-size:13px!important;font-weight:500;color:#fff;flex:1;min-width:0}
 .srch-wrap input::placeholder{color:var(--tx3)}
-.fsel{height:32px;padding:0 8px;border-radius:50px;border:1.5px solid var(--glass-bdr);background:var(--glass);color:#fff;font-size:13px!important;font-weight:600;cursor:pointer;appearance:none;-webkit-appearance:none;flex:1;min-width:0}
+.fsel{height:32px;padding:0 8px;border-radius:50px;border:1.5px solid var(--glass-bdr);background:var(--glass);color:#fff;font-size:10px!important;font-weight:600;cursor:pointer;appearance:none;-webkit-appearance:none;flex:1;min-width:0}
 /* ── DATA LIST / TIMELINE ── */
 .dlist{display:flex;flex-direction:column;gap:0;width:100%}
 
