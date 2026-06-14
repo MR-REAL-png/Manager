@@ -144,17 +144,18 @@
   display:flex;
   overflow-x:auto;
   scroll-snap-type:x mandatory;
+  scroll-padding:0 24px;
+  gap:12px;
   -webkit-overflow-scrolling:touch;
   scrollbar-width:none;
-  padding:4px 0 8px;
-  margin:0;
-  gap:0;
+  padding:4px 24px 8px;
+  margin:0 -16px;
 }
 .atm-carousel::-webkit-scrollbar{display:none}
 
 .atm-card{
-  flex:0 0 100%;
-  scroll-snap-align:start;
+  flex:0 0 calc(100% - 48px);
+  scroll-snap-align:center;
   height:185px;
   border-radius:18px;
   position:relative;
