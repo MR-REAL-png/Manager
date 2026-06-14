@@ -396,7 +396,7 @@ async function loadMetode(){
     const bln=document.getElementById('metodeBulan').value;
     const rows=allRows.filter(r=>r.jenis==='Pengeluaran'&&(!bln||r.bulan===bln));
     const bm={Cash:0,Transfer:0,QRIS:0},bb={};
-    rows.forEach(r=>{bm[r.pembayaran]=(bm[r.pembayaran]||0)+r.nominal;const bank=r.metode||r.pembayaran;bb[bank]=(bb[bank]||0)+r.nominal});
+    rows.forEach(r=>{bm[r.metode]=(bm[r.metode]||0)+r.nominal;const bank=r.pembayaran||r.metode;bb[bank]=(bb[bank]||0)+r.nominal});
     const total=rows.reduce((s,r)=>s+r.nominal,0);
     document.getElementById('m-cash').textContent=rpShort(bm.Cash||0);
     document.getElementById('m-transfer').textContent=rpShort(bm.Transfer||0);
