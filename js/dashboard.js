@@ -302,6 +302,7 @@ async function loadData(){
     await new Promise(r=>setTimeout(r,120));
     renderCards(allRows);
     syncFilterBulan();
+    syncFilterKatBank();
   }catch(e){
     el.innerHTML=`<div class="empty"><div class="ei">${IC.warn}</div><p>Gagal memuat data</p></div>`;
     toast('Gagal load data: '+e.message,'err');console.error(e);
@@ -367,8 +368,38 @@ function renderCards(rows){
 }
 
 function filterData(){
-  const s=document.getElementById('srch').value.toLowerCase(),b=document.getElementById('fBulan').value,j=document.getElementById('fJenis').value;
-  renderCards(allRows.filter(r=>(!s||[r.kategori,r.detail,r.metode,r.pembayaran,r.bulan].join(' ').toLowerCase().includes(s))&&(!b||r.bulan===b)&&(!j||r.jenis===j)));
+  const s=document.getElementById('srch').value.toLowerCase();
+  const b=document.getElementById('fBulan').value;
+  const j=document.getElementById('fJenis').value;
+  const k=document.getElementById('fKat')?.value||'';
+  const bk=document.getElementById('fBank')?.value||'';
+  renderCards(allRows.filter(r=>
+    (!s||[r.kategori,r.detail,r.metode,r.pembayaran,r.bulan].join(' ').toLowerCase().includes(s))&&
+    (!b||r.bulan===b)&&
+    (!j||r.jenis===j)&&
+    (!k||r.kategori===k)&&
+    (!bk||r.pembayaran===bk)
+  ));
+}
+
+function syncFilterKatBank(){
+  const BUKAN_BANK=['cash','transfer','qris'];
+  // Populate kategori
+  const selKat=document.getElementById('fKat');
+  if(selKat){
+    const curKat=selKat.value;
+    const kats=[...new Set(allRows.map(r=>r.kategori).filter(Boolean))].sort();
+    selKat.innerHTML='<option value="">Semua Kategori</option>'+kats.map(k=>`<option value="${k}">${k}</option>`).join('');
+    if(curKat)selKat.value=curKat;
+  }
+  // Populate bank
+  const selBank=document.getElementById('fBank');
+  if(selBank){
+    const curBank=selBank.value;
+    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
+    selBank.innerHTML='<option value="">Semua Bank</option>'+banks.map(b=>`<option value="${b}">${b}</option>`).join('');
+    if(curBank)selBank.value=curBank;
+  }
 }
 
 // ═══ DOMPET ═══
