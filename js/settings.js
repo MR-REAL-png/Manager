@@ -299,8 +299,7 @@ function copyBudgetFromPrevMonth(targetKey) {
 }
 
 // State untuk modal anggaran
-let anggaranModalYear = new Date().getFullYear();
-let anggaranModalMonth = new Date().getMonth();
+
 
 // ═══ TOTAL ANGGARAN (live update) ═══
 function updateAnggaranTotal(){
