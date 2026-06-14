@@ -54,7 +54,8 @@ async function loadDompet(){
   try{
     if(!allRows.length)allRows=await fetchAllData();
     await fetchDBOptions();
-    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean))].sort();
+    const BUKAN_BANK=['cash','transfer','qris'];
+    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.replace(/[^a-zA-Z]/g,'').toLowerCase())))].sort();
     const saldoMap={};
     banks.forEach(b=>saldoMap[b]=0);
     allRows.forEach(r=>{
