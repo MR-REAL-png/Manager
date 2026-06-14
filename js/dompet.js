@@ -55,7 +55,7 @@ async function loadDompet(){
     if(!allRows.length)allRows=await fetchAllData();
     await fetchDBOptions();
     const BUKAN_BANK=['cash','transfer','qris'];
-    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.replace(/[^a-zA-Z]/g,'').toLowerCase())))].sort();
+    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
     const saldoMap={};
     banks.forEach(b=>saldoMap[b]=0);
     allRows.forEach(r=>{
@@ -187,7 +187,8 @@ async function fetchTransfers(){
 
 function openEditTransfer(encodedT){
   const t=JSON.parse(decodeURIComponent(encodedT));
-  const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean))].sort();
+  const BUKAN_BANK=['cash','transfer','qris'];
+    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
   const body=document.getElementById('settModalBody');
   const title=document.getElementById('settModalTitle');
   settModalType='edit-transfer';
@@ -240,7 +241,8 @@ async function deleteTransfer(encodedT){
 }
 
 function openTransferModal(){
-  const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean))].sort();
+  const BUKAN_BANK=['cash','transfer','qris'];
+    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
   const body=document.getElementById('settModalBody');
   const title=document.getElementById('settModalTitle');
   const modal=document.getElementById('ovSett');
