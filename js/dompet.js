@@ -139,7 +139,15 @@ function initATMCarousel(banks,renderMutasi){
     dots.forEach((d,i)=>d.classList.toggle('active',i===cur));
     const card=cards[cur];
     if(card){
-      carousel.scrollTo({left:card.offsetLeft,behavior:animate?'smooth':'auto'});
+      const offset=card.offsetLeft-carousel.offsetLeft-(carousel.offsetWidth-card.offsetWidth)/2;
+      if(animate){
+        carousel.style.scrollBehavior='smooth';
+        carousel.scrollLeft=offset;
+        setTimeout(()=>{carousel.style.scrollBehavior='auto';},400);
+      }else{
+        carousel.style.scrollBehavior='auto';
+        carousel.scrollLeft=offset;
+      }
     }
     const lbl=document.getElementById('mutasiLabel');
     const list=document.getElementById('transferList');
