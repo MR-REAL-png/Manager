@@ -156,10 +156,10 @@
   <div class="pg-hd"><div><div class="pg-title">Data</div><div class="pg-sub">Semua Riwayat</div></div><button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--tx2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"/></svg> Edit</button></div>
   <div class="toolbar">
     <div class="srch-wrap"><span style="color:var(--tx3);display:flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg></span><input type="text" id="srch" placeholder="Cari..." oninput="filterData()"></div>
-    <select class="fsel" id="fBulan" onchange="filterData()"><option value="">Semua</option><option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option></select>
-    <select class="fsel" id="fJenis" onchange="filterData()"><option value="">Semua</option><option>Pemasukan</option><option>Pengeluaran</option></select>
-    <select class="fsel" id="fKat" onchange="filterData()"><option value="">Semua Kategori</option></select>
-    <select class="fsel" id="fBank" onchange="filterData()"><option value="">Semua Bank</option></select>
+    <select class="fsel" id="fBulan" onchange="filterData()"><option value="">Bulan</option><option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option></select>
+    <select class="fsel" id="fJenis" onchange="filterData()"><option value="">Jenis</option><option>Pemasukan</option><option>Pengeluaran</option></select>
+    <select class="fsel" id="fKat" onchange="filterData()"><option value="">Kategori</option></select>
+    <select class="fsel" id="fBank" onchange="filterData()"><option value="">Bank</option></select>
   </div>
   <div id="dataList" class="dlist"><div class="skel skel-card"></div><div class="skel skel-card"></div></div>
 </div>
