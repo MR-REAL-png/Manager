@@ -180,9 +180,7 @@ function openStrukDetail(rowIdx){
 // AI SCAN — Gemini Image Parser
 // ═══════════════════════════════════════════════
 
-let aiScanAbort = false;
-let aiScanCooldown = 0;      // sisa detik cooldown
-let aiScanCooldownTimer = null;
+
 
 function startAiCooldown(seconds) {
   aiScanCooldown = seconds;
