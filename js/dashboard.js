@@ -242,7 +242,7 @@ function toggleKomposisiView(){
   renderBudget(byKatArr);
 }
 
-let bmonRingkas=true;
+
 function toggleBmonView(){
   bmonRingkas=!bmonRingkas;
   const byKat=groupBy(allRows.filter(r=>{
