@@ -593,7 +593,7 @@ async function doExportGSheet(from,to,bln){
   const mapped=rows.map(r=>{
     const d=new Date(r.tanggal);
     const tgl=`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
-    return[tgl,r.bulan,r.kategori,r.nominal,r.pembayaran,r.detail||'',r.metode,r.jenis];
+    return[tgl,r.bulan,r.kategori,r.nominal,r.metode,r.detail||'',r.pembayaran,r.jenis];
   });
 
   try{
