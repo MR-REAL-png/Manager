@@ -152,6 +152,11 @@
   margin:0 -16px;
 }
 .atm-carousel::-webkit-scrollbar{display:none}
+.atm-carousel::before,
+.atm-carousel::after{
+  content:'';
+  flex:0 0 24px;
+}
 
 .atm-card{
   flex:0 0 calc(100% - 48px);
