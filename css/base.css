@@ -888,3 +888,88 @@ body.viewer-mode .tab-item {
 /* Kalender detail header */
 body.viewer-mode .kal-det-date { color: #0F172A!important; }
 body.viewer-mode .kal-detail { box-shadow: 0 2px 8px rgba(0,0,0,0.08)!important; }
+
+/* ═══ VIEWER MODE — SEMUA FIX TAMBAHAN ═══ */
+
+/* dashPeriodLabel inline style color:#fff — override paksa */
+body.viewer-mode #dashPeriodLabel { color: #0F172A!important; }
+
+/* Dropdown spill (rekap tahun, metode bulan) */
+body.viewer-mode .spill {
+  color: #0F172A!important;
+  background: rgba(255,255,255,0.9)!important;
+  border: 1.5px solid rgba(203,213,225,0.8)!important;
+  border-radius: 20px;
+  padding: 6px 14px;
+}
+
+/* Sisa hari cards */
+body.viewer-mode .sisa-card {
+  background: rgba(255,255,255,0.9)!important;
+  border: 1px solid rgba(203,213,225,0.6)!important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06)!important;
+}
+body.viewer-mode .sisa-val {
+  color: #0F172A!important;
+  font-size: 1.6rem!important;
+  font-weight: 700!important;
+}
+body.viewer-mode .sisa-lbl { color: #64748B!important; }
+body.viewer-mode .sisa-ico svg { stroke: #334155!important; }
+
+/* Metode bayar cards (CASH/TRANSFER/QRIS) */
+body.viewer-mode .metode-hero { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .metode-card {
+  background: rgba(248,250,252,0.9)!important;
+  border: 1px solid rgba(203,213,225,0.5)!important;
+  border-radius: 12px;
+}
+body.viewer-mode .metode-lbl { color: #64748B!important; font-weight: 700!important; }
+body.viewer-mode .metode-val { color: #0F172A!important; font-weight: 800!important; }
+body.viewer-mode .metode-ico svg { stroke: #334155!important; }
+body.viewer-mode .metode-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* PIN keypad — override lebih kuat dengan !important */
+.pk {
+  color: #1a1a2e!important;
+  font-size: 1.5rem!important;
+  font-weight: 600!important;
+}
+/* Paksa semua teks dalam .pk-wrap terlihat */
+.pin-keypad button {
+  color: #1a1a2e!important;
+}
+
+/* hk-lbl (arus kas label) pakai var(--tx) */
+body.viewer-mode .hk-lbl { color: var(--tx3)!important; }
+body.viewer-mode #hk-periode-lbl { color: var(--tx2)!important; }
+
+/* Sisa hari wrap */
+body.viewer-mode .sisa-wrap {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 10px;
+}
+
+/* Rekap per bulan — month-col background */
+body.viewer-mode .month-col {
+  background: rgba(248,250,252,0.9)!important;
+  border-radius: 8px;
+  padding: 8px!important;
+}
+body.viewer-mode .month-col:first-child {
+  border-right: 1px solid rgba(203,213,225,0.5)!important;
+  border-radius: 8px 0 0 8px;
+}
+body.viewer-mode .month-col:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+/* PIN — force semua tombol punya teks gelap */
+#pinOverlay .pk { color: #1a1a2e!important; font-size: 1.5rem!important; font-weight: 600!important; }
+#pinOverlay button { color: #1a1a2e!important; }
