@@ -292,14 +292,6 @@ async function loadDompetGabungan(el){
 
     const BUKAN_BANK=['cash','transfer','qris'];
 
-    // Fetch group transfers untuk saldo akurat
-    let groupTransfers=[];
-    try{
-      const resTr=await fetch(`${API_URL}/api/sheets?action=get-group-transfers&group_id=${group_id}`);
-      const jTr=await resTr.json();
-      groupTransfers=jTr.data||[];
-    }catch(e){console.warn('gagal fetch group transfers',e);}
-
     // Hitung saldo total keluarga dan per anggota
     let totalKeluarga=0;
     const memberData=[];
@@ -314,15 +306,7 @@ async function loadDompetGabungan(el){
         if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]+=r.nominal;
         else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]-=r.nominal;
       });
-      // Tambahkan transfer antar rekening ke saldo
-      groupTransfers.filter(t=>t.input_by===member).forEach(t=>{
-        if(saldoMap.hasOwnProperty(t.dari))saldoMap[t.dari]-=Number(t.nominal);
-        if(saldoMap.hasOwnProperty(t.ke))saldoMap[t.ke]+=Number(t.nominal);
-        if(!saldoMap.hasOwnProperty(t.dari)&&!BUKAN_BANK.includes((t.dari||'').toLowerCase())){saldoMap[t.dari]=-Number(t.nominal);if(!memberBanks.includes(t.dari))memberBanks.push(t.dari);}
-        if(!saldoMap.hasOwnProperty(t.ke)&&!BUKAN_BANK.includes((t.ke||'').toLowerCase())){saldoMap[t.ke]=Number(t.nominal);if(!memberBanks.includes(t.ke))memberBanks.push(t.ke);}
-      });
-      memberBanks.sort();
-      const totalMember=memberBanks.reduce((s,b)=>s+(saldoMap[b]||0),0);
+      const totalMember=memberBanks.reduce((s,b)=>s+saldoMap[b],0);
       totalKeluarga+=totalMember;
       memberData.push({username:member,banks:memberBanks,saldoMap,total:totalMember});
     }
@@ -505,7 +489,7 @@ async function loadRekap(){
       const k=mr.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
       return{bulan:bln,masuk:m,keluar:k,kas:m-k};
     }).filter(m=>m.masuk>0||m.keluar>0);
-    document.getElementById('rekapList').innerHTML=bm.map((m,i)=>`<div class="month-item" style="animation-delay:${i*0.05}s"><div class="month-item-top"><span class="month-name">${m.bulan} ${t}</span><span class="month-kas" style="color:${m.kas>=0?'#34d399':'#f87171'}">${m.kas>=0?'+':'−'}${rpShort(Math.abs(m.kas))}</span></div><div class="month-row"><div class="month-col"><div class="month-col-lbl">Pemasukan</div><div class="month-col-val" style="color:#34d399">${rpShort(m.masuk)}</div></div><div class="month-col"><div class="month-col-lbl">Pengeluaran</div><div class="month-col-val" style="color:#f87171">${rpShort(m.keluar)}</div></div></div></div>`).join('');
+    document.getElementById('rekapList').innerHTML=bm.map((m,i)=>`<div class="month-item" style="animation-delay:${i*0.05}s"><div class="month-item-top"><span class="month-name">${m.bulan} ${t}</span><span class="month-kas" style="color:${m.kas>=0?'#34d399':'#f87171'}">${m.kas>=0?'+':'−'}${rpShort(Math.abs(m.kas))}</span></div><div class="month-row"><div class="month-col"><div class="month-col-lbl">Pemasukan</div><div class="month-col-val grn">${rpShort(m.masuk)}</div></div><div class="month-col"><div class="month-col-lbl">Pengeluaran</div><div class="month-col-val red">${rpShort(m.keluar)}</div></div></div></div>`).join('');
     const ctx=document.getElementById('chartRekap')?.getContext('2d');if(!ctx)return;
     if(chartRekap)chartRekap.destroy();const tc='rgba(255,255,255,0.5)';
     chartRekap=new Chart(ctx,{type:'bar',data:{labels:bm.map(m=>m.bulan.slice(0,3)),datasets:[{label:'Pemasukan',data:bm.map(m=>m.masuk),backgroundColor:'rgba(52,211,153,0.5)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Pengeluaran',data:bm.map(m=>m.keluar),backgroundColor:'rgba(248,113,113,0.5)',borderColor:'#f87171',borderWidth:2,borderRadius:6}]},options:{responsive:true,animation:{duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
