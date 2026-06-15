@@ -616,88 +616,165 @@ body.viewer-mode .sett-avatar-wrap {
 
 /* Kartu ATM di dompet gabungan tetap berwarna (sudah inline style) */
 
-/* ═══ FIX BATCH — PIN, PERIODE, SISA HARI, REKAP KOLOM ═══ */
 
-/* 1. PIN keypad — hanya override di viewer-mode (light), dark mode tetap terang */
-.pk { color: var(--tx)!important; }
-body.viewer-mode .pk { color: #1a1a2e!important; }
-#pinOverlay .pk { color: var(--tx)!important; }
-body.viewer-mode #pinOverlay .pk { color: #1a1a2e!important; }
+/* ═══ VIEWER MODE — SEMUA OVERRIDE ═══ */
 
-/* 2. Periode aktif teks di dashboard viewer */
-body.viewer-mode #dashPeriodDate,
-body.viewer-mode .dash-period-date,
-body.viewer-mode #dashPeriodVal,
-body.viewer-mode .hdr-clock-date { color: var(--tx2)!important; }
+/* Background & layout */
+body.viewer-mode { --tx:#0F172A; --tx2:#334155; --tx3:#64748B; }
+body.viewer-mode #cosmicBg, body.viewer-mode #oceanBg, body.viewer-mode #particles { display:none!important; }
 
-/* Teks periode di period-card */
-body.viewer-mode .period-card { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
-body.viewer-mode .period-lbl { color: #64748B!important; }
-body.viewer-mode .period-val { color: #0F172A!important; }
-body.viewer-mode .period-days { color: #1D4ED8!important; }
+/* Header */
+body.viewer-mode .hdr-safe { background: transparent; }
+body.viewer-mode .hdr { background: rgba(255,255,255,0.92)!important; border-color: rgba(203,213,225,0.5)!important; }
+body.viewer-mode .hdr-clock-time { color: #0F172A!important; }
+body.viewer-mode .hdr-clock-date { color: #64748B!important; }
+body.viewer-mode .hdr-menu-btn { border-color: rgba(0,0,0,0.15)!important; background: rgba(0,0,0,0.05)!important; }
+body.viewer-mode .hdr-menu-btn span { background: #0F172A!important; }
+body.viewer-mode .brand-name { color: #1D4ED8!important; }
 
-/* Teks "24 Mei 2026 – 24 Jun 2026" di dashboard */
-body.viewer-mode [id^="dashPeriod"],
-body.viewer-mode .dash-per-val { color: #334155!important; }
+/* Drawer */
+body.viewer-mode .drawer-title { color: #0F172A!important; }
+body.viewer-mode .drawer-username { color: #0F172A!important; }
+body.viewer-mode .drawer-subtitle { color: #64748B!important; }
+body.viewer-mode .drawer-period-val { color: #0F172A!important; }
+body.viewer-mode .drawer-period-lbl { color: #1D4ED8!important; }
+body.viewer-mode .drawer-section-lbl { color: #64748B!important; }
+body.viewer-mode .drawer-item-name { color: #0F172A!important; }
+body.viewer-mode .drawer-item-sub { color: #64748B!important; }
+body.viewer-mode .drawer-item-ico { background: rgba(0,0,0,0.05)!important; }
+body.viewer-mode .drawer-close { color: #0F172A!important; border-color: rgba(0,0,0,0.15)!important; background: rgba(0,0,0,0.05)!important; }
 
-/* 3. Sisa hari cards — hapus gap putih, samakan background */
-body.viewer-mode .sisa-wrap {
-  display: grid!important;
-  grid-template-columns: repeat(3,1fr)!important;
-  gap: 8px!important;
-  margin: 12px 0!important;
-}
-body.viewer-mode .sisa-card {
-  background: rgba(255,255,255,0.95)!important;
-  border: 1px solid rgba(203,213,225,0.7)!important;
-  border-radius: 14px!important;
-  padding: 14px 8px!important;
-  text-align: center!important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06)!important;
-  margin: 0!important;
-}
-body.viewer-mode .sisa-val {
-  color: #0F172A!important;
-  font-size: 1.5rem!important;
-  font-weight: 800!important;
-  margin: 4px 0!important;
-}
-body.viewer-mode .sisa-lbl {
-  color: #64748B!important;
-  font-size: 0.6rem!important;
-  font-weight: 700!important;
-  text-transform: uppercase!important;
-  letter-spacing: 0.08em!important;
-}
-body.viewer-mode .sisa-ico { margin-bottom: 4px!important; }
-body.viewer-mode .sisa-ico svg { stroke: #475569!important; }
+/* Page titles */
+body.viewer-mode .pg-title { color: #0F172A!important; }
+body.viewer-mode .pg-sub { color: #64748B!important; }
+body.viewer-mode .sec-lbl { color: #64748B!important; }
 
-/* 4. Rekap per bulan — kolom PEMASUKAN/PENGELUARAN lebih jelas */
-body.viewer-mode .month-col {
-  background: rgba(241,245,249,1)!important;
-  border-radius: 8px!important;
-  padding: 10px 12px!important;
-  text-align: center!important;
-}
-body.viewer-mode .month-col:first-child {
-  border-right: 1px solid rgba(203,213,225,0.7)!important;
-  border-radius: 8px 0 0 8px!important;
-}
-body.viewer-mode .month-col:last-child {
-  border-radius: 0 8px 8px 0!important;
-}
-body.viewer-mode .month-col-lbl {
-  color: #475569!important;
-  font-size: 0.62rem!important;
-  font-weight: 700!important;
-  text-transform: uppercase!important;
-  letter-spacing: 0.06em!important;
-}
-body.viewer-mode .month-col-val { color: #0F172A!important; font-weight: 700!important; }
-
-/* Periode aktif badge di dashboard */
+/* Dashboard periode badge */
 body.viewer-mode .period-badge { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
 body.viewer-mode .period-badge-lbl { color: #64748B!important; }
 body.viewer-mode .period-badge-val { color: #0F172A!important; }
 body.viewer-mode #dashPeriodVal { color: #0F172A!important; }
 body.viewer-mode #dashPeriodDays { color: #1D4ED8!important; }
+body.viewer-mode #dashPeriodLabel { color: #0F172A!important; }
+body.viewer-mode .hk-lbl { color: #64748B!important; }
+body.viewer-mode #hk-periode-lbl { color: #334155!important; }
+
+/* Stat cards */
+body.viewer-mode .stat3-val { color: #0F172A!important; }
+body.viewer-mode .stat3-lbl { color: #64748B!important; }
+
+/* Sisa hari */
+body.viewer-mode .sisa-wrap { display:grid!important; grid-template-columns:repeat(3,1fr)!important; gap:8px!important; margin:12px 0!important; }
+body.viewer-mode .sisa-card { background:rgba(255,255,255,0.95)!important; border:1px solid rgba(203,213,225,0.7)!important; border-radius:14px!important; padding:14px 8px!important; text-align:center!important; box-shadow:0 1px 4px rgba(0,0,0,0.06)!important; margin:0!important; }
+body.viewer-mode .sisa-val { color:#0F172A!important; font-size:1.5rem!important; font-weight:800!important; margin:4px 0!important; }
+body.viewer-mode .sisa-lbl { color:#64748B!important; font-size:0.6rem!important; font-weight:700!important; text-transform:uppercase!important; letter-spacing:0.08em!important; }
+body.viewer-mode .sisa-ico svg { stroke:#475569!important; }
+
+/* Budget monitor */
+body.viewer-mode .bmon-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bmon-name { color:#0F172A!important; }
+body.viewer-mode .bmon-bar { background:rgba(0,0,0,0.08)!important; }
+body.viewer-mode .bmon-amts { color:#64748B!important; }
+
+/* Toggle button */
+body.viewer-mode .toggle-view-btn { color:#334155!important; border-color:rgba(203,213,225,0.8)!important; background:rgba(255,255,255,0.8)!important; }
+body.viewer-mode .toggle-view-btn.on { color:#1D4ED8!important; border-color:#1D4ED8!important; background:rgba(29,78,216,0.08)!important; }
+
+/* Dropdown & tombol filter */
+body.viewer-mode .spill { color:#0F172A!important; background:rgba(255,255,255,0.9)!important; border:1.5px solid rgba(203,213,225,0.8)!important; border-radius:20px; padding:6px 14px; }
+body.viewer-mode select, body.viewer-mode .fsel { color:#0F172A!important; background:rgba(255,255,255,0.9)!important; }
+body.viewer-mode #rekapTahun, body.viewer-mode #metodeBulan { color:#0F172A!important; background:rgba(255,255,255,0.9)!important; }
+
+/* Kalender */
+body.viewer-mode #kalTitle { color:#0F172A!important; }
+body.viewer-mode .kal-prev, body.viewer-mode .kal-next { color:#334155!important; border-color:rgba(203,213,225,0.8)!important; background:rgba(255,255,255,0.8)!important; }
+body.viewer-mode .kal-day-hdr { color:#64748B!important; }
+body.viewer-mode .kal-day { color:#334155!important; }
+body.viewer-mode .kal-day.has-data { background:rgba(168,85,247,0.12)!important; color:#4C1D95!important; }
+body.viewer-mode .kal-day.today { background:#1D4ED8!important; color:#fff!important; }
+body.viewer-mode .kal-detail { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; box-shadow:0 2px 8px rgba(0,0,0,0.08)!important; }
+body.viewer-mode .kal-det-date { color:#0F172A!important; }
+body.viewer-mode .kal-tx2 { background:rgba(0,0,0,0.03)!important; }
+body.viewer-mode .kal-tx2-kat { color:#0F172A!important; }
+body.viewer-mode .kal-tx2-det { color:#64748B!important; }
+body.viewer-mode .kal-tx2-tag { background:rgba(0,0,0,0.06)!important; color:#334155!important; }
+
+/* Metode bayar */
+body.viewer-mode .metode-hero { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
+body.viewer-mode .metode-card { background:rgba(248,250,252,0.9)!important; border:1px solid rgba(203,213,225,0.5)!important; border-radius:12px; }
+body.viewer-mode .metode-lbl { color:#64748B!important; font-weight:700!important; }
+body.viewer-mode .metode-val { color:#0F172A!important; font-weight:800!important; }
+body.viewer-mode .metode-ico svg { stroke:#334155!important; }
+body.viewer-mode .bank-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bank-name { color:#0F172A!important; }
+body.viewer-mode .bank-sub { color:#64748B!important; }
+body.viewer-mode .bank-val { color:#0F172A!important; }
+body.viewer-mode .bank-bar-wrap { background:rgba(0,0,0,0.08)!important; }
+body.viewer-mode .cl-txt { color:#334155!important; }
+
+/* Rekap per bulan */
+body.viewer-mode .month-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
+body.viewer-mode .month-name { color:#0F172A!important; }
+body.viewer-mode .month-col { background:rgba(241,245,249,1)!important; border-radius:8px!important; padding:10px 12px!important; text-align:center!important; }
+body.viewer-mode .month-col:first-child { border-right:1px solid rgba(203,213,225,0.7)!important; border-radius:8px 0 0 8px!important; }
+body.viewer-mode .month-col:last-child { border-radius:0 8px 8px 0!important; }
+body.viewer-mode .month-col-lbl { color:#475569!important; font-size:0.62rem!important; font-weight:700!important; text-transform:uppercase!important; letter-spacing:0.06em!important; }
+body.viewer-mode .month-col-val { color:#0F172A!important; font-weight:700!important; }
+
+/* Tabungan */
+body.viewer-mode .tab-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; box-shadow:0 1px 4px rgba(0,0,0,0.06)!important; }
+body.viewer-mode .tab-name, body.viewer-mode .tab-mo { color:#0F172A!important; }
+body.viewer-mode .tab-sub, body.viewer-mode .tab-amt-lbl { color:#64748B!important; }
+body.viewer-mode .tab-amt-val { color:#0F172A!important; }
+body.viewer-mode .tab-bar, body.viewer-mode .sav-bar { background:rgba(0,0,0,0.08)!important; }
+body.viewer-mode .tab-amts { border-top:1px solid rgba(203,213,225,0.5)!important; }
+body.viewer-mode .tab-amt-item:first-child { border-right:1px solid rgba(203,213,225,0.5)!important; }
+body.viewer-mode .sav-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
+body.viewer-mode .sav-name { color:#0F172A!important; }
+body.viewer-mode .sav-sub { color:#64748B!important; }
+
+/* Notifikasi */
+body.viewer-mode .notif-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; color:#0F172A!important; }
+body.viewer-mode .notif-title { color:#0F172A!important; }
+body.viewer-mode .notif-msg, body.viewer-mode .notif-sub { color:#334155!important; }
+body.viewer-mode .notif-time { color:#94A3B8!important; }
+body.viewer-mode .notif-item.info { border-left-color:#1D4ED8!important; }
+body.viewer-mode .notif-item.ok { border-left-color:#16A34A!important; }
+body.viewer-mode .notif-item.warn { border-left-color:#D97706!important; }
+
+/* Bud-item */
+body.viewer-mode .bud-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bud-name { color:#0F172A!important; }
+body.viewer-mode .bud-pct { color:#334155!important; }
+body.viewer-mode .bud-bar { background:rgba(0,0,0,0.08)!important; }
+body.viewer-mode .bud-amts { color:#64748B!important; }
+
+/* Data tab */
+body.viewer-mode .dg-header { color:#0F172A!important; }
+body.viewer-mode .dg-date { color:#334155!important; }
+body.viewer-mode .dc-kat { color:#0F172A!important; }
+body.viewer-mode .dc-ket-inline { color:#64748B!important; }
+
+/* Empty state */
+body.viewer-mode .empty-title { color:#334155!important; }
+body.viewer-mode .empty-sub { color:#64748B!important; }
+
+/* Bottom nav */
+body.viewer-mode .bnav::after { background-color:rgba(255,255,255,0.97)!important; }
+
+/* Struk */
+body.viewer-mode .bs-struk { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bs-struk-header { border-color:rgba(203,213,225,0.5)!important; }
+body.viewer-mode .bs-struk-header-kat { color:#0F172A!important; }
+body.viewer-mode .bs-struk-nom { border-color:rgba(203,213,225,0.5)!important; }
+body.viewer-mode .bs-struk-nom-lbl { color:#64748B!important; }
+body.viewer-mode .bs-struk-row { border-color:rgba(203,213,225,0.3)!important; }
+body.viewer-mode .bs-struk-row-lbl { color:#64748B!important; }
+body.viewer-mode .bs-struk-row-val { color:#334155!important; }
+body.viewer-mode .bs-struk-row-val.hl { color:#0F172A!important; }
+body.viewer-mode .bs-struk-footer { border-color:rgba(203,213,225,0.5)!important; }
+body.viewer-mode .bs-struk-footer-txt { color:#94A3B8!important; }
+
+/* PIN keypad — dark mode terang, viewer gelap */
+body.viewer-mode .pk { color:#1a1a2e!important; background:rgba(255,255,255,0.8)!important; border-color:rgba(203,213,225,0.8)!important; }
+body.viewer-mode #pinOverlay .pk { color:#1a1a2e!important; }
