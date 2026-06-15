@@ -1,18 +1,17 @@
 function initPinOverlay(){
-  // Cek apakah sudah login (ada session tersimpan)
   const session=localStorage.getItem('mm_session');
   if(session){
     try{
       const s=JSON.parse(session);
       if(s.username){
-        // Langsung masuk, set UID
         localStorage.setItem('mm_uid',s.username);
+        if(s.group_id)localStorage.setItem('mm_group_id',s.group_id);
+        if(s.role)localStorage.setItem('mm_role',s.role);
         hidePinOverlay();
         return;
       }
     }catch(e){}
   }
-  // Cek apakah sudah ada user terdaftar
   showPinOverlay();
 }
 
@@ -20,9 +19,7 @@ function showPinOverlay(){
   const ov=document.getElementById('pinOverlay');
   if(ov){ov.style.display='flex';ov.classList.add('visible');ov.classList.remove('hidden');}
   pinBuffer='';
-  // Init cosmic stars
   initPinStars();
-  // Update datetime
   updatePinDatetime();
   if(!window._pinDatetimeTimer)window._pinDatetimeTimer=setInterval(updatePinDatetime,1000);
   pinMode='login';
@@ -31,7 +28,6 @@ function showPinOverlay(){
   document.getElementById('pinNameWrap').style.display='none';
   document.getElementById('pinSwitch').textContent='Belum punya akun? Daftar';
   document.getElementById('pinError').textContent='';
-  // Init logo
   const logo=document.getElementById('pinLogo');
   if(logo)logo.style.backgroundImage=`url('https://raw.githubusercontent.com/MR-REAL-png/Manager/main/logo.png')`;
 }
@@ -45,9 +41,7 @@ function pinKey(d){
   if(pinBuffer.length>=6)return;
   pinBuffer+=d;
   renderPinDots();
-  if(pinBuffer.length===6){
-    setTimeout(()=>pinSubmit(),120);
-  }
+  if(pinBuffer.length===6){setTimeout(()=>pinSubmit(),120);}
 }
 
 function pinDel(){
@@ -59,9 +53,7 @@ function pinDel(){
 
 function renderPinDots(){
   const dots=document.querySelectorAll('#pinDots span');
-  dots.forEach((d,i)=>{
-    d.classList.toggle('filled',i<pinBuffer.length);
-  });
+  dots.forEach((d,i)=>{d.classList.toggle('filled',i<pinBuffer.length);});
 }
 
 function pinShakeError(msg){
@@ -74,7 +66,6 @@ function pinShakeError(msg){
 
 async function pinSubmit(){
   if(pinMode==='login'){
-    // Cari user berdasarkan PIN
     try{
       const res=await fetch(`${API_URL}/api/sheets?action=login`,{
         method:'POST',
@@ -83,15 +74,24 @@ async function pinSubmit(){
       });
       const json=await res.json();
       if(json.success){
-        // Simpan session
-        localStorage.setItem('mm_session',JSON.stringify({username:json.username}));
+        // Simpan session + group info
+        localStorage.setItem('mm_session',JSON.stringify({
+          username:json.username,
+          group_id:json.group_id||null,
+          role:json.role||'member'
+        }));
         localStorage.setItem('mm_uid',json.username);
+        if(json.group_id)localStorage.setItem('mm_group_id',json.group_id);
+        else localStorage.removeItem('mm_group_id');
+        localStorage.setItem('mm_role',json.role||'member');
         hidePinOverlay();
         updateProfileUI();
-        // Pull settings dengan UID baru
+        applyRoleUI(json.role||'member');
         await pullSettings();
         initRealtimeSync();
-        fetchDBOptions().then(()=>loadDashboard());
+        initRealtimeSync();
+        // Load anggota group untuk badge warna
+        loadGroupMembers();
       }else{
         pinShakeError(json.error||'PIN salah');
       }
@@ -100,7 +100,6 @@ async function pinSubmit(){
     }
   }
   else if(pinMode==='register'){
-    // Simpan PIN sementara, minta konfirmasi
     pinRegisterPin=pinBuffer;
     pinBuffer='';
     pinMode='confirm';
@@ -117,7 +116,6 @@ async function pinSubmit(){
       document.getElementById('pinSubtitle').textContent='Buat PIN 6 digit';
       return;
     }
-    // Daftar ke Supabase
     const name=document.getElementById('pinNameInput').value.trim()||'User';
     try{
       const res=await fetch(`${API_URL}/api/sheets?action=register`,{
@@ -127,10 +125,17 @@ async function pinSubmit(){
       });
       const json=await res.json();
       if(json.success){
-        localStorage.setItem('mm_session',JSON.stringify({username:json.username}));
+        localStorage.setItem('mm_session',JSON.stringify({
+          username:json.username,
+          group_id:null,
+          role:'member'
+        }));
         localStorage.setItem('mm_uid',json.username);
+        localStorage.setItem('mm_role','member');
+        localStorage.removeItem('mm_group_id');
         hidePinOverlay();
         updateProfileUI();
+        applyRoleUI('member');
         fetchDBOptions().then(()=>loadDashboard());
       }else{
         pinShakeError(json.error||'Gagal mendaftar');
@@ -169,10 +174,8 @@ function pinToggleMode(){
 function updateProfileUI(){
   const uid=getUserUID();
   if(!uid)return;
-  // Tampilkan nama user login di setting profil
   const el=document.getElementById('settUserLogin');
   if(el)el.textContent=uid;
-  // Avatar tetap pakai logo SE_REAL
   const av=document.getElementById('settAvatar');
   if(av){
     av.style.cssText=`width:64px;height:64px;border-radius:20px;background:url('${LOGO_URL}') center/cover;margin:0 auto 8px`;
@@ -206,9 +209,13 @@ function updatePinDatetime(){
 function pinLogout(){
   localStorage.removeItem('mm_session');
   localStorage.removeItem('mm_uid');
+  localStorage.removeItem('mm_group_id');
+  localStorage.removeItem('mm_role');
   showPinOverlay();
 }
-// ID unik per user, generate sekali dan simpan di localStorage selamanya
+
+// ═══ HELPER ROLE & GROUP ═══
+
 function getUserUID(){
   let uid=localStorage.getItem('mm_uid');
   if(!uid){
@@ -218,8 +225,35 @@ function getUserUID(){
   return uid;
 }
 
+function getUserRole(){
+  return localStorage.getItem('mm_role')||'member';
+}
+
+function getUserGroupId(){
+  return localStorage.getItem('mm_group_id')||null;
+}
+
+function isViewer(){
+  return getUserRole()==='viewer';
+}
+
+// Terapkan UI berdasarkan role
+function applyRoleUI(role){
+  const isView=role==='viewer';
+  // Sembunyikan tombol + (FAB) untuk viewer
+  const btnAdd=document.getElementById('btnAdd');
+  if(btnAdd)btnAdd.style.display=isView?'none':'flex';
+  // Tampilkan tab Dompet di bottom nav untuk viewer
+  const nbDompet=document.getElementById('nb-dompet');
+  if(nbDompet)nbDompet.style.display=isView?'flex':'none';
+  // Class body untuk CSS targeting
+  document.body.classList.toggle('viewer-mode',isView);
+  // Update label group di settings
+  if(typeof updateGroupStatusLabel==='function')updateGroupStatusLabel();
+}
+
 // ═══ SETTINGS SYNC ═══
-// Kumpulkan semua settings lokal jadi satu object
+
 function collectSettings(){
   return{
     mm_budgets_v2:   JSON.parse(localStorage.getItem('mm_budgets_v2')||'{}'),
@@ -232,7 +266,6 @@ function collectSettings(){
   };
 }
 
-// Terapkan settings dari Supabase ke localStorage
 function applySettings(data){
   if(!data)return;
   if(data.mm_budgets_v2)  localStorage.setItem('mm_budgets_v2',  JSON.stringify(data.mm_budgets_v2));
@@ -242,7 +275,6 @@ function applySettings(data){
   if(data.mm_periode)     localStorage.setItem('mm_periode',     JSON.stringify(data.mm_periode));
   if(data.mm_settings)    localStorage.setItem('mm_settings',    JSON.stringify(data.mm_settings));
   if(data.mm_t)           localStorage.setItem('mm_t',           data.mm_t);
-  // Terapkan ke variabel runtime
   const s=data.mm_settings||{};
   if(s.notifEnabled!==undefined)notifEnabled=s.notifEnabled;
   if(s.alertPct)alertPct=s.alertPct;
@@ -250,7 +282,6 @@ function applySettings(data){
   if(data.mm_t)setTheme(data.mm_t,false);
 }
 
-// Push settings ke Supabase (fire and forget, tidak blokir UI)
 async function pushSettings(){
   try{
     const uid=getUserUID();
@@ -262,7 +293,6 @@ async function pushSettings(){
   }catch(e){console.warn('pushSettings gagal:',e);}
 }
 
-// Pull settings dari Supabase saat app load
 async function pullSettings(){
   try{
     const uid=getUserUID();
