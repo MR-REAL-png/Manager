@@ -158,7 +158,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 [data-theme="ocean"] .hero-kas{background:linear-gradient(135deg,#0A4A8C,#1060B8,#1E7CDA);box-shadow:0 8px 24px rgba(16,96,184,0.45)}
 .hero-kas::before{content:'';position:absolute;top:-30px;right:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,0.09);pointer-events:none}
 .hero-kas::after{content:'';position:absolute;bottom:-20px;left:30px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.05);pointer-events:none}
-.hk-lbl{font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px}
+.hk-lbl{font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.95);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px}
 .hk-val{font-family:var(--ffd);font-size:clamp(1.3rem,5.5vw,2rem);font-weight:700;color:#fff;line-height:1;margin-bottom:4px;word-break:break-word}
 .hk-period{font-size:0.65rem;color:rgba(255,255,255,0.75);margin-bottom:10px;display:flex;align-items:center;gap:5px}
 .hk-period-dot{width:6px;height:6px;border-radius:50%;background:#34d399;flex-shrink:0;box-shadow:0 0 6px #34d399;animation:pulse 2s ease-in-out infinite}
@@ -778,3 +778,23 @@ body.viewer-mode .bs-struk-footer-txt { color:#94A3B8!important; }
 /* PIN keypad — dark mode terang, viewer gelap */
 body.viewer-mode .pk { color:#1a1a2e!important; background:rgba(255,255,255,0.8)!important; border-color:rgba(203,213,225,0.8)!important; }
 body.viewer-mode #pinOverlay .pk { color:#1a1a2e!important; }
+
+/* ═══ TAMBAHAN FIX ═══ */
+
+/* month-col-val warna via class (bukan inline style) */
+.grn { color: #34d399; }
+.red { color: #f87171; }
+body.viewer-mode .grn { color: #059669!important; }
+body.viewer-mode .red { color: #dc2626!important; }
+
+/* tab-amt-lbl dan tab-amt-val tambahan */
+body.viewer-mode .tab-amt-lbl { color: #64748B!important; font-size:0.62rem!important; font-weight:700!important; text-transform:uppercase!important; }
+body.viewer-mode .tab-amt-val { color: #0F172A!important; font-size:0.9rem!important; font-weight:700!important; }
+body.viewer-mode .tab-mo { color: #0F172A!important; font-weight:600!important; }
+body.viewer-mode .tab-pc { font-weight:700!important; }
+body.viewer-mode .tab-row { display:flex!important; justify-content:space-between!important; align-items:center!important; margin-bottom:6px!important; }
+
+/* tab-amt-item divider */
+body.viewer-mode .tab-amts { display:grid!important; grid-template-columns:1fr 1fr!important; gap:0!important; margin-top:8px!important; }
+body.viewer-mode .tab-amt-item { padding:8px 12px!important; text-align:center!important; }
+body.viewer-mode .tab-amt-item:first-child { border-right:1px solid rgba(203,213,225,0.6)!important; }
