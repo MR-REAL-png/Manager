@@ -615,3 +615,99 @@ body.viewer-mode .sett-avatar-wrap {
 }
 
 /* Kartu ATM di dompet gabungan tetap berwarna (sudah inline style) */
+
+/* ═══ VIEWER MODE — FIX WARNA TEKS ═══ */
+
+/* Page title & labels */
+body.viewer-mode .pg-title { color: #0F172A!important; }
+body.viewer-mode .pg-sub { color: #64748B!important; }
+
+/* Drawer teks */
+body.viewer-mode .drawer-title { color: #0F172A!important; }
+body.viewer-mode .drawer-username { color: #0F172A!important; }
+body.viewer-mode .drawer-subtitle { color: #64748B!important; }
+body.viewer-mode .drawer-period-val { color: #0F172A!important; }
+body.viewer-mode .drawer-period-lbl { color: #1D4ED8!important; }
+body.viewer-mode .drawer-section-lbl { color: #64748B!important; }
+body.viewer-mode .drawer-item-name { color: #0F172A!important; }
+body.viewer-mode .drawer-item-sub { color: #64748B!important; }
+body.viewer-mode .drawer-item-ico { background: rgba(0,0,0,0.05)!important; }
+body.viewer-mode .drawer-theme-lbl { color: #334155!important; }
+body.viewer-mode .drawer-close { color: #0F172A!important; border-color: rgba(0,0,0,0.15)!important; background: rgba(0,0,0,0.05)!important; }
+
+/* Header clock */
+body.viewer-mode .hdr-clock-time { color: #0F172A!important; }
+body.viewer-mode .hdr-clock-date { color: #64748B!important; }
+body.viewer-mode .hdr-menu-btn { border-color: rgba(0,0,0,0.15)!important; background: rgba(0,0,0,0.05)!important; }
+body.viewer-mode .hdr-menu-btn span { background: #0F172A!important; }
+
+/* Budget monitor */
+body.viewer-mode .bmon-item { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bmon-name { color: #0F172A!important; }
+body.viewer-mode .bmon-bar { background: rgba(0,0,0,0.08)!important; }
+body.viewer-mode .bmon-amts { color: #64748B!important; }
+
+/* Chart legend */
+body.viewer-mode .cl-txt { color: #334155!important; }
+
+/* Toggle button */
+body.viewer-mode .toggle-view-btn { color: #334155!important; border-color: rgba(203,213,225,0.8)!important; background: rgba(255,255,255,0.8)!important; }
+body.viewer-mode .toggle-view-btn.on { color: #1D4ED8!important; border-color: #1D4ED8!important; background: rgba(29,78,216,0.08)!important; }
+
+/* Kalender detail */
+body.viewer-mode .kal-detail { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .kal-det-hd { border-color: rgba(203,213,225,0.5)!important; }
+body.viewer-mode .kal-det-date { color: #0F172A!important; }
+body.viewer-mode .kal-tx2 { background: rgba(0,0,0,0.03)!important; }
+body.viewer-mode .kal-tx2-kat { color: #0F172A!important; }
+body.viewer-mode .kal-tx2-det { color: #64748B!important; }
+body.viewer-mode .kal-tx2-tag { background: rgba(0,0,0,0.06)!important; color: #334155!important; }
+
+/* Struk transaksi */
+body.viewer-mode .bs-struk { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bs-struk-header { border-color: rgba(203,213,225,0.5)!important; }
+body.viewer-mode .bs-struk-header-kat { color: #0F172A!important; }
+body.viewer-mode .bs-struk-nom { border-color: rgba(203,213,225,0.5)!important; }
+body.viewer-mode .bs-struk-nom-lbl { color: #64748B!important; }
+body.viewer-mode .bs-struk-row { border-color: rgba(203,213,225,0.3)!important; }
+body.viewer-mode .bs-struk-row-lbl { color: #64748B!important; }
+body.viewer-mode .bs-struk-row-val { color: #334155!important; }
+body.viewer-mode .bs-struk-row-val.hl { color: #0F172A!important; }
+body.viewer-mode .bs-struk-footer { border-color: rgba(203,213,225,0.5)!important; }
+body.viewer-mode .bs-struk-footer-txt { color: #94A3B8!important; }
+
+/* Hero kas popup */
+body.viewer-mode .bs-kas-pill { background: rgba(255,255,255,0.8)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bs-kas-pill-lbl { color: #64748B!important; }
+body.viewer-mode .bs-kas-row { background: rgba(255,255,255,0.8)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bs-kas-row-lbl { color: #334155!important; }
+
+/* Bud-item popup */
+body.viewer-mode .bs-bud-stat { background: rgba(255,255,255,0.8)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bs-bud-stat-lbl { color: #64748B!important; }
+body.viewer-mode .bs-bud-stat-val { color: #0F172A!important; }
+body.viewer-mode .bs-bud-tx { background: rgba(255,255,255,0.8)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bs-bud-tx-tgl { color: #94A3B8!important; }
+body.viewer-mode .bs-bud-tx-det { color: #334155!important; }
+
+/* Empty state */
+body.viewer-mode .empty-title { color: #334155!important; }
+body.viewer-mode .empty-sub { color: #64748B!important; }
+
+/* Notifikasi */
+body.viewer-mode .notif-item { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; color: #0F172A!important; }
+body.viewer-mode .notif-title { color: #0F172A!important; }
+body.viewer-mode .notif-sub { color: #64748B!important; }
+
+/* Rekap & chart labels */
+body.viewer-mode .rekap-card { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .rekap-lbl { color: #64748B!important; }
+body.viewer-mode .rekap-val { color: #0F172A!important; }
+
+/* Tabungan */
+body.viewer-mode .tab-item { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .tab-name { color: #0F172A!important; }
+body.viewer-mode .tab-sub { color: #64748B!important; }
+
+/* Bottom nav fix */
+body.viewer-mode .bnav::after { background-color: rgba(255,255,255,0.97)!important; }
