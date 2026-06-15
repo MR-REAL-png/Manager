@@ -600,7 +600,7 @@ function showKalDetail(day){
   const netCls=netHari>=0?'pos':'neg';
   const netPfx=netHari>=0?'+':'−';
   det.innerHTML=`<div class="kal-det-hd">
-    <div class="kal-det-date">${IC.cal} ${formatTgl(tgl)}</div>
+    <div class="kal-det-date">📅 ${formatTgl(tgl)}</div>
     <div class="kal-det-summary">
       ${masukHari>0?`<span class="kal-det-sum-in">+${rpShort(masukHari)}</span>`:''}
       ${keluarHari>0?`<span class="kal-det-sum-out">−${rpShort(keluarHari)}</span>`:''}
