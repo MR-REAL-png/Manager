@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -15,20 +16,34 @@ module.exports = async function handler(req, res) {
   try {
     const { action } = req.query;
 
-    // GET - ambil semua transaksi
+    // GET - ambil transaksi (filter by input_by kalau bukan viewer)
     if (req.method === 'GET' && action === 'get') {
-      const { data, error } = await supabase
-        .from('transaksi')
-        .select('*')
-        .order('tanggal', { ascending: false });
+      const { uid, role, group_id } = req.query;
 
+      let query = supabase.from('transaksi').select('*').order('tanggal', { ascending: false });
+
+      if (role === 'viewer' && group_id) {
+        // Viewer: ambil semua transaksi semua anggota group
+        const { data: members } = await supabase
+          .from('users')
+          .select('username')
+          .eq('group_id', group_id)
+          .eq('role', 'member');
+        const usernames = (members || []).map(m => m.username);
+        if (usernames.length) query = query.in('input_by', usernames);
+      } else if (uid) {
+        // User biasa: hanya data milik sendiri
+        query = query.eq('input_by', uid);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return res.status(200).json({ success: true, data });
     }
 
     // APPEND - tambah transaksi baru
     if (req.method === 'POST' && action === 'append') {
-      const { values } = req.body;
+      const { values, username } = req.body;
       const rows = values.map(v => ({
         tanggal:    v[0],
         bulan:      v[1],
@@ -38,6 +53,7 @@ module.exports = async function handler(req, res) {
         detail:     v[5],
         metode:     v[6],
         jenis:      v[7],
+        input_by:   username || null,
       }));
 
       const { data, error } = await supabase
@@ -51,7 +67,7 @@ module.exports = async function handler(req, res) {
 
     // UPDATE - edit transaksi berdasarkan id
     if (req.method === 'PUT' && action === 'update') {
-      const { id, values } = req.body;
+      const { id, values, username } = req.body;
       const row = {
         tanggal:    values[0],
         bulan:      values[1],
@@ -63,32 +79,30 @@ module.exports = async function handler(req, res) {
         jenis:      values[7],
       };
 
-      const { data, error } = await supabase
-        .from('transaksi')
-        .update(row)
-        .eq('id', id)
-        .select();
+      let query = supabase.from('transaksi').update(row).eq('id', id);
+      // Pastikan hanya bisa edit milik sendiri
+      if (username) query = query.eq('input_by', username);
 
+      const { data, error } = await query.select();
       if (error) throw error;
       return res.status(200).json({ success: true, data });
     }
 
     // DELETE - hapus transaksi berdasarkan id
     if (req.method === 'DELETE' && action === 'delete') {
-      const { id } = req.body;
+      const { id, username } = req.body;
 
-      const { error } = await supabase
-        .from('transaksi')
-        .delete()
-        .eq('id', id);
+      let query = supabase.from('transaksi').delete().eq('id', id);
+      if (username) query = query.eq('input_by', username);
 
+      const { error } = await query;
       if (error) throw error;
       return res.status(200).json({ success: true });
     }
 
     // ═══ SETTINGS ═══
 
-    // GET SETTINGS - ambil settings berdasarkan user id
+    // GET SETTINGS
     if (req.method === 'GET' && action === 'get-settings') {
       const { uid } = req.query;
       if (!uid) return res.status(400).json({ error: 'uid required' });
@@ -103,18 +117,14 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true, data: data?.data || null, updated_at: data?.updated_at || null });
     }
 
-    // SAVE SETTINGS - simpan/update settings
+    // SAVE SETTINGS
     if (req.method === 'POST' && action === 'save-settings') {
       const { uid, data: settingsData } = req.body;
       if (!uid) return res.status(400).json({ error: 'uid required' });
 
       const { error } = await supabase
         .from('user_settings')
-        .upsert({
-          id: uid,
-          data: settingsData,
-          updated_at: new Date().toISOString()
-        });
+        .upsert({ id: uid, data: settingsData, updated_at: new Date().toISOString() });
 
       if (error) throw error;
       return res.status(200).json({ success: true });
@@ -129,34 +139,35 @@ module.exports = async function handler(req, res) {
       if (pin.length !== 6) return res.status(400).json({ error: 'PIN harus 6 digit' });
 
       const { data: existing } = await supabase
-        .from('users')
-        .select('username')
-        .eq('pin', pin)
-        .single();
+        .from('users').select('username').eq('pin', pin).single();
       if (existing) return res.status(400).json({ error: 'PIN sudah digunakan, pilih PIN lain' });
 
       const { error } = await supabase
-        .from('users')
-        .insert({ username, pin });
+        .from('users').insert({ username, pin, role: 'member' });
 
       if (error && error.code === '23505') return res.status(400).json({ error: 'Username sudah terdaftar' });
       if (error) throw error;
       return res.status(200).json({ success: true, username });
     }
 
-    // LOGIN - verifikasi PIN
+    // LOGIN - verifikasi PIN, return group_id dan role
     if (req.method === 'POST' && action === 'login') {
       const { pin } = req.body;
       if (!pin || pin.length !== 6) return res.status(400).json({ error: 'PIN harus 6 digit' });
 
       const { data, error } = await supabase
         .from('users')
-        .select('username')
+        .select('username, group_id, role')
         .eq('pin', pin)
         .single();
 
       if (error || !data) return res.status(401).json({ error: 'PIN salah' });
-      return res.status(200).json({ success: true, username: data.username });
+      return res.status(200).json({
+        success: true,
+        username: data.username,
+        group_id: data.group_id || null,
+        role: data.role || 'member'
+      });
     }
 
     // CHANGE PIN
@@ -174,6 +185,100 @@ module.exports = async function handler(req, res) {
       const { error } = await supabase.from('users').update({ pin: newPin }).eq('username', username);
       if (error) throw error;
       return res.status(200).json({ success: true });
+    }
+
+    // ═══ GROUP ═══
+
+    // CREATE GROUP - buat group baru, generate group_id + akun viewer
+    if (req.method === 'POST' && action === 'create-group') {
+      const { username, viewerPin } = req.body;
+      if (!username || !viewerPin) return res.status(400).json({ error: 'Data tidak lengkap' });
+      if (viewerPin.length !== 6) return res.status(400).json({ error: 'PIN viewer harus 6 digit' });
+
+      // Cek user ada
+      const { data: user } = await supabase.from('users').select('username, group_id').eq('username', username).single();
+      if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
+      if (user.group_id) return res.status(400).json({ error: 'Kamu sudah punya group' });
+
+      // Cek PIN viewer tidak bentrok
+      const { data: pinConflict } = await supabase.from('users').select('username').eq('pin', viewerPin).single();
+      if (pinConflict) return res.status(400).json({ error: 'PIN viewer sudah digunakan' });
+
+      // Generate group_id unik
+      const group_id = 'GRP' + crypto.randomBytes(4).toString('hex').toUpperCase();
+      const viewerUsername = `viewer_${group_id}`;
+
+      // Update user jadi admin group
+      await supabase.from('users').update({ group_id, role: 'member' }).eq('username', username);
+
+      // Buat akun viewer
+      const { error: viewerError } = await supabase.from('users').insert({
+        username: viewerUsername,
+        pin: viewerPin,
+        group_id,
+        role: 'viewer'
+      });
+      if (viewerError) throw viewerError;
+
+      return res.status(200).json({ success: true, group_id, viewerUsername });
+    }
+
+    // JOIN GROUP - user lain bergabung ke group
+    if (req.method === 'POST' && action === 'join-group') {
+      const { username, group_id } = req.body;
+      if (!username || !group_id) return res.status(400).json({ error: 'Data tidak lengkap' });
+
+      // Cek group ada
+      const { data: groupMembers } = await supabase
+        .from('users').select('username').eq('group_id', group_id).eq('role', 'member');
+      if (!groupMembers || groupMembers.length === 0)
+        return res.status(404).json({ error: 'Group tidak ditemukan' });
+
+      // Cek user belum punya group
+      const { data: user } = await supabase.from('users').select('group_id').eq('username', username).single();
+      if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
+      if (user.group_id) return res.status(400).json({ error: 'Kamu sudah bergabung di group lain' });
+
+      // Join group
+      const { error } = await supabase.from('users').update({ group_id, role: 'member' }).eq('username', username);
+      if (error) throw error;
+      return res.status(200).json({ success: true, group_id });
+    }
+
+    // GET GROUP MEMBERS - ambil semua anggota group
+    if (req.method === 'GET' && action === 'get-group-members') {
+      const { group_id } = req.query;
+      if (!group_id) return res.status(400).json({ error: 'group_id required' });
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('username, role')
+        .eq('group_id', group_id)
+        .eq('role', 'member');
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, data: data || [] });
+    }
+
+    // GET GROUP TRANSFERS - ambil transfers semua anggota (untuk viewer)
+    if (req.method === 'GET' && action === 'get-group-transfers') {
+      const { group_id } = req.query;
+      if (!group_id) return res.status(400).json({ error: 'group_id required' });
+
+      const { data: members } = await supabase
+        .from('users').select('username').eq('group_id', group_id).eq('role', 'member');
+      const usernames = (members || []).map(m => m.username);
+
+      if (!usernames.length) return res.status(200).json({ success: true, data: [] });
+
+      const { data, error } = await supabase
+        .from('transfers')
+        .select('*')
+        .in('input_by', usernames)
+        .order('tanggal', { ascending: false });
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, data: data || [] });
     }
 
     // ═══ TRANSFERS ═══
@@ -198,7 +303,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Data tidak lengkap' });
       const { error } = await supabase
         .from('transfers')
-        .insert({ user_id: uid, dari, ke, nominal, catatan, tanggal });
+        .insert({ user_id: uid, dari, ke, nominal, catatan, tanggal, input_by: uid });
       if (error) throw error;
       return res.status(200).json({ success: true });
     }
