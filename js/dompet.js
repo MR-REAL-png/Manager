@@ -492,7 +492,7 @@ async function loadRekap(){
     }).filter(m=>m.masuk>0||m.keluar>0);
     document.getElementById('rekapList').innerHTML=bm.map((m,i)=>`<div class="month-item" style="animation-delay:${i*0.05}s"><div class="month-item-top"><span class="month-name">${m.bulan} ${t}</span><span class="month-kas" style="color:${m.kas>=0?'#34d399':'#f87171'}">${m.kas>=0?'+':'−'}${rpShort(Math.abs(m.kas))}</span></div><div class="month-row"><div class="month-col"><div class="month-col-lbl">Pemasukan</div><div class="month-col-val grn">${rpShort(m.masuk)}</div></div><div class="month-col"><div class="month-col-lbl">Pengeluaran</div><div class="month-col-val red">${rpShort(m.keluar)}</div></div></div></div>`).join('');
     const ctx=document.getElementById('chartRekap')?.getContext('2d');if(!ctx)return;
-    if(chartRekap)chartRekap.destroy();const tc='rgba(255,255,255,0.5)';
+    if(chartRekap)chartRekap.destroy();const isVM=document.body.classList.contains('viewer-mode');const tc=isVM?'#64748B':'rgba(255,255,255,0.5)';const gc=isVM?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.06)';
     chartRekap=new Chart(ctx,{type:'bar',data:{labels:bm.map(m=>m.bulan.slice(0,3)),datasets:[{label:'Pemasukan',data:bm.map(m=>m.masuk),backgroundColor:'rgba(52,211,153,0.5)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Pengeluaran',data:bm.map(m=>m.keluar),backgroundColor:'rgba(248,113,113,0.5)',borderColor:'#f87171',borderWidth:2,borderRadius:6}]},options:{responsive:true,animation:{duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:gc},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
   }catch(e){toast('Gagal load rekap','err')}
 }
@@ -585,7 +585,7 @@ function renderKalender(){
   const ctx=document.getElementById('chartKal')?.getContext('2d');if(!ctx)return;
   if(chartKal)chartKal.destroy();
   const labels=Array.from({length:dim},(_,i)=>i+1),data=labels.map(d=>bd[d]||0);
-  const tc='rgba(255,255,255,0.5)';
+  const isVMr=document.body.classList.contains('viewer-mode');const tc=isVMr?'#64748B':'rgba(255,255,255,0.5)';const gcr=isVMr?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.06)';
   chartKal=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Pengeluaran',data,backgroundColor:data.map(v=>v>0?'rgba(168,85,247,0.6)':'rgba(255,255,255,0.05)'),borderColor:data.map(v=>v>0?'#a855f7':'transparent'),borderWidth:1,borderRadius:4}]},options:{responsive:true,animation:{duration:600},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${rp(c.raw)}`}}},scales:{y:{ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},x:{ticks:{color:tc,font:{size:8}},grid:{display:false},border:{display:false}}}}});
 }
 
