@@ -74,7 +74,6 @@ async function pinSubmit(){
       });
       const json=await res.json();
       if(json.success){
-        // Simpan session + group info
         localStorage.setItem('mm_session',JSON.stringify({
           username:json.username,
           group_id:json.group_id||null,
@@ -89,9 +88,9 @@ async function pinSubmit(){
         applyRoleUI(json.role||'member');
         await pullSettings();
         initRealtimeSync();
-        initRealtimeSync();
-        // Load anggota group untuk badge warna
         loadGroupMembers();
+        await fetchDBOptions();
+        loadDashboard();
       }else{
         pinShakeError(json.error||'PIN salah');
       }
@@ -240,15 +239,11 @@ function isViewer(){
 // Terapkan UI berdasarkan role
 function applyRoleUI(role){
   const isView=role==='viewer';
-  // Sembunyikan tombol + (FAB) untuk viewer
   const btnAdd=document.getElementById('btnAdd');
   if(btnAdd)btnAdd.style.display=isView?'none':'flex';
-  // Tampilkan tab Dompet di bottom nav untuk viewer
   const nbDompet=document.getElementById('nb-dompet');
   if(nbDompet)nbDompet.style.display=isView?'flex':'none';
-  // Class body untuk CSS targeting
   document.body.classList.toggle('viewer-mode',isView);
-  // Update label group di settings
   if(typeof updateGroupStatusLabel==='function')updateGroupStatusLabel();
 }
 
