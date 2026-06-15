@@ -711,3 +711,61 @@ body.viewer-mode .tab-sub { color: #64748B!important; }
 
 /* Bottom nav fix */
 body.viewer-mode .bnav::after { background-color: rgba(255,255,255,0.97)!important; }
+
+/* ═══ VIEWER MODE — CHART & SISA HARI ═══ */
+
+/* Sisa hari cards */
+body.viewer-mode .sisa-card,
+body.viewer-mode [class*="sisa-"] {
+  background: rgba(255,255,255,0.9)!important;
+  border-color: rgba(203,213,225,0.6)!important;
+}
+body.viewer-mode .sisa-lbl,
+body.viewer-mode .sisa-val { color: #0F172A!important; }
+
+/* Kalender */
+body.viewer-mode .kal-day-hdr { color: #64748B!important; }
+body.viewer-mode .kal-day { color: #334155!important; }
+body.viewer-mode .kal-day.has-data { background: rgba(168,85,247,0.12)!important; color: #4C1D95!important; }
+body.viewer-mode .kal-day.today { background: #1D4ED8!important; color: #fff!important; }
+
+/* Metode bayar — label teks di atas chart */
+body.viewer-mode .metode-lbl,
+body.viewer-mode .metode-val,
+body.viewer-mode .metode-sub { color: #0F172A!important; }
+
+/* Rekap per bulan cards */
+body.viewer-mode .rekap-mon-card { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .rekap-mon-lbl { color: #64748B!important; }
+body.viewer-mode .rekap-mon-val { color: #0F172A!important; }
+
+/* Dompet mutasi */
+body.viewer-mode .mutasi-item { background: rgba(255,255,255,0.9)!important; }
+
+/* Notif items */
+body.viewer-mode .notif-item { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .notif-title { color: #0F172A!important; }
+body.viewer-mode .notif-msg { color: #334155!important; }
+body.viewer-mode .notif-time { color: #94A3B8!important; }
+body.viewer-mode .notif-item.info { border-left-color: #1D4ED8!important; }
+body.viewer-mode .notif-item.ok { border-left-color: #16A34A!important; }
+body.viewer-mode .notif-item.warn { border-left-color: #D97706!important; }
+
+/* Bud-item / komposisi */
+body.viewer-mode .bud-item { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bud-name { color: #0F172A!important; }
+body.viewer-mode .bud-pct { color: #334155!important; }
+body.viewer-mode .bud-bar { background: rgba(0,0,0,0.08)!important; }
+body.viewer-mode .bud-amts { color: #64748B!important; }
+
+/* Date group header di Data */
+body.viewer-mode .dg-header { color: #0F172A!important; }
+body.viewer-mode .dg-date { color: #334155!important; }
+body.viewer-mode .dc-kat { color: #0F172A!important; }
+body.viewer-mode .dc-ket-inline { color: #64748B!important; }
+
+/* Tabungan progress items */
+body.viewer-mode .sav-item { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .sav-name { color: #0F172A!important; }
+body.viewer-mode .sav-sub { color: #64748B!important; }
+body.viewer-mode .sav-bar { background: rgba(0,0,0,0.08)!important; }
