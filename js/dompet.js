@@ -292,6 +292,14 @@ async function loadDompetGabungan(el){
 
     const BUKAN_BANK=['cash','transfer','qris'];
 
+    // Fetch group transfers untuk saldo akurat
+    let groupTransfers=[];
+    try{
+      const resTr=await fetch(`${API_URL}/api/sheets?action=get-group-transfers&group_id=${group_id}`);
+      const jTr=await resTr.json();
+      groupTransfers=jTr.data||[];
+    }catch(e){console.warn('gagal fetch group transfers',e);}
+
     // Hitung saldo total keluarga dan per anggota
     let totalKeluarga=0;
     const memberData=[];
@@ -306,7 +314,15 @@ async function loadDompetGabungan(el){
         if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]+=r.nominal;
         else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]-=r.nominal;
       });
-      const totalMember=memberBanks.reduce((s,b)=>s+saldoMap[b],0);
+      // Tambahkan transfer antar rekening ke saldo
+      groupTransfers.filter(t=>t.input_by===member).forEach(t=>{
+        if(saldoMap.hasOwnProperty(t.dari))saldoMap[t.dari]-=Number(t.nominal);
+        if(saldoMap.hasOwnProperty(t.ke))saldoMap[t.ke]+=Number(t.nominal);
+        if(!saldoMap.hasOwnProperty(t.dari)&&!BUKAN_BANK.includes((t.dari||'').toLowerCase())){saldoMap[t.dari]=-Number(t.nominal);if(!memberBanks.includes(t.dari))memberBanks.push(t.dari);}
+        if(!saldoMap.hasOwnProperty(t.ke)&&!BUKAN_BANK.includes((t.ke||'').toLowerCase())){saldoMap[t.ke]=Number(t.nominal);if(!memberBanks.includes(t.ke))memberBanks.push(t.ke);}
+      });
+      memberBanks.sort();
+      const totalMember=memberBanks.reduce((s,b)=>s+(saldoMap[b]||0),0);
       totalKeluarga+=totalMember;
       memberData.push({username:member,banks:memberBanks,saldoMap,total:totalMember});
     }
@@ -420,8 +436,8 @@ function renderTabList(data){
 function renderChartTab(data){
   const ctx=document.getElementById('chartTab')?.getContext('2d');if(!ctx)return;
   if(chartTab)chartTab.destroy();if(!data.length)return;
-  const tc=document.body.classList.contains('viewer-mode')?'#64748B':'rgba(255,255,255,0.5)';
-  chartTab=new Chart(ctx,{type:'bar',data:{labels:data.map(b=>b.bulan.slice(0,3)),datasets:[{label:'Tabungan',data:data.map(b=>b.tabungan),backgroundColor:'rgba(52,211,153,0.6)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Target',data:data.map(b=>b.target),type:'line',borderColor:'#a855f7',pointRadius:4,fill:false,tension:0.3,borderDash:[5,4]}]},options:{responsive:true,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
+  const tc='rgba(255,255,255,0.5)';
+  chartTab=new Chart(ctx,{type:'bar',data:{labels:data.map(b=>b.bulan.slice(0,3)),datasets:[{label:'Tabungan',data:data.map(b=>b.tabungan),backgroundColor:'rgba(52,211,153,0.6)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Target',data:data.map(b=>b.target),type:'line',borderColor:'#a855f7',pointRadius:4,fill:false,tension:0.3,borderDash:[5,4]}]},options:{responsive:true,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
 }
 
 // ═══ TARGET SETTING ═══
@@ -491,8 +507,8 @@ async function loadRekap(){
     }).filter(m=>m.masuk>0||m.keluar>0);
     document.getElementById('rekapList').innerHTML=bm.map((m,i)=>`<div class="month-item" style="animation-delay:${i*0.05}s"><div class="month-item-top"><span class="month-name">${m.bulan} ${t}</span><span class="month-kas" style="color:${m.kas>=0?'#34d399':'#f87171'}">${m.kas>=0?'+':'−'}${rpShort(Math.abs(m.kas))}</span></div><div class="month-row"><div class="month-col"><div class="month-col-lbl">Pemasukan</div><div class="month-col-val" style="color:#34d399">${rpShort(m.masuk)}</div></div><div class="month-col"><div class="month-col-lbl">Pengeluaran</div><div class="month-col-val" style="color:#f87171">${rpShort(m.keluar)}</div></div></div></div>`).join('');
     const ctx=document.getElementById('chartRekap')?.getContext('2d');if(!ctx)return;
-    if(chartRekap)chartRekap.destroy();const tc=document.body.classList.contains('viewer-mode')?'#64748B':'rgba(255,255,255,0.5)';
-    chartRekap=new Chart(ctx,{type:'bar',data:{labels:bm.map(m=>m.bulan.slice(0,3)),datasets:[{label:'Pemasukan',data:bm.map(m=>m.masuk),backgroundColor:'rgba(52,211,153,0.5)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Pengeluaran',data:bm.map(m=>m.keluar),backgroundColor:'rgba(248,113,113,0.5)',borderColor:'#f87171',borderWidth:2,borderRadius:6}]},options:{responsive:true,animation:{duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
+    if(chartRekap)chartRekap.destroy();const tc='rgba(255,255,255,0.5)';
+    chartRekap=new Chart(ctx,{type:'bar',data:{labels:bm.map(m=>m.bulan.slice(0,3)),datasets:[{label:'Pemasukan',data:bm.map(m=>m.masuk),backgroundColor:'rgba(52,211,153,0.5)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Pengeluaran',data:bm.map(m=>m.keluar),backgroundColor:'rgba(248,113,113,0.5)',borderColor:'#f87171',borderWidth:2,borderRadius:6}]},options:{responsive:true,animation:{duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
   }catch(e){toast('Gagal load rekap','err')}
 }
 
@@ -513,7 +529,7 @@ async function loadMetode(){
       if(chartMetode){try{chartMetode.destroy()}catch(e){}chartMetode=null;}
       const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
       const bdrCol=isOcean?'rgba(10,74,140,0.4)':'rgba(6,78,59,0.4)';
-      const lblColor=document.body.classList.contains('viewer-mode')?'#334155':'rgba(255,255,255,0.92)';
+      const lblColor='rgba(255,255,255,0.92)';
       const lbls=Object.keys(bm).filter(k=>bm[k]>0),dm=lbls.map(k=>bm[k]);
       if(dm.length)chartMetode=new Chart(ctx,{type:'doughnut',data:{labels:lbls,datasets:[{data:dm,backgroundColor:['rgba(52,211,153,0.75)','rgba(96,165,250,0.75)','rgba(168,85,247,0.75)'],borderWidth:1.5,borderRadius:6,spacing:3,borderColor:bdrCol}]},options:{responsive:true,cutout:'60%',animation:{animateRotate:true,duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,font:{size:10.5},color:lblColor,padding:8}},tooltip:{callbacks:{label:c=>` ${c.label}: ${rp(c.raw)}`}}}}});
     }
@@ -584,7 +600,7 @@ function renderKalender(){
   const ctx=document.getElementById('chartKal')?.getContext('2d');if(!ctx)return;
   if(chartKal)chartKal.destroy();
   const labels=Array.from({length:dim},(_,i)=>i+1),data=labels.map(d=>bd[d]||0);
-  const tc=document.body.classList.contains('viewer-mode')?'#64748B':'rgba(255,255,255,0.5)';
+  const tc='rgba(255,255,255,0.5)';
   chartKal=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Pengeluaran',data,backgroundColor:data.map(v=>v>0?'rgba(168,85,247,0.6)':'rgba(255,255,255,0.05)'),borderColor:data.map(v=>v>0?'#a855f7':'transparent'),borderWidth:1,borderRadius:4}]},options:{responsive:true,animation:{duration:600},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${rp(c.raw)}`}}},scales:{y:{ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},x:{ticks:{color:tc,font:{size:8}},grid:{display:false},border:{display:false}}}}});
 }
 
@@ -600,7 +616,7 @@ function showKalDetail(day){
   const netCls=netHari>=0?'pos':'neg';
   const netPfx=netHari>=0?'+':'−';
   det.innerHTML=`<div class="kal-det-hd">
-    <div class="kal-det-date">📅 ${formatTgl(tgl)}</div>
+    <div class="kal-det-date">${IC.cal} ${formatTgl(tgl)}</div>
     <div class="kal-det-summary">
       ${masukHari>0?`<span class="kal-det-sum-in">+${rpShort(masukHari)}</span>`:''}
       ${keluarHari>0?`<span class="kal-det-sum-out">−${rpShort(keluarHari)}</span>`:''}
