@@ -769,3 +769,58 @@ body.viewer-mode .sav-item { background: rgba(255,255,255,0.9)!important; border
 body.viewer-mode .sav-name { color: #0F172A!important; }
 body.viewer-mode .sav-sub { color: #64748B!important; }
 body.viewer-mode .sav-bar { background: rgba(0,0,0,0.08)!important; }
+
+/* ═══ VIEWER MODE — REKAP, TABUNGAN, METODE, KALENDER ═══ */
+
+/* Kalender title (Juni 2026) */
+body.viewer-mode #kalTitle { color: #0F172A!important; }
+body.viewer-mode .kal-prev,
+body.viewer-mode .kal-next { color: #334155!important; border-color: rgba(203,213,225,0.8)!important; background: rgba(255,255,255,0.8)!important; }
+
+/* Rekap per bulan */
+body.viewer-mode .month-item { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .month-name { color: #0F172A!important; }
+body.viewer-mode .month-col-lbl { color: #64748B!important; }
+
+/* Metode bayar */
+body.viewer-mode .bank-item { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .bank-name { color: #0F172A!important; }
+body.viewer-mode .bank-sub { color: #64748B!important; }
+body.viewer-mode .bank-val { color: #0F172A!important; }
+body.viewer-mode .bank-bar-wrap { background: rgba(0,0,0,0.08)!important; }
+body.viewer-mode .m-lbl { color: #64748B!important; }
+
+/* Tabungan */
+body.viewer-mode .tab-item { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
+body.viewer-mode .tab-mo { color: #0F172A!important; }
+body.viewer-mode .tab-amt-lbl { color: #64748B!important; }
+body.viewer-mode .tab-amt-val { color: #0F172A!important; }
+body.viewer-mode .tab-bar { background: rgba(0,0,0,0.08)!important; }
+
+/* PIN overlay keypad */
+body.viewer-mode .pin-btn,
+body.viewer-mode .pin-key {
+  color: #0F172A!important;
+  background: rgba(255,255,255,0.8)!important;
+  border-color: rgba(203,213,225,0.8)!important;
+}
+
+/* ═══ PIN KEYPAD — selalu dark text karena background putih ═══ */
+.pk {
+  color: #1a1a2e;
+  background: rgba(255,255,255,0.6);
+  border: 1.5px solid rgba(203,213,225,0.5);
+  border-radius: 50%;
+  width: 72px; height: 72px;
+  font-size: 1.5rem; font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pk:active { background: rgba(200,200,220,0.6); transform: scale(0.93); }
+.pk-empty { visibility: hidden; pointer-events: none; }
+.pin-keypad { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; justify-items: center; margin-top: 8px; }
+.pin-subtitle { font-size: 0.95rem; font-weight: 500; color: #334155; margin-bottom: 4px; }
+.pin-datetime { font-size: 0.78rem; color: #64748B; margin-bottom: 20px; }
+.pin-switch { color: #1D4ED8!important; }
