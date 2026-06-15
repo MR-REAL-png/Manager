@@ -824,3 +824,67 @@ body.viewer-mode .pin-key {
 .pin-subtitle { font-size: 0.95rem; font-weight: 500; color: #334155; margin-bottom: 4px; }
 .pin-datetime { font-size: 0.78rem; color: #64748B; margin-bottom: 20px; }
 .pin-switch { color: #1D4ED8!important; }
+
+/* ═══ VIEWER MODE — DROPDOWN & TOMBOL ═══ */
+
+/* Dropdown tahun rekap & tombol "Semua" metode */
+body.viewer-mode select,
+body.viewer-mode .fsel,
+body.viewer-mode .btn-year,
+body.viewer-mode #rekapTahun,
+body.viewer-mode #metodeBulan {
+  color: #0F172A!important;
+  background: rgba(255,255,255,0.9)!important;
+  border-color: rgba(203,213,225,0.8)!important;
+}
+body.viewer-mode .btn-filter,
+body.viewer-mode .btn-semua {
+  color: #334155!important;
+  background: rgba(255,255,255,0.8)!important;
+  border-color: rgba(203,213,225,0.8)!important;
+}
+
+/* Tombol pill/filter umum */
+body.viewer-mode button:not(.pk):not(.bnav-btn):not(.btn-ok):not(.btn-cx) {
+  color: #334155;
+}
+
+/* ═══ KOLOM PEMBATAS (divider) di tab-item, month-item ═══ */
+body.viewer-mode .tab-amts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid rgba(203,213,225,0.5)!important;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+body.viewer-mode .tab-amt-item {
+  padding: 4px 8px;
+}
+body.viewer-mode .tab-amt-item:first-child {
+  border-right: 1px solid rgba(203,213,225,0.5)!important;
+}
+
+body.viewer-mode .month-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid rgba(203,213,225,0.5)!important;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+body.viewer-mode .month-col:first-child {
+  border-right: 1px solid rgba(203,213,225,0.5)!important;
+  padding-right: 12px;
+}
+body.viewer-mode .month-col:last-child {
+  padding-left: 12px;
+}
+
+/* Kartu tabungan viewer — background jelas */
+body.viewer-mode .tab-item {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06)!important;
+}
+
+/* Kalender detail header */
+body.viewer-mode .kal-det-date { color: #0F172A!important; }
+body.viewer-mode .kal-detail { box-shadow: 0 2px 8px rgba(0,0,0,0.08)!important; }
