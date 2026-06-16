@@ -15,7 +15,7 @@ function openKasDetail(){
   body.innerHTML=`
   <div class="bs-kas-hero">
     <div class="bs-kas-hero-lbl">Arus Kas Periode</div>
-    <div class="bs-kas-hero-val" style="color:${col}">${pfx}${rp(Math.abs(kas))}</div>
+    <div class="bs-kas-hero-val">${pfx}${rp(Math.abs(kas))}</div>
     <div class="bs-kas-hero-sub">${fmtDateShort(d.startDate)} – ${fmtDateShort(d.endDate)}</div>
   </div>
   <div class="bs-kas-pills">
@@ -46,6 +46,33 @@ function openKasDetail(){
       <div class="bs-kas-row-lbl">${k.kategori}</div>
       <div class="bs-kas-row-val" style="color:var(--red)">${rpShort(k.nominal)} <span style="color:var(--tx3);font-size:0.6rem">(${Math.round(k.nominal/totalKeluar*100)}%)</span></div>
     </div>`).join('')}`:''}
+    ${(()=>{
+      const BUKAN_BANK=['cash','transfer','qris'];
+      const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
+      if(!banks.length)return'';
+      const saldoMap={};
+      banks.forEach(b=>saldoMap[b]=0);
+      allRows.forEach(r=>{
+        if(!r.pembayaran||!saldoMap.hasOwnProperty(r.pembayaran))return;
+        if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]+=r.nominal;
+        else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]-=r.nominal;
+      });
+      const totalSaldo=banks.reduce((s,b)=>s+saldoMap[b],0);
+      const totalPos=totalSaldo>=0;
+      return`<div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;padding:8px 0 4px;margin-top:4px">Saldo Dompet</div>
+      ${banks.map(b=>{
+        const s=saldoMap[b];
+        const pos=s>=0;
+        return`<div class="bs-kas-row">
+          <div class="bs-kas-row-lbl">${b}</div>
+          <div class="bs-kas-row-val" style="color:${pos?'var(--grn)':'var(--red)'}">${pos?'+':'−'}${rp(Math.abs(s))}</div>
+        </div>`;
+      }).join('')}
+      <div class="bs-kas-row" style="border-top:1px solid var(--bdr2);margin-top:4px;padding-top:8px">
+        <div class="bs-kas-row-lbl" style="font-weight:700;color:#fff">Total Aset</div>
+        <div class="bs-kas-row-val" style="color:${totalPos?'var(--grn)':'var(--red)'};font-weight:700">${totalPos?'+':'−'}${rp(Math.abs(totalSaldo))}</div>
+      </div>`;
+    })()}
   </div>`;
 }
 
