@@ -525,9 +525,30 @@ body.viewer-mode .modal,
 body.viewer-mode .sett-group,
 body.viewer-mode .dc,
 body.viewer-mode .bs-wrap {
-  background: rgba(255,255,255,0.9)!important;
-  border-color: rgba(203,213,225,0.6)!important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06)!important;
+  background: rgba(255,255,255,0.92)!important;
+  border-color: rgba(203,213,225,0.5)!important;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.08), 0 1px 4px rgba(0,0,0,0.04)!important;
+}
+
+/* Soft glow blobs di background viewer — dekoratif, tidak ganggu konten */
+body.viewer-mode #pageBg::before,
+body.viewer-mode #pageBg::after {
+  content:'';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+body.viewer-mode #pageBg::before {
+  width: 280px; height: 280px;
+  top: -80px; right: -60px;
+  background: rgba(168,85,247,0.12);
+}
+body.viewer-mode #pageBg::after {
+  width: 320px; height: 320px;
+  bottom: 10%; left: -100px;
+  background: rgba(59,130,246,0.10);
 }
 
 /* Bottom nav */
@@ -759,7 +780,7 @@ body.viewer-mode .empty-title { color:#334155!important; }
 body.viewer-mode .empty-sub { color:#64748B!important; }
 
 /* Bottom nav */
-body.viewer-mode .bnav::after { background-color:rgba(255,255,255,0.97)!important; }
+body.viewer-mode .bnav::after { background-color:rgba(255,255,255,0.97)!important; -webkit-mask:none!important; mask:none!important; }
 
 /* Struk */
 body.viewer-mode .bs-struk { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
@@ -828,3 +849,43 @@ body.viewer-mode .rekap-hero {
 body.viewer-mode .hk-val { color: #fff!important; }
 body.viewer-mode .hk-lbl { color: rgba(255,255,255,0.9)!important; }
 body.viewer-mode #hk-periode-lbl { color: rgba(255,255,255,0.75)!important; }
+
+/* ═══ BOTTOM SHEET — VIEWER MODE ═══ */
+body.viewer-mode .bs-sheet {
+  background: rgba(255,255,255,0.97)!important;
+  border-top: 1px solid rgba(203,213,225,0.6)!important;
+}
+body.viewer-mode .bs-handle { background: rgba(0,0,0,0.15)!important; }
+body.viewer-mode .bs-header { border-color: rgba(203,213,225,0.5)!important; }
+body.viewer-mode #bsTitle { color: #0F172A!important; }
+body.viewer-mode .bs-close { color: #334155!important; background: rgba(0,0,0,0.05)!important; border-color: rgba(0,0,0,0.1)!important; }
+
+/* Hero kas di dalam bottom sheet — ganti gradient gelap ke terang, konsisten dengan hero lainnya */
+body.viewer-mode .bs-kas-hero {
+  background: linear-gradient(135deg, #6366F1 0%, #818CF8 45%, #C084FC 100%)!important;
+}
+
+/* ═══ TABUNGAN & REKAP — kolom lebih jelas dengan background abu transparan ═══ */
+body.viewer-mode .tab-amt-item {
+  background: rgba(0,0,0,0.035)!important;
+  border-radius: 8px!important;
+  margin: 2px!important;
+}
+body.viewer-mode .tab-amt-item:first-child {
+  border-right: none!important;
+}
+body.viewer-mode .tab-amts {
+  gap: 4px!important;
+}
+
+body.viewer-mode .month-col {
+  background: rgba(0,0,0,0.035)!important;
+  margin: 2px!important;
+}
+body.viewer-mode .month-col:first-child {
+  border-right: none!important;
+}
+body.viewer-mode .rekap-card-row,
+body.viewer-mode .month-item .month-col-wrap {
+  gap: 4px!important;
+}
