@@ -805,7 +805,6 @@ body.viewer-mode { --hk-color: #0F172A; }
 /* rekap, ht, hk override di viewer mode */
 body.viewer-mode .rekap-stat-val { color: #fff!important; }
 body.viewer-mode .ht-val { color: #fff!important; }
-body.viewer-mode .hk-val { color: #0F172A!important; }
 body.viewer-mode .ht-lbl { color: rgba(255,255,255,0.8)!important; }
 body.viewer-mode .ht-sub { color: rgba(255,255,255,0.65)!important; }
 
@@ -814,3 +813,18 @@ body.viewer-mode .hero-kas {
   background: linear-gradient(135deg, #6366F1 0%, #818CF8 40%, #C084FC 100%)!important;
   box-shadow: 0 8px 24px rgba(99,102,241,0.25)!important;
 }
+
+/* ═══ HERO CARDS DI VIEWER MODE — ganti gradient gelap ke terang ═══ */
+body.viewer-mode .hero-tab {
+  background: linear-gradient(135deg, #6366F1 0%, #818CF8 45%, #C084FC 100%)!important;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.25)!important;
+}
+body.viewer-mode .rekap-hero {
+  background: linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #818CF8 100%)!important;
+  box-shadow: 0 8px 24px rgba(79,70,229,0.25)!important;
+}
+
+/* Pastikan hk-val dan hk-lbl tetap putih di dashboard viewer (card masih gradient) */
+body.viewer-mode .hk-val { color: #fff!important; }
+body.viewer-mode .hk-lbl { color: rgba(255,255,255,0.9)!important; }
+body.viewer-mode #hk-periode-lbl { color: rgba(255,255,255,0.75)!important; }
