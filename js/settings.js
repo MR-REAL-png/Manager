@@ -86,9 +86,127 @@ function loadSettings(){
   if(s.notifEnabled!==undefined)notifEnabled=s.notifEnabled;
   if(s.alertPct)alertPct=s.alertPct;
   if(s.adminPassword)adminPassword=s.adminPassword;
+
+  // Viewer: render halaman Menu, sembunyikan konten settings biasa
+  if(isViewer()){
+    renderViewerMenu();
+    return;
+  }
+
+  // Member/admin: render settings normal
   document.getElementById('alertPctLabel').textContent=`${alertPct}% dari anggaran`;
   const nt=document.getElementById('notifToggle');if(nt)nt.classList.toggle('on',notifEnabled);
   updateKatRataLabel();
+
+  // Tampilkan konten settings, sembunyikan viewer menu
+  const settContent=document.getElementById('settContent');
+  const viewerMenu=document.getElementById('viewerMenuContent');
+  if(settContent)settContent.style.display='';
+  if(viewerMenu)viewerMenu.style.display='none';
+
+  // Update judul halaman ke "Pengaturan"
+  const pgTitle=document.querySelector('#pg-settings .pg-title');
+  const pgSub=document.querySelector('#pg-settings .pg-sub');
+  if(pgTitle)pgTitle.textContent='Pengaturan';
+  if(pgSub)pgSub.textContent='Konfigurasi App';
+}
+
+function renderViewerMenu(){
+  // Update judul halaman
+  const pgTitle=document.querySelector('#pg-settings .pg-title');
+  const pgSub=document.querySelector('#pg-settings .pg-sub');
+  if(pgTitle)pgTitle.textContent='Menu';
+  if(pgSub)pgSub.textContent='Navigasi & Pengaturan';
+
+  // Sembunyikan konten settings biasa, tampilkan viewer menu
+  const settContent=document.getElementById('settContent');
+  const viewerMenu=document.getElementById('viewerMenuContent');
+  if(settContent)settContent.style.display='none';
+  if(viewerMenu){viewerMenu.style.display='';return;} // sudah ada, cukup tampilkan
+
+  // Buat elemen viewer menu dinamis
+  const pg=document.getElementById('pg-settings');
+  if(!pg)return;
+
+  const menuEl=document.createElement('div');
+  menuEl.id='viewerMenuContent';
+  menuEl.innerHTML=`
+    <!-- Grid 2x2 Navigasi Analisis -->
+    <div class="sec-lbl">Analisis</div>
+    <div class="viewer-menu-grid">
+      <div class="vm-card tap-card" onclick="goPage('rekap')">
+        <div class="vm-ico" style="background:rgba(52,211,153,0.15)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/></svg>
+        </div>
+        <div class="vm-lbl">Rekap Total</div>
+        <div class="vm-sub">Ringkasan tahunan</div>
+      </div>
+      <div class="vm-card tap-card" onclick="goPage('metode')">
+        <div class="vm-ico" style="background:rgba(96,165,250,0.15)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/></svg>
+        </div>
+        <div class="vm-lbl">Metode Bayar</div>
+        <div class="vm-sub">Analisis pembayaran</div>
+      </div>
+      <div class="vm-card tap-card" onclick="goPage('kalender')">
+        <div class="vm-ico" style="background:rgba(251,191,36,0.15)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
+        </div>
+        <div class="vm-lbl">Kalender</div>
+        <div class="vm-sub">Pengeluaran harian</div>
+      </div>
+      <div class="vm-card tap-card" onclick="goPage('notif')">
+        <div class="vm-ico" style="background:rgba(248,113,113,0.15)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg>
+        </div>
+        <div class="vm-lbl">Notifikasi</div>
+        <div class="vm-sub">Alert & peringatan</div>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="sec-lbl">Data</div>
+    <div class="sett-group">
+      <div class="sett-item" onclick="exportCSV()">
+        <div class="sett-ico" style="background:rgba(52,211,153,0.2)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+        </div>
+        <div class="sett-info"><div class="sett-lbl">Export Data CSV</div><div class="sett-sub">Download semua transaksi</div></div>
+        <div class="sett-arr">›</div>
+      </div>
+    </div>
+
+    <!-- Ubah Judul -->
+    <div class="sec-lbl">Tampilan</div>
+    <div class="sett-group">
+      <div class="sett-item" onclick="openSettModal('nama')">
+        <div class="sett-ico" style="background:rgba(168,85,247,0.2)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"/></svg>
+        </div>
+        <div class="sett-info"><div class="sett-lbl">Ubah Judul</div><div class="sett-sub">Judul yang ditampilkan di header</div></div>
+        <div class="sett-arr">›</div>
+      </div>
+    </div>
+
+    <!-- Keluar -->
+    <div class="sec-lbl">Akun</div>
+    <div class="sett-group">
+      <div class="sett-item" onclick="pinLogout()">
+        <div class="sett-ico" style="background:rgba(248,113,113,0.2)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"/></svg>
+        </div>
+        <div class="sett-info"><div class="sett-lbl" style="color:var(--red)">Keluar</div><div class="sett-sub">Logout dari akun ini</div></div>
+        <div class="sett-arr">›</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:16px;font-size:0.62rem;color:var(--tx3)">Money Manager v2.0 · SE_REAL</div>
+  `;
+
+  // Sisipkan setelah pg-hd
+  const pgHd=pg.querySelector('.pg-hd');
+  if(pgHd)pgHd.insertAdjacentElement('afterend',menuEl);
+  else pg.appendChild(menuEl);
 }
 
 function showCreateGroup(){
