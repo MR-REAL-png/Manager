@@ -244,6 +244,13 @@ function applyRoleUI(role){
   const nbDompet=document.getElementById('nb-dompet');
   if(nbDompet)nbDompet.style.display=isView?'flex':'none';
   document.body.classList.toggle('viewer-mode',isView);
+
+  // Viewer: sembunyikan burger/drawer, ubah label nav "Setting" → "Menu"
+  const menuBtn=document.querySelector('.hdr-menu-btn');
+  if(menuBtn)menuBtn.style.display=isView?'none':'';
+  const nbSettLbl=document.querySelector('#nb-settings .bnav-lbl');
+  if(nbSettLbl)nbSettLbl.textContent=isView?'Menu':'Setting';
+
   if(typeof updateGroupStatusLabel==='function')updateGroupStatusLabel();
 }
 
