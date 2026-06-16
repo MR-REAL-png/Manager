@@ -514,7 +514,7 @@ async function loadMetode(){
       if(chartMetode){try{chartMetode.destroy()}catch(e){}chartMetode=null;}
       const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
       const bdrCol=isOcean?'rgba(10,74,140,0.4)':'rgba(6,78,59,0.4)';
-      const lblColor='rgba(255,255,255,0.92)';
+      const isVMm=document.body.classList.contains('viewer-mode');const lblColor=isVMm?'#334155':'rgba(255,255,255,0.92)';
       const lbls=Object.keys(bm).filter(k=>bm[k]>0),dm=lbls.map(k=>bm[k]);
       if(dm.length)chartMetode=new Chart(ctx,{type:'doughnut',data:{labels:lbls,datasets:[{data:dm,backgroundColor:['rgba(52,211,153,0.75)','rgba(96,165,250,0.75)','rgba(168,85,247,0.75)'],borderWidth:1.5,borderRadius:6,spacing:3,borderColor:bdrCol}]},options:{responsive:true,cutout:'60%',animation:{animateRotate:true,duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,font:{size:10.5},color:lblColor,padding:8}},tooltip:{callbacks:{label:c=>` ${c.label}: ${rp(c.raw)}`}}}}});
     }
