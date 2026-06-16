@@ -889,3 +889,6 @@ body.viewer-mode .rekap-card-row,
 body.viewer-mode .month-item .month-col-wrap {
   gap: 4px!important;
 }
+
+/* Nominal arus kas di dalam bs-kas-hero — paksa putih supaya kontras dengan gradient */
+.bs-kas-hero-val { color: #fff; }
