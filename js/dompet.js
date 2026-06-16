@@ -315,14 +315,20 @@ async function loadDompetGabungan(el){
     const totalPos=totalKeluarga>=0;
     let html=`
       <div class="sec-lbl" style="margin-bottom:8px">TOTAL KELUARGA</div>
-      <div class="atm-card" style="flex:none;width:100%;margin-bottom:20px;background:linear-gradient(135deg,#1D4ED8,#3B82F6);padding:20px;box-sizing:border-box;border-radius:18px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
-          <div style="width:40px;height:28px;background:rgba(255,255,255,0.25);border-radius:6px"></div>
+      <div class="atm-card" style="flex:none;width:100%;margin-bottom:20px;background:linear-gradient(135deg,#1e3a8a,#1D4ED8,#3B82F6);padding:20px;box-sizing:border-box;border-radius:18px;position:relative;overflow:hidden">
+        ${getBankMotifSVG('circles')}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;position:relative;z-index:1">
+          <div style="width:36px;height:26px;border-radius:5px;background:linear-gradient(135deg,#e0e0e0,#a8a8a8);border:1px solid rgba(255,255,255,0.4);box-shadow:inset 0 1px 2px rgba(255,255,255,0.5);position:relative">
+            <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,0.12);transform:translateY(-50%)"></div>
+            <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(0,0,0,0.1);transform:translateX(-50%)"></div>
+          </div>
           <div style="font-size:0.7rem;color:rgba(255,255,255,0.7)">${members.length} anggota</div>
         </div>
-        <div style="font-size:0.65rem;color:rgba(255,255,255,0.7);margin-bottom:4px">TOTAL ASET</div>
-        <div style="font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:8px">${totalPos?'':'-'}${rp(Math.abs(totalKeluarga))}</div>
-        <div style="font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.9)">Keluarga</div>
+        <div style="position:relative;z-index:1">
+          <div style="font-size:0.65rem;color:rgba(255,255,255,0.7);margin-bottom:4px">TOTAL ASET</div>
+          <div style="font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:8px;text-shadow:0 2px 8px rgba(0,0,0,0.25)">${totalPos?'':'-'}${rp(Math.abs(totalKeluarga))}</div>
+          <div style="font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.9)">Keluarga</div>
+        </div>
       </div>`;
 
     // Render per anggota
@@ -340,21 +346,27 @@ async function loadDompetGabungan(el){
       if(!m.banks.length){
         html+=`<div style="text-align:center;padding:16px;color:var(--tx3);font-size:0.8rem;margin-bottom:16px">Belum ada rekening</div>`;
       } else {
-        // Carousel kartu per anggota
+        // Carousel kartu per anggota — pakai tema warna per bank, bukan warna member generik
         html+=`<div class="atm-carousel" id="carousel-${mi}" style="margin-bottom:20px">`;
         m.banks.forEach((bank,bi)=>{
           const s=m.saldoMap[bank];
           const sPos=s>=0;
-          // Gradient warna berdasarkan warna member
+          const theme=getBankTheme(bank);
           html+=`
-            <div class="atm-card" style="background:linear-gradient(135deg,${color}dd,${color}88);padding:18px;box-sizing:border-box">
-              <div style="display:flex;justify-content:space-between;margin-bottom:16px">
-                <div style="width:36px;height:24px;background:rgba(255,255,255,0.25);border-radius:5px"></div>
-                <div style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.5)"></div>
+            <div class="atm-card" style="background:${theme.grad};padding:18px;box-sizing:border-box;position:relative;overflow:hidden">
+              ${getBankMotifSVG(theme.motif)}
+              <div style="display:flex;justify-content:space-between;margin-bottom:16px;position:relative;z-index:1">
+                <div style="width:36px;height:24px;border-radius:5px;background:linear-gradient(135deg,#e0e0e0,#a8a8a8);border:1px solid rgba(255,255,255,0.4);box-shadow:inset 0 1px 2px rgba(255,255,255,0.5);position:relative">
+                  <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,0.12);transform:translateY(-50%)"></div>
+                  <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(0,0,0,0.1);transform:translateX(-50%)"></div>
+                </div>
+                <div style="width:8px;height:8px;border-radius:50%;background:${color}"></div>
               </div>
-              <div style="font-size:0.6rem;color:rgba(255,255,255,0.7);margin-bottom:4px">SALDO</div>
-              <div style="font-size:1.2rem;font-weight:800;color:#fff">${sPos?'':'-'}${rp(Math.abs(s))}</div>
-              <div style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.9);margin-top:8px">${bank}</div>
+              <div style="position:relative;z-index:1">
+                <div style="font-size:0.6rem;color:rgba(255,255,255,0.7);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Saldo</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.25)">${sPos?'':'-'}${rp(Math.abs(s))}</div>
+                <div style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.9);margin-top:8px">${bank}</div>
+              </div>
             </div>`;
         });
         html+=`</div>`;
