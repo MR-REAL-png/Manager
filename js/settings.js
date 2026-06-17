@@ -98,11 +98,11 @@ function loadSettings(){
   const nt=document.getElementById('notifToggle');if(nt)nt.classList.toggle('on',notifEnabled);
   updateKatRataLabel();
 
-  // Tampilkan konten settings, sembunyikan viewer menu
+  // Tampilkan konten settings, hapus viewer menu dari DOM
   const settContent=document.getElementById('settContent');
   const viewerMenu=document.getElementById('viewerMenuContent');
   if(settContent)settContent.style.display='';
-  if(viewerMenu)viewerMenu.style.display='none';
+  if(viewerMenu)viewerMenu.remove();
 
   // Update judul halaman ke "Pengaturan"
   const pgTitle=document.querySelector('#pg-settings .pg-title');
