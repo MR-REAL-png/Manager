@@ -110,15 +110,15 @@ function renderChartKat(byCat){
   const ctx=document.getElementById('chartKat').getContext('2d');
   const total=byCat.reduce((s,k)=>s+k.nominal,0);
   const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
-  const isVM=document.body.classList.contains('viewer-mode');
-  const bdrCol=isVM?'rgba(255,255,255,0.8)':isOcean?'rgba(10,74,140,0.6)':'rgba(15,12,41,0.6)';
-  const legendColor=isVM?'#334155':isOcean?'#B8DEFF':'#E2D9FF';
+  const bdrCol=isOcean?'rgba(10,74,140,0.6)':'rgba(15,12,41,0.6)';
+  // Warna legend kontras: lebih terang di cosmic, biru muda di ocean
+  const legendColor=isOcean?'#B8DEFF':'#E2D9FF';
   const plugin={id:'rdg',afterDraw(chart){
     const{ctx:c,chartArea:ca}=chart;if(!ca)return;
     const cx=(ca.left+ca.right)/2,cy=(ca.top+ca.bottom)/2;
     c.save();c.textAlign='center';c.textBaseline='middle';
-    c.fillStyle=isVM?'rgba(100,116,139,0.8)':isOcean?'rgba(184,222,255,0.6)':'rgba(226,217,255,0.6)';c.font=`500 11px 'DM Sans',sans-serif`;c.fillText('Total',cx,cy-14);
-    c.fillStyle=isVM?'#0F172A':'rgba(255,255,255,0.95)';c.font=`bold 20px 'Playfair Display',serif`;c.fillText((total/1e6).toFixed(1)+'jt',cx,cy+10);
+    c.fillStyle=isOcean?'rgba(184,222,255,0.6)':'rgba(226,217,255,0.6)';c.font=`500 11px 'DM Sans',sans-serif`;c.fillText('Total',cx,cy-14);
+    c.fillStyle='rgba(255,255,255,0.95)';c.font=`bold 20px 'Playfair Display',serif`;c.fillText((total/1e6).toFixed(1)+'jt',cx,cy+10);
     c.restore();
   }};
   chartKat=new Chart(ctx,{
@@ -145,7 +145,7 @@ function renderChartKat(byCat){
   const legEl=document.getElementById('chartLegend');
   if(legEl){
     const isOc=document.documentElement.getAttribute('data-theme')==='ocean';
-    const lgColor=document.body.classList.contains('viewer-mode')?'#334155':isOc?'#B8DEFF':'#E2D9FF';
+    const lgColor=isOc?'#B8DEFF':'#E2D9FF';
     legEl.innerHTML=byCat.map((k,i)=>{
       const pct=Math.round(k.nominal/total*100);
       const lbl=k.kategori.length>12?k.kategori.slice(0,11)+'…':k.kategori;
@@ -167,7 +167,7 @@ function renderChartHarian(rows){
   if(!sorted.length){wrap.innerHTML=`<div class="empty"><div class="ei">${IC.chart}</div><p>Belum ada data harian</p></div>`;return}
   wrap.innerHTML='<canvas id="chartHarian"></canvas>';
   const ctx=document.getElementById('chartHarian').getContext('2d');
-  const tc=document.body.classList.contains('viewer-mode')?'#64748B':'rgba(255,255,255,0.45)';const gc=document.body.classList.contains('viewer-mode')?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.04)';
+  const tc='rgba(255,255,255,0.45)';
   const labels=sorted.map(d=>{const p=d.split('-');return`${p[2]}/${p[1]}`});
   const values=sorted.map(d=>byDay[d]);
   const maxVal=Math.max(...values);
@@ -192,7 +192,7 @@ function renderChartHarian(rows){
         tooltip:{callbacks:{label:c=>` ${rp(c.raw)}`,title:t=>t[0].label},backgroundColor:'rgba(15,12,41,0.85)',titleColor:'rgba(255,255,255,0.6)',bodyColor:'#f472b6',borderColor:'rgba(168,85,247,0.4)',borderWidth:1,padding:10,cornerRadius:8}
       },
       scales:{
-        y:{ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},grid:{color:gc},border:{display:false}},
+        y:{ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
         x:{ticks:{color:tc,font:{size:9},maxRotation:45},grid:{display:false},border:{display:false}}
       }
     }
@@ -364,7 +364,7 @@ function renderCards(rows){
       const memberBadge=(r.input_by&&getUserGroupId())?`<span class="dtag member-badge" style="background:${getMemberColor(r.input_by)}22;color:${getMemberColor(r.input_by)};border:1px solid ${getMemberColor(r.input_by)}44">${r.input_by}</span>`:'';
       return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s" onclick="event.stopPropagation();openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags"><div class="dc-tags-left">${tags}${memberBadge}</div>${ketHtml}</div>${editHtml}</div>`;
     }).join('');
-    return`<div class="date-group"><div class="dg-header"><div class="dg-dot ${dotCls}"></div><span class="dg-date">📅 ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
+    return`<div class="date-group"><div class="dg-header"><div class="dg-dot ${dotCls}"></div><span class="dg-date">${IC.cal} ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
   }).join('');
   el.innerHTML=strip+html;
 }
