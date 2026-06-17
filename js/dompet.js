@@ -306,7 +306,11 @@ async function loadDompetGabungan(el){
 
     for(const member of members){
       // Ambil transfer milik member ini
-      const memberTransfers=allTransfers.filter(t=>t.input_by===member||t.user_id===member);
+      const memberLower=member.toLowerCase();
+      const memberTransfers=allTransfers.filter(t=>
+        (t.input_by&&t.input_by.toLowerCase()===memberLower)||
+        (t.user_id&&t.user_id.toLowerCase()===memberLower)
+      );
       // Kumpulkan semua rekening dari transfer
       const bankSet=new Set();
       memberTransfers.forEach(t=>{
