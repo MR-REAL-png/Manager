@@ -91,6 +91,39 @@ function loadSettings(){
   updateKatRataLabel();
 }
 
+function showCreateGroup(){
+  settModalType='create-group';
+  const title=document.getElementById('settModalTitle');
+  const body=document.getElementById('settModalBody');
+  title.innerHTML='👨‍👩‍👧 Buat Group';
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:14px">Buat group keluarga. Kamu akan mendapat kode group dan PIN akun gabungan.</p>
+    <div class="fr"><label>PIN Akun Gabungan</label><input class="fi" type="password" id="viewerPin" placeholder="6 digit PIN untuk akun viewer" maxlength="6" inputmode="numeric"></div>
+    <div class="fr"><label>Konfirmasi PIN</label><input class="fi" type="password" id="viewerPinConf" placeholder="Ulangi PIN" maxlength="6" inputmode="numeric"></div>
+    <div style="padding:8px 10px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);border-radius:8px;font-size:0.7rem;color:#fbbf24;margin-top:4px">
+      PIN ini akan dipakai oleh akun gabungan untuk lihat semua data.
+    </div>`;
+}
+
+function showJoinGroup(){
+  settModalType='join-group';
+  const title=document.getElementById('settModalTitle');
+  const body=document.getElementById('settModalBody');
+  title.innerHTML='🔗 Gabung Group';
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:14px">Masukkan kode group dari admin untuk bergabung.</p>
+    <div class="fr"><label>Kode Group</label><input class="fi" type="text" id="joinGroupId" placeholder="Contoh: GRP1A2B3C4D" style="text-transform:uppercase;letter-spacing:0.05em" oninput="this.value=this.value.toUpperCase()"></div>`;
+}
+
+// Update label status group di settings
+function updateGroupStatusLabel(){
+  const el=document.getElementById('groupStatusLabel');
+  if(!el)return;
+  const gid=getUserGroupId();
+  if(gid)el.textContent=`Group aktif: ${gid}`;
+  else el.textContent='Buat atau gabung group keluarga';
+}
+
 function openSettModal(type){
   settModalType=type;
   const title=document.getElementById('settModalTitle'),body=document.getElementById('settModalBody');
@@ -183,6 +216,63 @@ function openSettModal(type){
       <div class="fr"><label>Dari Tanggal</label><input class="fi" type="date" id="periodeFrom" value="${fmt(startDate)}" onchange="autoFriday('periodeFrom')"></div>
       <div class="fr"><label>Sampai Tanggal</label><input class="fi" type="date" id="periodeTo" value="${fmt(endDate)}" onchange="autoFriday('periodeTo')"></div>
       <button class="btn-cx" style="width:100%;margin-top:8px" onclick="resetPeriode()">${IC.reload} Reset ke Otomatis</button>`;
+  }
+  else if(type==='group'){
+    title.innerHTML='👨‍👩‍👧 Kelola Group';
+    const group_id=getUserGroupId();
+    const role=getUserRole();
+    if(group_id&&role==='member'){
+      // Sudah punya group — tampilkan info + PIN viewer
+      body.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat info group...</div>';
+      document.getElementById('ovSett').classList.add('open');
+      (async()=>{
+        try{
+          const res=await fetch(`${API_URL}/api/sheets?action=get-group-members&group_id=${group_id}`);
+          const json=await res.json();
+          const members=(json.data||[]).map(m=>m.username);
+          body.innerHTML=`
+            <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:14px">Group kamu aktif. Bagikan kode ini ke anggota lain untuk bergabung.</p>
+            <div style="background:var(--glass);border:1px solid var(--bdr2);border-radius:12px;padding:14px;text-align:center;margin-bottom:12px">
+              <div style="font-size:0.65rem;color:var(--tx3);margin-bottom:4px">KODE GROUP</div>
+              <div style="font-size:1.4rem;font-weight:800;color:var(--ac);letter-spacing:0.1em">${group_id}</div>
+            </div>
+            <div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Anggota (${members.length})</div>
+            ${members.map((m,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bdr2)"><div style="width:8px;height:8px;border-radius:50%;background:${MEMBER_COLORS[i%MEMBER_COLORS.length]}"></div><span style="font-size:0.8rem;color:#fff">${m}</span></div>`).join('')}
+            <div style="margin-top:16px;padding:10px 12px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:10px;font-size:0.7rem;color:#fbbf24">
+              PIN akun gabungan dibuat saat pertama kali buat group. Hubungi admin group untuk PIN viewer.
+            </div>`;
+        }catch(e){body.innerHTML='<p style="color:var(--red)">Gagal memuat info group</p>';}
+      })();
+      return;
+    } else if(!group_id){
+      // Belum punya group
+      body.innerHTML=`
+        <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:14px">Buat group baru atau bergabung ke group yang sudah ada.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+          <button onclick="showCreateGroup()" style="padding:12px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);border-radius:12px;color:#c084fc;font-size:0.82rem;font-weight:600;cursor:pointer">
+            👨‍👩‍👧 Buat Group Baru
+          </button>
+          <button onclick="showJoinGroup()" style="padding:12px;background:rgba(96,165,250,0.15);border:1px solid rgba(96,165,250,0.3);border-radius:12px;color:#60a5fa;font-size:0.82rem;font-weight:600;cursor:pointer">
+            🔗 Gabung Group
+          </button>
+        </div>`;
+    }
+  }
+  else if(type==='create-group'){
+    title.innerHTML='👨‍👩‍👧 Buat Group';
+    body.innerHTML=`
+      <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:14px">Buat group keluarga. Kamu akan mendapat kode group dan PIN akun gabungan.</p>
+      <div class="fr"><label>PIN Akun Gabungan</label><input class="fi" type="password" id="viewerPin" placeholder="6 digit PIN untuk akun viewer" maxlength="6" inputmode="numeric"></div>
+      <div class="fr"><label>Konfirmasi PIN</label><input class="fi" type="password" id="viewerPinConf" placeholder="Ulangi PIN" maxlength="6" inputmode="numeric"></div>
+      <div style="padding:8px 10px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);border-radius:8px;font-size:0.7rem;color:#fbbf24;margin-top:4px">
+        PIN ini akan dipakai oleh akun gabungan untuk lihat semua data.
+      </div>`;
+  }
+  else if(type==='join-group'){
+    title.innerHTML='🔗 Gabung Group';
+    body.innerHTML=`
+      <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:14px">Masukkan kode group dari admin untuk bergabung.</p>
+      <div class="fr"><label>Kode Group</label><input class="fi" type="text" id="joinGroupId" placeholder="Contoh: GRP1A2B3C4D" style="text-transform:uppercase;letter-spacing:0.05em"></div>`;
   }
   else if(type==='password'){
     title.innerHTML=`${IC.lock.replace('width:20px;height:20px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Ganti Password`;
@@ -500,6 +590,62 @@ async function saveSettModal(){
   else if(settModalType==='kategori'){
     const val=document.getElementById('newKatInput')?.value.trim();
     if(val){const a=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_kats',JSON.stringify(a));fetchDBOptions();pushSettings();toast('Kategori ditambah','ok')}else toast('Sudah ada','err')}
+  }
+  else if(settModalType==='create-group'){
+    const vPin=document.getElementById('viewerPin')?.value;
+    const vPinConf=document.getElementById('viewerPinConf')?.value;
+    if(!vPin||vPin.length!==6){toast('PIN viewer harus 6 digit','err');return;}
+    if(vPin!==vPinConf){toast('PIN tidak cocok','err');return;}
+    const uid=getUserUID();
+    const btnOk=document.querySelector('#ovSett .btn-ok');
+    if(btnOk){btnOk.disabled=true;btnOk.textContent='Membuat...';}
+    try{
+      const r=await fetch(`${API_URL}/api/sheets?action=create-group`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username:uid,viewerPin:vPin})
+      });
+      const j=await r.json();
+      if(j.success){
+        localStorage.setItem('mm_group_id',j.group_id);
+        localStorage.setItem('mm_role','member');
+        const s=JSON.parse(localStorage.getItem('mm_session')||'{}');
+        s.group_id=j.group_id;
+        localStorage.setItem('mm_session',JSON.stringify(s));
+        closeOv(null,'ovSett');
+        toast('Group berhasil dibuat!','ok');
+        await loadGroupMembers();
+      }else toast(j.error||'Gagal buat group','err');
+    }catch(e){toast('Gagal terhubung','err');}
+    finally{if(btnOk){btnOk.disabled=false;btnOk.textContent='Simpan';}}
+    return;
+  }
+  else if(settModalType==='join-group'){
+    const gid=(document.getElementById('joinGroupId')?.value||'').trim().toUpperCase();
+    if(!gid){toast('Masukkan kode group','err');return;}
+    const uid=getUserUID();
+    const btnOk=document.querySelector('#ovSett .btn-ok');
+    if(btnOk){btnOk.disabled=true;btnOk.textContent='Bergabung...';}
+    try{
+      const r=await fetch(`${API_URL}/api/sheets?action=join-group`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username:uid,group_id:gid})
+      });
+      const j=await r.json();
+      if(j.success){
+        localStorage.setItem('mm_group_id',j.group_id);
+        const s=JSON.parse(localStorage.getItem('mm_session')||'{}');
+        s.group_id=j.group_id;
+        localStorage.setItem('mm_session',JSON.stringify(s));
+        closeOv(null,'ovSett');
+        toast('Berhasil bergabung ke group!','ok');
+        await loadGroupMembers();
+        allRows=[];loadDashboard();
+      }else toast(j.error||'Gagal bergabung','err');
+    }catch(e){toast('Gagal terhubung','err');}
+    finally{if(btnOk){btnOk.disabled=false;btnOk.textContent='Simpan';}}
+    return;
   }
   else if(settModalType==='password'){const old=document.getElementById('passOld').value,nw=document.getElementById('passNew').value,cf=document.getElementById('passConf').value;if(old!==adminPassword){toast('Password lama salah','err');return}if(nw!==cf){toast('Konfirmasi tidak cocok','err');return}if(nw.length<4){toast('Min 4 karakter','err');return}adminPassword=nw;saveSettingsStorage();pushSettings();toast('Password diperbarui','ok')}
   closeOv(null,'ovSett');
