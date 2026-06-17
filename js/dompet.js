@@ -292,19 +292,35 @@ async function loadDompetGabungan(el){
 
     const BUKAN_BANK=['cash','transfer','qris'];
 
+    // Fetch transfers semua anggota group sekaligus
+    let allTransfers=[];
+    try{
+      const resT=await fetch(`${API_URL}/api/sheets?action=get-group-transfers&group_id=${group_id}`);
+      const jT=await resT.json();
+      if(jT.success)allTransfers=jT.data||[];
+    }catch(e){console.warn('Gagal fetch group transfers:',e);}
+
     // Hitung saldo total keluarga dan per anggota
     let totalKeluarga=0;
     const memberData=[];
 
     for(const member of members){
-      const memberRows=allRows.filter(r=>r.input_by===member);
-      const memberBanks=[...new Set(memberRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
+      // Ambil transfer milik member ini
+      const memberTransfers=allTransfers.filter(t=>t.input_by===member||t.user_id===member);
+      // Kumpulkan semua rekening dari transfer
+      const bankSet=new Set();
+      memberTransfers.forEach(t=>{
+        if(t.dari&&!BUKAN_BANK.includes(t.dari.trim().toLowerCase()))bankSet.add(t.dari);
+        if(t.ke&&!BUKAN_BANK.includes(t.ke.trim().toLowerCase()))bankSet.add(t.ke);
+      });
+      const memberBanks=[...bankSet].sort();
+      // Hitung saldo per rekening dari transfer masuk - keluar
       const saldoMap={};
       memberBanks.forEach(b=>saldoMap[b]=0);
-      memberRows.forEach(r=>{
-        if(!r.pembayaran||!saldoMap.hasOwnProperty(r.pembayaran))return;
-        if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]+=r.nominal;
-        else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]-=r.nominal;
+      memberTransfers.forEach(t=>{
+        const nom=Number(t.nominal)||0;
+        if(t.ke&&saldoMap.hasOwnProperty(t.ke))saldoMap[t.ke]+=nom;
+        if(t.dari&&saldoMap.hasOwnProperty(t.dari))saldoMap[t.dari]-=nom;
       });
       const totalMember=memberBanks.reduce((s,b)=>s+saldoMap[b],0);
       totalKeluarga+=totalMember;
@@ -353,7 +369,7 @@ async function loadDompetGabungan(el){
           const sPos=s>=0;
           const theme=getBankTheme(bank);
           html+=`
-            <div class="atm-card" style="background:${theme.grad};padding:18px;box-sizing:border-box;position:relative;overflow:hidden">
+            <div class="atm-card" style="background:${theme.grad};padding:18px;box-sizing:border-box;position:relative;overflow:hidden;scroll-snap-align:center">
               ${getBankMotifSVG(theme.motif)}
               <div style="display:flex;justify-content:space-between;margin-bottom:16px;position:relative;z-index:1">
                 <div style="width:36px;height:24px;border-radius:5px;background:linear-gradient(135deg,#e0e0e0,#a8a8a8);border:1px solid rgba(255,255,255,0.4);box-shadow:inset 0 1px 2px rgba(255,255,255,0.5);position:relative">
@@ -371,17 +387,35 @@ async function loadDompetGabungan(el){
         });
         html+=`</div>`;
 
-        // Init carousel per anggota
+        // Init carousel per anggota — samakan dengan mode user
         setTimeout(()=>{
           const car=document.getElementById(`carousel-${mi}`);
-          if(car){
-            let sx=0;
-            car.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
-            car.addEventListener('touchend',e=>{
-              const diff=sx-e.changedTouches[0].clientX;
-              if(Math.abs(diff)>40)car.scrollBy({left:diff>0?200:-200,behavior:'smooth'});
-            },{passive:true});
+          if(!car)return;
+          const cards=car.querySelectorAll('.atm-card');
+          let activeIdx=0;
+          function snapTo(idx){
+            if(idx<0||idx>=cards.length)return;
+            activeIdx=idx;
+            const card=cards[idx];
+            const offset=card.offsetLeft-car.offsetLeft-(car.offsetWidth-card.offsetWidth)/2;
+            car.style.scrollBehavior='smooth';
+            car.scrollLeft=offset;
+            setTimeout(()=>{car.style.scrollBehavior='auto';},400);
           }
+          let sx=0,startScroll=0;
+          car.addEventListener('touchstart',e=>{
+            sx=e.touches[0].clientX;
+            startScroll=car.scrollLeft;
+            car.style.scrollBehavior='auto';
+          },{passive:true});
+          car.addEventListener('touchend',e=>{
+            const diff=sx-e.changedTouches[0].clientX;
+            if(Math.abs(diff)>40){
+              if(diff>0&&activeIdx<cards.length-1)snapTo(activeIdx+1);
+              else if(diff<0&&activeIdx>0)snapTo(activeIdx-1);
+              else snapTo(activeIdx);
+            } else snapTo(activeIdx);
+          },{passive:true});
         },100);
       }
     });
@@ -613,7 +647,7 @@ function showKalDetail(day){
   const netCls=netHari>=0?'pos':'neg';
   const netPfx=netHari>=0?'+':'−';
   det.innerHTML=`<div class="kal-det-hd">
-    <div class="kal-det-date">${IC.cal} ${formatTgl(tgl)}</div>
+    <div class="kal-det-date">${IC.cal} ${HARI[new Date(tgl).getDay()]}, ${formatTgl(tgl)}</div>
     <div class="kal-det-summary">
       ${masukHari>0?`<span class="kal-det-sum-in">+${rpShort(masukHari)}</span>`:''}
       ${keluarHari>0?`<span class="kal-det-sum-out">−${rpShort(keluarHari)}</span>`:''}
