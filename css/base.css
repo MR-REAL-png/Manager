@@ -69,7 +69,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .brand-name{font-family:'CustomFont',var(--ffd),serif;font-size:1.25rem;font-weight:700;background:linear-gradient(90deg,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline-block;text-transform:uppercase;vertical-align:middle}
 [data-theme="ocean"] .brand-name{background:none;-webkit-text-fill-color:#fff}
 .hdr-clock{flex:1;text-align:center;min-width:0}
-.hdr-clock-time{font-size:0.84rem;font-weight:700;color:var(--tx);letter-spacing:0.04em}
+.hdr-clock-time{font-size:0.84rem;font-weight:700;color:#fff;letter-spacing:0.04em}
 .hdr-clock-date{font-size:0.56rem;color:rgba(255,255,255,0.55);font-weight:600}
 /* DRAWER */
 .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(4px)}
@@ -78,7 +78,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 [data-theme="ocean"] .drawer{background:rgba(8,28,68,0.98)}
 .drawer.open{transform:translateX(0)}
 .drawer-header{padding:16px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding-top:max(16px,env(safe-area-inset-top))}
-.drawer-title{font-family:'CustomFont',var(--ffd),serif;font-size:1rem;color:var(--tx);font-weight:700}
+.drawer-title{font-family:'CustomFont',var(--ffd),serif;font-size:1rem;color:#fff;font-weight:700}
 .drawer-close{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem}
 .drawer-profile{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:10px;flex-shrink:0}
 .drawer-avatar{width:44px;height:44px;border-radius:0;overflow:visible;flex-shrink:0;border:none;background:transparent;display:flex;align-items:center;justify-content:center}
@@ -158,7 +158,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 [data-theme="ocean"] .hero-kas{background:linear-gradient(135deg,#0A4A8C,#1060B8,#1E7CDA);box-shadow:0 8px 24px rgba(16,96,184,0.45)}
 .hero-kas::before{content:'';position:absolute;top:-30px;right:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,0.09);pointer-events:none}
 .hero-kas::after{content:'';position:absolute;bottom:-20px;left:30px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.05);pointer-events:none}
-.hk-lbl{font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.95);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px}
+.hk-lbl{font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px}
 .hk-val{font-family:var(--ffd);font-size:clamp(1.3rem,5.5vw,2rem);font-weight:700;color:#fff;line-height:1;margin-bottom:4px;word-break:break-word}
 .hk-period{font-size:0.65rem;color:rgba(255,255,255,0.75);margin-bottom:10px;display:flex;align-items:center;gap:5px}
 .hk-period-dot{width:6px;height:6px;border-radius:50%;background:#34d399;flex-shrink:0;box-shadow:0 0 6px #34d399;animation:pulse 2s ease-in-out infinite}
@@ -172,7 +172,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .period-badge-ico{font-size:0.9rem;flex-shrink:0}
 .period-badge-info{flex:1;min-width:0}
 .period-badge-lbl{font-size:0.56rem;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:0.08em}
-.period-badge-val{font-size:0.78rem;font-weight:700;color:var(--tx);margin-top:1px}
+.period-badge-val{font-size:0.78rem;font-weight:700;color:#fff;margin-top:1px}
 .period-badge-days{font-size:0.68rem;color:var(--ac);font-weight:800;flex-shrink:0}
 /* STATS */
 .stat-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}.stat-row4{grid-template-columns:1fr 1fr!important}
@@ -180,7 +180,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .stat3.tap-card{cursor:pointer}
 .stat3.tap-card:active{transform:scale(0.96)}
 .stat3-ico{font-size:1.1rem;margin-bottom:4px}
-.stat3-val{font-family:var(--ffd);font-size:0.9rem;font-weight:700;color:var(--tx);line-height:1.1;word-break:break-word;margin-bottom:2px}
+.stat3-val{font-family:var(--ffd);font-size:0.9rem;font-weight:700;color:#fff;line-height:1.1;word-break:break-word;margin-bottom:2px}
 .stat3-lbl{font-size:0.52rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.06em}
 .stat3-glow{position:absolute;top:-15px;right:-15px;width:60px;height:60px;border-radius:50%;opacity:0.5}
 /* CHART */
@@ -203,9 +203,9 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .toolbar{display:flex;align-items:center;gap:5px;margin-bottom:10px;width:100%;box-sizing:border-box}
 .srch-wrap{display:flex;align-items:center;gap:4px;background:var(--glass);border:1.5px solid var(--glass-bdr);border-radius:50px;padding:0 10px;height:32px;flex:1;min-width:0;transition:border-color .15s}
 .srch-wrap:focus-within{border-color:var(--ac)}
-.srch-wrap input{border:none;background:none;outline:none;font-size:13px!important;font-weight:500;color:var(--tx);flex:1;min-width:0}
+.srch-wrap input{border:none;background:none;outline:none;font-size:13px!important;font-weight:500;color:#fff;flex:1;min-width:0}
 .srch-wrap input::placeholder{color:var(--tx3)}
-.fsel{height:32px;padding:0 8px;border-radius:50px;border:1.5px solid var(--glass-bdr);background:var(--glass);color:var(--tx);font-size:10px!important;font-weight:600;cursor:pointer;appearance:none;-webkit-appearance:none;flex:1;min-width:0}
+.fsel{height:32px;padding:0 8px;border-radius:50px;border:1.5px solid var(--glass-bdr);background:var(--glass);color:#fff;font-size:10px!important;font-weight:600;cursor:pointer;appearance:none;-webkit-appearance:none;flex:1;min-width:0}
 /* ── DATA LIST / TIMELINE ── */
 .dlist{display:flex;flex-direction:column;gap:0;width:100%}
 
@@ -234,7 +234,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 /* baris 1: kategori | nominal */
 .dc-row1{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:0}
 .dc-left{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
-.dc-kat{font-weight:700;font-size:0.84rem;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-kat{font-weight:700;font-size:0.84rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dc-right{flex-shrink:0}
 .dc-nom{font-weight:800;font-size:0.84rem;font-family:var(--ffd);white-space:nowrap}
 .dc-nom.inc{color:var(--grn)}.dc-nom.spd{color:var(--red)}
@@ -278,14 +278,14 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .tlist{display:flex;flex-direction:column;gap:6px}
 .tab-item{border-radius:var(--rsm);padding:10px 12px;border:1px solid var(--glass-bdr);background:var(--glass);animation:cardIn .3s var(--ease) both}
 .tab-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:6px}
-.tab-mo{font-weight:700;font-size:0.84rem;color:var(--tx);display:flex;align-items:center;gap:5px;flex:1}
+.tab-mo{font-weight:700;font-size:0.84rem;color:#fff;display:flex;align-items:center;gap:5px;flex:1}
 .tab-pc{font-size:0.72rem;font-weight:800;flex-shrink:0}
 .tab-bar{height:5px;background:rgba(255,255,255,0.12);border-radius:99px;overflow:hidden;margin-bottom:8px}
 .tab-bar-fill{height:100%;border-radius:99px;transition:width 1s var(--ease)}
 .tab-amts{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .tab-amt-item{text-align:center;padding:5px 4px;background:rgba(255,255,255,0.06);border-radius:7px}
-.tab-amt-lbl{font-size:0.56rem;color:var(--tx3);font-weight:800;text-transform:uppercase;margin-bottom:2px}
-.tab-amt-val{font-size:0.78rem;font-weight:800;color:var(--tx)}
+.tab-amt-lbl{font-size:0.56rem;color:rgba(255,255,255,0.55);font-weight:800;text-transform:uppercase;margin-bottom:2px}
+.tab-amt-val{font-size:0.78rem;font-weight:800;color:#fff}
 /* REKAP */
 .rekap-hero{border-radius:20px;padding:16px;margin-bottom:12px;background:linear-gradient(135deg,#1e1b4b,#312e81,#4338ca);overflow:hidden;box-shadow:0 8px 32px rgba(67,56,202,0.4)}
 [data-theme="ocean"] .rekap-hero{background:linear-gradient(135deg,#0A4A8C,#1060B8,#1E7CDA)}
@@ -299,12 +299,12 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .month-list{display:flex;flex-direction:column;gap:6px}
 .month-item{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);padding:12px;animation:cardIn .3s var(--ease) both}
 .month-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.month-name{font-family:var(--ffd);font-size:0.9rem;font-weight:700;color:var(--tx)}
+.month-name{font-family:var(--ffd);font-size:0.9rem;font-weight:700;color:#fff}
 .month-kas{font-size:0.75rem;font-weight:800}
 .month-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.month-col{text-align:center;padding:6px;background:var(--sur);border-radius:8px}
+.month-col{text-align:center;padding:6px;background:rgba(255,255,255,0.05);border-radius:8px}
 .month-col-lbl{font-size:0.52rem;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px}
-.month-col-val{font-size:0.78rem;font-weight:800;color:var(--tx)}
+.month-col-val{font-size:0.78rem;font-weight:800;color:#fff}
 /* METODE */
 .metode-hero{border-radius:20px;padding:16px;margin-bottom:12px;background:rgba(255,255,255,0.06);box-shadow:0 8px 32px rgba(0,0,0,0.2);overflow:hidden;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12)}
 [data-theme="ocean"] .metode-hero{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.15)}
@@ -312,7 +312,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .metode-card{background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 6px;text-align:center;border:1px solid rgba(255,255,255,0.15)}
 .metode-ico{font-size:1.2rem;margin-bottom:4px}
 .metode-lbl{font-size:0.56rem;color:rgba(255,255,255,0.75);font-weight:700;text-transform:uppercase;margin-bottom:2px}
-.metode-val{font-family:var(--ffd);font-size:0.9rem;font-weight:700;color:var(--tx);word-break:break-word}
+.metode-val{font-family:var(--ffd);font-size:0.9rem;font-weight:700;color:#fff;word-break:break-word}
 .bank-list{display:flex;flex-direction:column;gap:6px}
 .bank-item{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);padding:10px 12px;display:flex;align-items:center;gap:10px;animation:cardIn .3s var(--ease) both}
 .bank-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;background:rgba(255,255,255,0.1)}
@@ -325,7 +325,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 /* KALENDER */
 .kal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
 .kal-nav{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--bdr2);background:var(--glass);color:var(--tx2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.9rem}
-.kal-title{font-family:var(--ffd);font-size:1rem;font-weight:700;color:var(--tx);text-align:center}
+.kal-title{font-family:var(--ffd);font-size:1rem;font-weight:700;color:#fff;text-align:center}
 .kal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:12px;width:100%;box-sizing:border-box}
 .kal-day-hdr{text-align:center;font-size:0.45rem;font-weight:700;color:var(--tx3);text-transform:uppercase;padding:4px 0}
 .kal-day{aspect-ratio:1;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;position:relative;font-size:0.7rem;font-weight:600;color:var(--tx2);min-width:0;overflow:hidden}
@@ -337,7 +337,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .kal-day.period-mark{outline:2px solid rgba(52,211,153,0.5);outline-offset:-2px;color:#34d399;font-weight:800}
 .kal-day.empty{pointer-events:none;opacity:0;visibility:hidden}
 .kal-detail{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);padding:12px;margin-bottom:12px}
-.kal-detail-date{font-family:var(--ffd);font-size:0.9rem;font-weight:700;color:var(--tx);margin-bottom:8px}
+.kal-detail-date{font-family:var(--ffd);font-size:0.9rem;font-weight:700;color:#fff;margin-bottom:8px}
 .kal-tx{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.05);margin-bottom:4px}
 .kal-tx-kat{font-size:0.72rem;font-weight:600;color:var(--tx2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kal-tx-nom{font-size:0.72rem;font-weight:800;flex-shrink:0;margin-left:6px}
@@ -345,7 +345,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .sisa-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
 .sisa-card{border-radius:var(--rsm);padding:12px 8px;text-align:center;border:1px solid var(--glass-bdr);background:var(--glass)}
 .sisa-ico{font-size:1.2rem;margin-bottom:4px}
-.sisa-val{font-family:var(--ffd);font-size:1.5rem;font-weight:700;color:var(--tx);line-height:1}
+.sisa-val{font-family:var(--ffd);font-size:1.5rem;font-weight:700;color:#fff;line-height:1}
 .sisa-lbl{font-size:0.52rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px}
 /* NOTIF */
 .notif-list{display:flex;flex-direction:column;gap:8px}
@@ -525,30 +525,9 @@ body.viewer-mode .modal,
 body.viewer-mode .sett-group,
 body.viewer-mode .dc,
 body.viewer-mode .bs-wrap {
-  background: rgba(255,255,255,0.92)!important;
-  border-color: rgba(203,213,225,0.5)!important;
-  box-shadow: 0 4px 20px rgba(99,102,241,0.08), 0 1px 4px rgba(0,0,0,0.04)!important;
-}
-
-/* Soft glow blobs di background viewer — dekoratif, tidak ganggu konten */
-body.viewer-mode #pageBg::before,
-body.viewer-mode #pageBg::after {
-  content:'';
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(60px);
-  pointer-events: none;
-  z-index: 0;
-}
-body.viewer-mode #pageBg::before {
-  width: 280px; height: 280px;
-  top: -80px; right: -60px;
-  background: rgba(168,85,247,0.12);
-}
-body.viewer-mode #pageBg::after {
-  width: 320px; height: 320px;
-  bottom: 10%; left: -100px;
-  background: rgba(59,130,246,0.10);
+  background: rgba(255,255,255,0.9)!important;
+  border-color: rgba(203,213,225,0.6)!important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06)!important;
 }
 
 /* Bottom nav */
@@ -636,259 +615,3 @@ body.viewer-mode .sett-avatar-wrap {
 }
 
 /* Kartu ATM di dompet gabungan tetap berwarna (sudah inline style) */
-
-
-/* ═══ VIEWER MODE — SEMUA OVERRIDE ═══ */
-
-/* Background & layout */
-body.viewer-mode #cosmicBg, body.viewer-mode #oceanBg, body.viewer-mode #particles { display:none!important; }
-
-/* Header */
-body.viewer-mode .hdr-safe { background: transparent; }
-body.viewer-mode .hdr { background: rgba(255,255,255,0.92)!important; border-color: rgba(203,213,225,0.5)!important; }
-body.viewer-mode .hdr-clock-time { color: #0F172A!important; }
-body.viewer-mode .hdr-clock-date { color: #64748B!important; }
-body.viewer-mode .hdr-menu-btn { border-color: rgba(0,0,0,0.15)!important; background: rgba(0,0,0,0.05)!important; }
-body.viewer-mode .hdr-menu-btn span { background: #0F172A!important; }
-body.viewer-mode .brand-name { color: #1D4ED8!important; }
-
-/* Drawer */
-body.viewer-mode .drawer-title { color: #0F172A!important; }
-body.viewer-mode .drawer-username { color: #0F172A!important; }
-body.viewer-mode .drawer-subtitle { color: #64748B!important; }
-body.viewer-mode .drawer-period-val { color: #0F172A!important; }
-body.viewer-mode .drawer-period-lbl { color: #1D4ED8!important; }
-body.viewer-mode .drawer-section-lbl { color: #64748B!important; }
-body.viewer-mode .drawer-item-name { color: #0F172A!important; }
-body.viewer-mode .drawer-item-sub { color: #64748B!important; }
-body.viewer-mode .drawer-item-ico { background: rgba(0,0,0,0.05)!important; }
-body.viewer-mode .drawer-close { color: #0F172A!important; border-color: rgba(0,0,0,0.15)!important; background: rgba(0,0,0,0.05)!important; }
-
-/* Page titles */
-body.viewer-mode .pg-title { color: #0F172A!important; }
-body.viewer-mode .pg-sub { color: #64748B!important; }
-body.viewer-mode .sec-lbl { color: #64748B!important; }
-
-/* Dashboard periode badge */
-body.viewer-mode .period-badge { background: rgba(255,255,255,0.9)!important; border-color: rgba(203,213,225,0.6)!important; }
-body.viewer-mode .period-badge-lbl { color: #64748B!important; }
-body.viewer-mode .period-badge-val { color: #0F172A!important; }
-body.viewer-mode #dashPeriodVal { color: #0F172A!important; }
-body.viewer-mode #dashPeriodDays { color: #1D4ED8!important; }
-body.viewer-mode #dashPeriodLabel { color: #0F172A!important; }
-body.viewer-mode .hk-lbl { color: #64748B!important; }
-body.viewer-mode #hk-periode-lbl { color: #334155!important; }
-
-/* Stat cards */
-body.viewer-mode .stat3-val { color: #0F172A!important; }
-body.viewer-mode .stat3-lbl { color: #64748B!important; }
-
-/* Sisa hari */
-body.viewer-mode .sisa-wrap { display:grid!important; grid-template-columns:repeat(3,1fr)!important; gap:8px!important; margin:12px 0!important; }
-body.viewer-mode .sisa-card { background:rgba(255,255,255,0.95)!important; border:1px solid rgba(203,213,225,0.7)!important; border-radius:14px!important; padding:14px 8px!important; text-align:center!important; box-shadow:0 1px 4px rgba(0,0,0,0.06)!important; margin:0!important; }
-body.viewer-mode .sisa-val { color:#0F172A!important; font-size:1.5rem!important; font-weight:800!important; margin:4px 0!important; }
-body.viewer-mode .sisa-lbl { color:#64748B!important; font-size:0.6rem!important; font-weight:700!important; text-transform:uppercase!important; letter-spacing:0.08em!important; }
-body.viewer-mode .sisa-ico svg { stroke:#475569!important; }
-
-/* Budget monitor */
-body.viewer-mode .bmon-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
-body.viewer-mode .bmon-name { color:#0F172A!important; }
-body.viewer-mode .bmon-bar { background:rgba(0,0,0,0.08)!important; }
-body.viewer-mode .bmon-amts { color:#64748B!important; }
-
-/* Toggle button */
-body.viewer-mode .toggle-view-btn { color:#334155!important; border-color:rgba(203,213,225,0.8)!important; background:rgba(255,255,255,0.8)!important; }
-body.viewer-mode .toggle-view-btn.on { color:#1D4ED8!important; border-color:#1D4ED8!important; background:rgba(29,78,216,0.08)!important; }
-
-/* Dropdown & tombol filter */
-body.viewer-mode .spill { color:#0F172A!important; background:rgba(255,255,255,0.9)!important; border:1.5px solid rgba(203,213,225,0.8)!important; border-radius:20px; padding:6px 14px; }
-body.viewer-mode select, body.viewer-mode .fsel { color:#0F172A!important; background:rgba(255,255,255,0.9)!important; }
-body.viewer-mode #rekapTahun, body.viewer-mode #metodeBulan { color:#0F172A!important; background:rgba(255,255,255,0.9)!important; }
-
-/* Kalender */
-body.viewer-mode #kalTitle { color:#0F172A!important; }
-body.viewer-mode .kal-prev, body.viewer-mode .kal-next { color:#334155!important; border-color:rgba(203,213,225,0.8)!important; background:rgba(255,255,255,0.8)!important; }
-body.viewer-mode .kal-day-hdr { color:#64748B!important; }
-body.viewer-mode .kal-day { color:#334155!important; }
-body.viewer-mode .kal-day.has-data { background:rgba(168,85,247,0.12)!important; color:#4C1D95!important; }
-body.viewer-mode .kal-day.today { background:#1D4ED8!important; color:#fff!important; }
-body.viewer-mode .kal-detail { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; box-shadow:0 2px 8px rgba(0,0,0,0.08)!important; }
-body.viewer-mode .kal-det-date { color:#0F172A!important; }
-body.viewer-mode .kal-tx2 { background:rgba(0,0,0,0.03)!important; }
-body.viewer-mode .kal-tx2-kat { color:#0F172A!important; }
-body.viewer-mode .kal-tx2-det { color:#64748B!important; }
-body.viewer-mode .kal-tx2-tag { background:rgba(0,0,0,0.06)!important; color:#334155!important; }
-
-/* Metode bayar */
-body.viewer-mode .metode-hero { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
-body.viewer-mode .metode-card { background:rgba(248,250,252,0.9)!important; border:1px solid rgba(203,213,225,0.5)!important; border-radius:12px; }
-body.viewer-mode .metode-lbl { color:#64748B!important; font-weight:700!important; }
-body.viewer-mode .metode-val { color:#0F172A!important; font-weight:800!important; }
-body.viewer-mode .metode-ico svg { stroke:#334155!important; }
-body.viewer-mode .bank-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
-body.viewer-mode .bank-name { color:#0F172A!important; }
-body.viewer-mode .bank-sub { color:#64748B!important; }
-body.viewer-mode .bank-val { color:#0F172A!important; }
-body.viewer-mode .bank-bar-wrap { background:rgba(0,0,0,0.08)!important; }
-body.viewer-mode .cl-txt { color:#334155!important; }
-
-/* Rekap per bulan */
-body.viewer-mode .month-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
-body.viewer-mode .month-name { color:#0F172A!important; }
-body.viewer-mode .month-col { background:rgba(241,245,249,1)!important; border-radius:8px!important; padding:10px 12px!important; text-align:center!important; }
-body.viewer-mode .month-col:first-child { border-right:1px solid rgba(203,213,225,0.7)!important; border-radius:8px 0 0 8px!important; }
-body.viewer-mode .month-col:last-child { border-radius:0 8px 8px 0!important; }
-body.viewer-mode .month-col-lbl { color:#475569!important; font-size:0.62rem!important; font-weight:700!important; text-transform:uppercase!important; letter-spacing:0.06em!important; }
-body.viewer-mode .month-col-val { color:#0F172A!important; font-weight:700!important; }
-
-/* Tabungan */
-body.viewer-mode .tab-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; box-shadow:0 1px 4px rgba(0,0,0,0.06)!important; }
-body.viewer-mode .tab-name, body.viewer-mode .tab-mo { color:#0F172A!important; }
-body.viewer-mode .tab-sub, body.viewer-mode .tab-amt-lbl { color:#64748B!important; }
-body.viewer-mode .tab-amt-val { color:#0F172A!important; }
-body.viewer-mode .tab-bar, body.viewer-mode .sav-bar { background:rgba(0,0,0,0.08)!important; }
-body.viewer-mode .tab-amts { border-top:1px solid rgba(203,213,225,0.5)!important; }
-body.viewer-mode .tab-amt-item:first-child { border-right:1px solid rgba(203,213,225,0.5)!important; }
-body.viewer-mode .sav-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
-body.viewer-mode .sav-name { color:#0F172A!important; }
-body.viewer-mode .sav-sub { color:#64748B!important; }
-
-/* Notifikasi */
-body.viewer-mode .notif-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; color:#0F172A!important; }
-body.viewer-mode .notif-title { color:#0F172A!important; }
-body.viewer-mode .notif-msg, body.viewer-mode .notif-sub { color:#334155!important; }
-body.viewer-mode .notif-time { color:#94A3B8!important; }
-body.viewer-mode .notif-item.info { border-left-color:#1D4ED8!important; }
-body.viewer-mode .notif-item.ok { border-left-color:#16A34A!important; }
-body.viewer-mode .notif-item.warn { border-left-color:#D97706!important; }
-
-/* Bud-item */
-body.viewer-mode .bud-item { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
-body.viewer-mode .bud-name { color:#0F172A!important; }
-body.viewer-mode .bud-pct { color:#334155!important; }
-body.viewer-mode .bud-bar { background:rgba(0,0,0,0.08)!important; }
-body.viewer-mode .bud-amts { color:#64748B!important; }
-
-/* Data tab */
-body.viewer-mode .dg-header { color:#0F172A!important; }
-body.viewer-mode .dg-date { color:#334155!important; }
-body.viewer-mode .dc-kat { color:#0F172A!important; }
-body.viewer-mode .dc-ket-inline { color:#64748B!important; }
-
-/* Empty state */
-body.viewer-mode .empty-title { color:#334155!important; }
-body.viewer-mode .empty-sub { color:#64748B!important; }
-
-/* Bottom nav */
-body.viewer-mode .bnav::after { background-color:rgba(255,255,255,0.97)!important; -webkit-mask:none!important; mask:none!important; }
-
-/* Struk */
-body.viewer-mode .bs-struk { background:rgba(255,255,255,0.9)!important; border-color:rgba(203,213,225,0.6)!important; }
-body.viewer-mode .bs-struk-header { border-color:rgba(203,213,225,0.5)!important; }
-body.viewer-mode .bs-struk-header-kat { color:#0F172A!important; }
-body.viewer-mode .bs-struk-nom { border-color:rgba(203,213,225,0.5)!important; }
-body.viewer-mode .bs-struk-nom-lbl { color:#64748B!important; }
-body.viewer-mode .bs-struk-row { border-color:rgba(203,213,225,0.3)!important; }
-body.viewer-mode .bs-struk-row-lbl { color:#64748B!important; }
-body.viewer-mode .bs-struk-row-val { color:#334155!important; }
-body.viewer-mode .bs-struk-row-val.hl { color:#0F172A!important; }
-body.viewer-mode .bs-struk-footer { border-color:rgba(203,213,225,0.5)!important; }
-body.viewer-mode .bs-struk-footer-txt { color:#94A3B8!important; }
-
-/* PIN keypad — dark mode terang, viewer gelap */
-body.viewer-mode .pk { color:#1a1a2e!important; background:rgba(255,255,255,0.8)!important; border-color:rgba(203,213,225,0.8)!important; }
-body.viewer-mode #pinOverlay .pk { color:#1a1a2e!important; }
-
-/* ═══ TAMBAHAN FIX ═══ */
-
-/* month-col-val warna via class (bukan inline style) */
-.grn { color: #34d399; }
-.red { color: #f87171; }
-body.viewer-mode .grn { color: #059669!important; }
-body.viewer-mode .red { color: #dc2626!important; }
-
-/* tab-amt-lbl dan tab-amt-val tambahan */
-body.viewer-mode .tab-amt-lbl { color: #64748B!important; font-size:0.62rem!important; font-weight:700!important; text-transform:uppercase!important; }
-body.viewer-mode .tab-amt-val { color: #0F172A!important; font-size:0.9rem!important; font-weight:700!important; }
-body.viewer-mode .tab-mo { color: #0F172A!important; font-weight:600!important; }
-body.viewer-mode .tab-pc { font-weight:700!important; }
-body.viewer-mode .tab-row { display:flex!important; justify-content:space-between!important; align-items:center!important; margin-bottom:6px!important; }
-
-/* tab-amt-item divider */
-body.viewer-mode .tab-amts { display:grid!important; grid-template-columns:1fr 1fr!important; gap:0!important; margin-top:8px!important; }
-body.viewer-mode .tab-amt-item { padding:8px 12px!important; text-align:center!important; }
-body.viewer-mode .tab-amt-item:first-child { border-right:1px solid rgba(203,213,225,0.6)!important; }
-
-/* hk-val warna: putih di dark mode, gelap di viewer */
-:root { --hk-color: #fff; }
-body.viewer-mode { --hk-color: #0F172A; }
-
-/* rekap, ht, hk override di viewer mode */
-body.viewer-mode .rekap-stat-val { color: #fff!important; }
-body.viewer-mode .ht-val { color: #fff!important; }
-body.viewer-mode .ht-lbl { color: rgba(255,255,255,0.8)!important; }
-body.viewer-mode .ht-sub { color: rgba(255,255,255,0.65)!important; }
-
-/* Hero kas di viewer mode — ganti gradient gelap ke gradient yang cocok light theme */
-body.viewer-mode .hero-kas {
-  background: linear-gradient(135deg, #6366F1 0%, #818CF8 40%, #C084FC 100%)!important;
-  box-shadow: 0 8px 24px rgba(99,102,241,0.25)!important;
-}
-
-/* ═══ HERO CARDS DI VIEWER MODE — ganti gradient gelap ke terang ═══ */
-body.viewer-mode .hero-tab {
-  background: linear-gradient(135deg, #6366F1 0%, #818CF8 45%, #C084FC 100%)!important;
-  box-shadow: 0 8px 24px rgba(99,102,241,0.25)!important;
-}
-body.viewer-mode .rekap-hero {
-  background: linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #818CF8 100%)!important;
-  box-shadow: 0 8px 24px rgba(79,70,229,0.25)!important;
-}
-
-/* Pastikan hk-val dan hk-lbl tetap putih di dashboard viewer (card masih gradient) */
-body.viewer-mode .hk-val { color: #fff!important; }
-body.viewer-mode .hk-lbl { color: rgba(255,255,255,0.9)!important; }
-body.viewer-mode #hk-periode-lbl { color: rgba(255,255,255,0.75)!important; }
-
-/* ═══ BOTTOM SHEET — VIEWER MODE ═══ */
-body.viewer-mode .bs-sheet {
-  background: rgba(255,255,255,0.97)!important;
-  border-top: 1px solid rgba(203,213,225,0.6)!important;
-}
-body.viewer-mode .bs-handle { background: rgba(0,0,0,0.15)!important; }
-body.viewer-mode .bs-header { border-color: rgba(203,213,225,0.5)!important; }
-body.viewer-mode #bsTitle { color: #0F172A!important; }
-body.viewer-mode .bs-close { color: #334155!important; background: rgba(0,0,0,0.05)!important; border-color: rgba(0,0,0,0.1)!important; }
-
-/* Hero kas di dalam bottom sheet — ganti gradient gelap ke terang, konsisten dengan hero lainnya */
-body.viewer-mode .bs-kas-hero {
-  background: linear-gradient(135deg, #6366F1 0%, #818CF8 45%, #C084FC 100%)!important;
-}
-
-/* ═══ TABUNGAN & REKAP — kolom lebih jelas dengan background abu transparan ═══ */
-body.viewer-mode .tab-amt-item {
-  background: rgba(0,0,0,0.035)!important;
-  border-radius: 8px!important;
-  margin: 2px!important;
-}
-body.viewer-mode .tab-amt-item:first-child {
-  border-right: none!important;
-}
-body.viewer-mode .tab-amts {
-  gap: 4px!important;
-}
-
-body.viewer-mode .month-col {
-  background: rgba(0,0,0,0.035)!important;
-  margin: 2px!important;
-}
-body.viewer-mode .month-col:first-child {
-  border-right: none!important;
-}
-body.viewer-mode .rekap-card-row,
-body.viewer-mode .month-item .month-col-wrap {
-  gap: 4px!important;
-}
-
-/* Nominal arus kas di dalam bs-kas-hero — paksa putih supaya kontras dengan gradient */
-.bs-kas-hero-val { color: #fff; }
