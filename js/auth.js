@@ -16,11 +16,6 @@ function initPinOverlay(){
 }
 
 function showPinOverlay(){
-  // Bug 3 fix: bersihkan sisa elemen curtain theme transition sebelum tampil
-  document.querySelectorAll('body>div[style*="themeCurtain"],body>div[style*="translateY"]').forEach(el=>{
-    if(el.style.animation&&el.style.animation.includes('themeCurtain'))el.remove();
-  });
-
   const ov=document.getElementById('pinOverlay');
   if(ov){ov.style.display='flex';ov.classList.add('visible');ov.classList.remove('hidden');}
   pinBuffer='';
@@ -79,6 +74,7 @@ async function pinSubmit(){
       });
       const json=await res.json();
       if(json.success){
+        // Simpan session + group info
         localStorage.setItem('mm_session',JSON.stringify({
           username:json.username,
           group_id:json.group_id||null,
@@ -93,9 +89,9 @@ async function pinSubmit(){
         applyRoleUI(json.role||'member');
         await pullSettings();
         initRealtimeSync();
+        initRealtimeSync();
+        // Load anggota group untuk badge warna
         loadGroupMembers();
-        await fetchDBOptions();
-        loadDashboard();
       }else{
         pinShakeError(json.error||'PIN salah');
       }
@@ -215,10 +211,6 @@ function pinLogout(){
   localStorage.removeItem('mm_uid');
   localStorage.removeItem('mm_group_id');
   localStorage.removeItem('mm_role');
-  // Bug 3 fix: bersihkan sisa curtain sebelum show overlay
-  document.querySelectorAll('body>div').forEach(el=>{
-    if(el.style&&el.style.animation&&el.style.animation.includes('themeCurtain'))el.remove();
-  });
   showPinOverlay();
 }
 
@@ -248,21 +240,15 @@ function isViewer(){
 // Terapkan UI berdasarkan role
 function applyRoleUI(role){
   const isView=role==='viewer';
+  // Sembunyikan tombol + (FAB) untuk viewer
   const btnAdd=document.getElementById('btnAdd');
   if(btnAdd)btnAdd.style.display=isView?'none':'flex';
+  // Tampilkan tab Dompet di bottom nav untuk viewer
   const nbDompet=document.getElementById('nb-dompet');
   if(nbDompet)nbDompet.style.display=isView?'flex':'none';
+  // Class body untuk CSS targeting
   document.body.classList.toggle('viewer-mode',isView);
-
-  // Viewer: sembunyikan burger/drawer, ubah label nav "Setting" → "Menu"
-  const menuBtn=document.querySelector('.hdr-menu-btn');
-  if(menuBtn)menuBtn.style.display=isView?'none':'';
-  const nbSettLbl=document.querySelector('#nb-settings .bnav-lbl');
-  if(nbSettLbl)nbSettLbl.textContent=isView?'Menu':'Setting';
-
-  // Bug 2 fix: viewer selalu pakai tema ocean (light)
-  if(isView&&typeof setTheme==='function')setTheme('ocean',false);
-
+  // Update label group di settings
   if(typeof updateGroupStatusLabel==='function')updateGroupStatusLabel();
 }
 
@@ -293,8 +279,7 @@ function applySettings(data){
   if(s.notifEnabled!==undefined)notifEnabled=s.notifEnabled;
   if(s.alertPct)alertPct=s.alertPct;
   if(s.adminPassword)adminPassword=s.adminPassword;
-  // Bug 2 fix: jangan apply tema dari Supabase kalau viewer
-  if(data.mm_t&&!isViewer())setTheme(data.mm_t,false);
+  if(data.mm_t)setTheme(data.mm_t,false);
 }
 
 async function pushSettings(){
