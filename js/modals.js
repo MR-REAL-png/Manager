@@ -15,7 +15,7 @@ function openKasDetail(){
   body.innerHTML=`
   <div class="bs-kas-hero">
     <div class="bs-kas-hero-lbl">Arus Kas Periode</div>
-    <div class="bs-kas-hero-val">${pfx}${rp(Math.abs(kas))}</div>
+    <div class="bs-kas-hero-val" style="color:${col}">${pfx}${rp(Math.abs(kas))}</div>
     <div class="bs-kas-hero-sub">${fmtDateShort(d.startDate)} – ${fmtDateShort(d.endDate)}</div>
   </div>
   <div class="bs-kas-pills">
