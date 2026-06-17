@@ -292,39 +292,19 @@ async function loadDompetGabungan(el){
 
     const BUKAN_BANK=['cash','transfer','qris'];
 
-    // Fetch transfers semua anggota group sekaligus
-    let allTransfers=[];
-    try{
-      const resT=await fetch(`${API_URL}/api/sheets?action=get-group-transfers&group_id=${group_id}`);
-      const jT=await resT.json();
-      if(jT.success)allTransfers=jT.data||[];
-    }catch(e){console.warn('Gagal fetch group transfers:',e);}
-
     // Hitung saldo total keluarga dan per anggota
     let totalKeluarga=0;
     const memberData=[];
 
     for(const member of members){
-      // Ambil transfer milik member ini
-      const memberLower=member.toLowerCase();
-      const memberTransfers=allTransfers.filter(t=>
-        (t.input_by&&t.input_by.toLowerCase()===memberLower)||
-        (t.user_id&&t.user_id.toLowerCase()===memberLower)
-      );
-      // Kumpulkan semua rekening dari transfer
-      const bankSet=new Set();
-      memberTransfers.forEach(t=>{
-        if(t.dari&&!BUKAN_BANK.includes(t.dari.trim().toLowerCase()))bankSet.add(t.dari);
-        if(t.ke&&!BUKAN_BANK.includes(t.ke.trim().toLowerCase()))bankSet.add(t.ke);
-      });
-      const memberBanks=[...bankSet].sort();
-      // Hitung saldo per rekening dari transfer masuk - keluar
+      const memberRows=allRows.filter(r=>r.input_by===member);
+      const memberBanks=[...new Set(memberRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
       const saldoMap={};
       memberBanks.forEach(b=>saldoMap[b]=0);
-      memberTransfers.forEach(t=>{
-        const nom=Number(t.nominal)||0;
-        if(t.ke&&saldoMap.hasOwnProperty(t.ke))saldoMap[t.ke]+=nom;
-        if(t.dari&&saldoMap.hasOwnProperty(t.dari))saldoMap[t.dari]-=nom;
+      memberRows.forEach(r=>{
+        if(!r.pembayaran||!saldoMap.hasOwnProperty(r.pembayaran))return;
+        if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]+=r.nominal;
+        else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]-=r.nominal;
       });
       const totalMember=memberBanks.reduce((s,b)=>s+saldoMap[b],0);
       totalKeluarga+=totalMember;
@@ -335,20 +315,14 @@ async function loadDompetGabungan(el){
     const totalPos=totalKeluarga>=0;
     let html=`
       <div class="sec-lbl" style="margin-bottom:8px">TOTAL KELUARGA</div>
-      <div class="atm-card" style="flex:none;width:100%;margin-bottom:20px;background:linear-gradient(135deg,#1e3a8a,#1D4ED8,#3B82F6);padding:20px;box-sizing:border-box;border-radius:18px;position:relative;overflow:hidden">
-        ${getBankMotifSVG('circles')}
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;position:relative;z-index:1">
-          <div style="width:36px;height:26px;border-radius:5px;background:linear-gradient(135deg,#e0e0e0,#a8a8a8);border:1px solid rgba(255,255,255,0.4);box-shadow:inset 0 1px 2px rgba(255,255,255,0.5);position:relative">
-            <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,0.12);transform:translateY(-50%)"></div>
-            <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(0,0,0,0.1);transform:translateX(-50%)"></div>
-          </div>
+      <div class="atm-card" style="flex:none;width:100%;margin-bottom:20px;background:linear-gradient(135deg,#1D4ED8,#3B82F6);padding:20px;box-sizing:border-box;border-radius:18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+          <div style="width:40px;height:28px;background:rgba(255,255,255,0.25);border-radius:6px"></div>
           <div style="font-size:0.7rem;color:rgba(255,255,255,0.7)">${members.length} anggota</div>
         </div>
-        <div style="position:relative;z-index:1">
-          <div style="font-size:0.65rem;color:rgba(255,255,255,0.7);margin-bottom:4px">TOTAL ASET</div>
-          <div style="font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:8px;text-shadow:0 2px 8px rgba(0,0,0,0.25)">${totalPos?'':'-'}${rp(Math.abs(totalKeluarga))}</div>
-          <div style="font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.9)">Keluarga</div>
-        </div>
+        <div style="font-size:0.65rem;color:rgba(255,255,255,0.7);margin-bottom:4px">TOTAL ASET</div>
+        <div style="font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:8px">${totalPos?'':'-'}${rp(Math.abs(totalKeluarga))}</div>
+        <div style="font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.9)">Keluarga</div>
       </div>`;
 
     // Render per anggota
@@ -366,60 +340,36 @@ async function loadDompetGabungan(el){
       if(!m.banks.length){
         html+=`<div style="text-align:center;padding:16px;color:var(--tx3);font-size:0.8rem;margin-bottom:16px">Belum ada rekening</div>`;
       } else {
-        // Carousel kartu per anggota — pakai tema warna per bank, bukan warna member generik
+        // Carousel kartu per anggota
         html+=`<div class="atm-carousel" id="carousel-${mi}" style="margin-bottom:20px">`;
         m.banks.forEach((bank,bi)=>{
           const s=m.saldoMap[bank];
           const sPos=s>=0;
-          const theme=getBankTheme(bank);
+          // Gradient warna berdasarkan warna member
           html+=`
-            <div class="atm-card" style="background:${theme.grad};padding:18px;box-sizing:border-box;position:relative;overflow:hidden;scroll-snap-align:center">
-              ${getBankMotifSVG(theme.motif)}
-              <div style="display:flex;justify-content:space-between;margin-bottom:16px;position:relative;z-index:1">
-                <div style="width:36px;height:24px;border-radius:5px;background:linear-gradient(135deg,#e0e0e0,#a8a8a8);border:1px solid rgba(255,255,255,0.4);box-shadow:inset 0 1px 2px rgba(255,255,255,0.5);position:relative">
-                  <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,0.12);transform:translateY(-50%)"></div>
-                  <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(0,0,0,0.1);transform:translateX(-50%)"></div>
-                </div>
-                <div style="width:8px;height:8px;border-radius:50%;background:${color}"></div>
+            <div class="atm-card" style="background:linear-gradient(135deg,${color}dd,${color}88);padding:18px;box-sizing:border-box">
+              <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+                <div style="width:36px;height:24px;background:rgba(255,255,255,0.25);border-radius:5px"></div>
+                <div style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.5)"></div>
               </div>
-              <div style="position:relative;z-index:1">
-                <div style="font-size:0.6rem;color:rgba(255,255,255,0.7);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Saldo</div>
-                <div style="font-size:1.2rem;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.25)">${sPos?'':'-'}${rp(Math.abs(s))}</div>
-                <div style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.9);margin-top:8px">${bank}</div>
-              </div>
+              <div style="font-size:0.6rem;color:rgba(255,255,255,0.7);margin-bottom:4px">SALDO</div>
+              <div style="font-size:1.2rem;font-weight:800;color:#fff">${sPos?'':'-'}${rp(Math.abs(s))}</div>
+              <div style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.9);margin-top:8px">${bank}</div>
             </div>`;
         });
         html+=`</div>`;
 
-        // Init carousel per anggota — samakan dengan mode user
+        // Init carousel per anggota
         setTimeout(()=>{
           const car=document.getElementById(`carousel-${mi}`);
-          if(!car)return;
-          const cards=car.querySelectorAll('.atm-card');
-          let activeIdx=0;
-          function snapTo(idx){
-            if(idx<0||idx>=cards.length)return;
-            activeIdx=idx;
-            const card=cards[idx];
-            const offset=card.offsetLeft-car.offsetLeft-(car.offsetWidth-card.offsetWidth)/2;
-            car.style.scrollBehavior='smooth';
-            car.scrollLeft=offset;
-            setTimeout(()=>{car.style.scrollBehavior='auto';},400);
+          if(car){
+            let sx=0;
+            car.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
+            car.addEventListener('touchend',e=>{
+              const diff=sx-e.changedTouches[0].clientX;
+              if(Math.abs(diff)>40)car.scrollBy({left:diff>0?200:-200,behavior:'smooth'});
+            },{passive:true});
           }
-          let sx=0,startScroll=0;
-          car.addEventListener('touchstart',e=>{
-            sx=e.touches[0].clientX;
-            startScroll=car.scrollLeft;
-            car.style.scrollBehavior='auto';
-          },{passive:true});
-          car.addEventListener('touchend',e=>{
-            const diff=sx-e.changedTouches[0].clientX;
-            if(Math.abs(diff)>40){
-              if(diff>0&&activeIdx<cards.length-1)snapTo(activeIdx+1);
-              else if(diff<0&&activeIdx>0)snapTo(activeIdx-1);
-              else snapTo(activeIdx);
-            } else snapTo(activeIdx);
-          },{passive:true});
         },100);
       }
     });
@@ -470,9 +420,8 @@ function renderTabList(data){
 function renderChartTab(data){
   const ctx=document.getElementById('chartTab')?.getContext('2d');if(!ctx)return;
   if(chartTab)chartTab.destroy();if(!data.length)return;
-  const tc=document.body.classList.contains('viewer-mode')?'#64748B':'rgba(255,255,255,0.5)';
-  const gc=document.body.classList.contains('viewer-mode')?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.06)';
-  chartTab=new Chart(ctx,{type:'bar',data:{labels:data.map(b=>b.bulan.slice(0,3)),datasets:[{label:'Tabungan',data:data.map(b=>b.tabungan),backgroundColor:'rgba(52,211,153,0.6)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Target',data:data.map(b=>b.target),type:'line',borderColor:'#a855f7',pointRadius:4,fill:false,tension:0.3,borderDash:[5,4]}]},options:{responsive:true,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:gc},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
+  const tc='rgba(255,255,255,0.5)';
+  chartTab=new Chart(ctx,{type:'bar',data:{labels:data.map(b=>b.bulan.slice(0,3)),datasets:[{label:'Tabungan',data:data.map(b=>b.tabungan),backgroundColor:'rgba(52,211,153,0.6)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Target',data:data.map(b=>b.target),type:'line',borderColor:'#a855f7',pointRadius:4,fill:false,tension:0.3,borderDash:[5,4]}]},options:{responsive:true,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
 }
 
 // ═══ TARGET SETTING ═══
@@ -540,10 +489,10 @@ async function loadRekap(){
       const k=mr.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
       return{bulan:bln,masuk:m,keluar:k,kas:m-k};
     }).filter(m=>m.masuk>0||m.keluar>0);
-    document.getElementById('rekapList').innerHTML=bm.map((m,i)=>`<div class="month-item" style="animation-delay:${i*0.05}s"><div class="month-item-top"><span class="month-name">${m.bulan} ${t}</span><span class="month-kas" style="color:${m.kas>=0?'#34d399':'#f87171'}">${m.kas>=0?'+':'−'}${rpShort(Math.abs(m.kas))}</span></div><div class="month-row"><div class="month-col"><div class="month-col-lbl">Pemasukan</div><div class="month-col-val grn">${rpShort(m.masuk)}</div></div><div class="month-col"><div class="month-col-lbl">Pengeluaran</div><div class="month-col-val red">${rpShort(m.keluar)}</div></div></div></div>`).join('');
+    document.getElementById('rekapList').innerHTML=bm.map((m,i)=>`<div class="month-item" style="animation-delay:${i*0.05}s"><div class="month-item-top"><span class="month-name">${m.bulan} ${t}</span><span class="month-kas" style="color:${m.kas>=0?'#34d399':'#f87171'}">${m.kas>=0?'+':'−'}${rpShort(Math.abs(m.kas))}</span></div><div class="month-row"><div class="month-col"><div class="month-col-lbl">Pemasukan</div><div class="month-col-val" style="color:#34d399">${rpShort(m.masuk)}</div></div><div class="month-col"><div class="month-col-lbl">Pengeluaran</div><div class="month-col-val" style="color:#f87171">${rpShort(m.keluar)}</div></div></div></div>`).join('');
     const ctx=document.getElementById('chartRekap')?.getContext('2d');if(!ctx)return;
-    if(chartRekap)chartRekap.destroy();const isVM=document.body.classList.contains('viewer-mode');const tc=isVM?'#64748B':'rgba(255,255,255,0.5)';const gc=isVM?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.06)';
-    chartRekap=new Chart(ctx,{type:'bar',data:{labels:bm.map(m=>m.bulan.slice(0,3)),datasets:[{label:'Pemasukan',data:bm.map(m=>m.masuk),backgroundColor:'rgba(52,211,153,0.5)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Pengeluaran',data:bm.map(m=>m.keluar),backgroundColor:'rgba(248,113,113,0.5)',borderColor:'#f87171',borderWidth:2,borderRadius:6}]},options:{responsive:true,animation:{duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:gc},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
+    if(chartRekap)chartRekap.destroy();const tc='rgba(255,255,255,0.5)';
+    chartRekap=new Chart(ctx,{type:'bar',data:{labels:bm.map(m=>m.bulan.slice(0,3)),datasets:[{label:'Pemasukan',data:bm.map(m=>m.masuk),backgroundColor:'rgba(52,211,153,0.5)',borderColor:'#34d399',borderWidth:2,borderRadius:6},{label:'Pengeluaran',data:bm.map(m=>m.keluar),backgroundColor:'rgba(248,113,113,0.5)',borderColor:'#f87171',borderWidth:2,borderRadius:6}]},options:{responsive:true,animation:{duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},x:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
   }catch(e){toast('Gagal load rekap','err')}
 }
 
@@ -564,7 +513,7 @@ async function loadMetode(){
       if(chartMetode){try{chartMetode.destroy()}catch(e){}chartMetode=null;}
       const isOcean=document.documentElement.getAttribute('data-theme')==='ocean';
       const bdrCol=isOcean?'rgba(10,74,140,0.4)':'rgba(6,78,59,0.4)';
-      const isVMm=document.body.classList.contains('viewer-mode');const lblColor=isVMm?'#334155':'rgba(255,255,255,0.92)';
+      const lblColor='rgba(255,255,255,0.92)';
       const lbls=Object.keys(bm).filter(k=>bm[k]>0),dm=lbls.map(k=>bm[k]);
       if(dm.length)chartMetode=new Chart(ctx,{type:'doughnut',data:{labels:lbls,datasets:[{data:dm,backgroundColor:['rgba(52,211,153,0.75)','rgba(96,165,250,0.75)','rgba(168,85,247,0.75)'],borderWidth:1.5,borderRadius:6,spacing:3,borderColor:bdrCol}]},options:{responsive:true,cutout:'60%',animation:{animateRotate:true,duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,font:{size:10.5},color:lblColor,padding:8}},tooltip:{callbacks:{label:c=>` ${c.label}: ${rp(c.raw)}`}}}}});
     }
@@ -635,7 +584,7 @@ function renderKalender(){
   const ctx=document.getElementById('chartKal')?.getContext('2d');if(!ctx)return;
   if(chartKal)chartKal.destroy();
   const labels=Array.from({length:dim},(_,i)=>i+1),data=labels.map(d=>bd[d]||0);
-  const isVMr=document.body.classList.contains('viewer-mode');const tc=isVMr?'#64748B':'rgba(255,255,255,0.5)';const gcr=isVMr?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.06)';
+  const tc='rgba(255,255,255,0.5)';
   chartKal=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Pengeluaran',data,backgroundColor:data.map(v=>v>0?'rgba(168,85,247,0.6)':'rgba(255,255,255,0.05)'),borderColor:data.map(v=>v>0?'#a855f7':'transparent'),borderWidth:1,borderRadius:4}]},options:{responsive:true,animation:{duration:600},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${rp(c.raw)}`}}},scales:{y:{ticks:{callback:v=>rpShort(v),color:tc,font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},x:{ticks:{color:tc,font:{size:8}},grid:{display:false},border:{display:false}}}}});
 }
 
@@ -651,7 +600,7 @@ function showKalDetail(day){
   const netCls=netHari>=0?'pos':'neg';
   const netPfx=netHari>=0?'+':'−';
   det.innerHTML=`<div class="kal-det-hd">
-    <div class="kal-det-date">${IC.cal} ${HARI[new Date(tgl).getDay()]}, ${formatTgl(tgl)}</div>
+    <div class="kal-det-date">${IC.cal} ${formatTgl(tgl)}</div>
     <div class="kal-det-summary">
       ${masukHari>0?`<span class="kal-det-sum-in">+${rpShort(masukHari)}</span>`:''}
       ${keluarHari>0?`<span class="kal-det-sum-out">−${rpShort(keluarHari)}</span>`:''}
