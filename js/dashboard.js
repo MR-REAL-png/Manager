@@ -360,9 +360,7 @@ function renderCards(rows){
       const tags=[r.pembayaran,r.metode].filter(Boolean).map(t=>`<span class="dtag">${t}</span>`).join('');
       const ketHtml=r.detail?`<span class="dc-ket-inline">${r.detail}</span>`:'';
       const editHtml=eb?`<div class="dc-edit-row">${eb}</div>`:'';
-      // Badge input_by — tampil kalau ada group dan ada input_by
-      const memberBadge=(r.input_by&&getUserGroupId())?`<span class="dtag member-badge" style="background:${getMemberColor(r.input_by)}22;color:${getMemberColor(r.input_by)};border:1px solid ${getMemberColor(r.input_by)}44">${r.input_by}</span>`:'';
-      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s" onclick="event.stopPropagation();openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags"><div class="dc-tags-left">${tags}${memberBadge}</div>${ketHtml}</div>${editHtml}</div>`;
+      return`<div class="dc ${cls}" style="animation-delay:${(gi*0.05)+(ri*0.03)}s" onclick="event.stopPropagation();openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags"><div class="dc-tags-left">${tags}</div>${ketHtml}</div>${editHtml}</div>`;
     }).join('');
     return`<div class="date-group"><div class="dg-header"><div class="dg-dot ${dotCls}"></div><span class="dg-date">${IC.cal} ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
   }).join('');
