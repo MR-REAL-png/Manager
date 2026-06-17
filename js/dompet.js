@@ -54,13 +54,6 @@ async function loadDompet(){
   try{
     if(!allRows.length)allRows=await fetchAllData();
     await fetchDBOptions();
-
-    // Mode viewer: tampilkan dompet gabungan
-    if(isViewer()){
-      await loadDompetGabungan(el);
-      return;
-    }
-
     const BUKAN_BANK=['cash','transfer','qris'];
     const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
     const saldoMap={};
@@ -276,110 +269,6 @@ function openTransferModal(){
 }
 function showTab(){document.getElementById('tabLock').style.display='none';document.getElementById('tabContent').style.display='block';loadTabungan()}
 function hideTab(){document.getElementById('tabContent').style.display='none';document.getElementById('tabLock').style.display='block'}
-
-async function loadDompetGabungan(el){
-  try{
-    const group_id=getUserGroupId();
-    // Fetch anggota group
-    const resMembers=await fetch(`${API_URL}/api/sheets?action=get-group-members&group_id=${group_id}`);
-    const jMembers=await resMembers.json();
-    const members=(jMembers.data||[]).map(m=>m.username);
-
-    if(!members.length){
-      el.innerHTML='<div class="empty-state"><div class="empty-ico">👨‍👩‍👧</div><div class="empty-title">Belum ada anggota</div></div>';
-      return;
-    }
-
-    const BUKAN_BANK=['cash','transfer','qris'];
-
-    // Hitung saldo total keluarga dan per anggota
-    let totalKeluarga=0;
-    const memberData=[];
-
-    for(const member of members){
-      const memberRows=allRows.filter(r=>r.input_by===member);
-      const memberBanks=[...new Set(memberRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
-      const saldoMap={};
-      memberBanks.forEach(b=>saldoMap[b]=0);
-      memberRows.forEach(r=>{
-        if(!r.pembayaran||!saldoMap.hasOwnProperty(r.pembayaran))return;
-        if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]+=r.nominal;
-        else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]-=r.nominal;
-      });
-      const totalMember=memberBanks.reduce((s,b)=>s+saldoMap[b],0);
-      totalKeluarga+=totalMember;
-      memberData.push({username:member,banks:memberBanks,saldoMap,total:totalMember});
-    }
-
-    // Render kartu total keluarga
-    const totalPos=totalKeluarga>=0;
-    let html=`
-      <div class="sec-lbl" style="margin-bottom:8px">TOTAL KELUARGA</div>
-      <div class="atm-card" style="flex:none;width:100%;margin-bottom:20px;background:linear-gradient(135deg,#1D4ED8,#3B82F6);padding:20px;box-sizing:border-box;border-radius:18px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
-          <div style="width:40px;height:28px;background:rgba(255,255,255,0.25);border-radius:6px"></div>
-          <div style="font-size:0.7rem;color:rgba(255,255,255,0.7)">${members.length} anggota</div>
-        </div>
-        <div style="font-size:0.65rem;color:rgba(255,255,255,0.7);margin-bottom:4px">TOTAL ASET</div>
-        <div style="font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:8px">${totalPos?'':'-'}${rp(Math.abs(totalKeluarga))}</div>
-        <div style="font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.9)">Keluarga</div>
-      </div>`;
-
-    // Render per anggota
-    memberData.forEach((m,mi)=>{
-      const color=MEMBER_COLORS[mi%MEMBER_COLORS.length];
-      const pos=m.total>=0;
-
-      // Kartu summary anggota
-      html+=`
-        <div class="sec-lbl" style="margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <div style="width:8px;height:8px;border-radius:50%;background:${color}"></div>
-          ${m.username}
-        </div>`;
-
-      if(!m.banks.length){
-        html+=`<div style="text-align:center;padding:16px;color:var(--tx3);font-size:0.8rem;margin-bottom:16px">Belum ada rekening</div>`;
-      } else {
-        // Carousel kartu per anggota
-        html+=`<div class="atm-carousel" id="carousel-${mi}" style="margin-bottom:20px">`;
-        m.banks.forEach((bank,bi)=>{
-          const s=m.saldoMap[bank];
-          const sPos=s>=0;
-          // Gradient warna berdasarkan warna member
-          html+=`
-            <div class="atm-card" style="background:linear-gradient(135deg,${color}dd,${color}88);padding:18px;box-sizing:border-box">
-              <div style="display:flex;justify-content:space-between;margin-bottom:16px">
-                <div style="width:36px;height:24px;background:rgba(255,255,255,0.25);border-radius:5px"></div>
-                <div style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.5)"></div>
-              </div>
-              <div style="font-size:0.6rem;color:rgba(255,255,255,0.7);margin-bottom:4px">SALDO</div>
-              <div style="font-size:1.2rem;font-weight:800;color:#fff">${sPos?'':'-'}${rp(Math.abs(s))}</div>
-              <div style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.9);margin-top:8px">${bank}</div>
-            </div>`;
-        });
-        html+=`</div>`;
-
-        // Init carousel per anggota
-        setTimeout(()=>{
-          const car=document.getElementById(`carousel-${mi}`);
-          if(car){
-            let sx=0;
-            car.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
-            car.addEventListener('touchend',e=>{
-              const diff=sx-e.changedTouches[0].clientX;
-              if(Math.abs(diff)>40)car.scrollBy({left:diff>0?200:-200,behavior:'smooth'});
-            },{passive:true});
-          }
-        },100);
-      }
-    });
-
-    el.innerHTML=html;
-  }catch(e){
-    el.innerHTML='<div class="empty-state"><div class="empty-ico">⚠️</div><div class="empty-title">Gagal memuat</div></div>';
-    console.error(e);
-  }
-}
 
 async function loadTabungan(){
   document.getElementById('tabList').innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
