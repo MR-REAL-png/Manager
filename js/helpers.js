@@ -108,7 +108,7 @@ function openInputModal(){
   document.getElementById('inKet').value='';
   renderQuickKat();
   document.getElementById('ovInput').classList.add('open');
-  updateAiScanBtn();
+  updateAiScanBtn(); // sinkron cooldown timer jika masih berjalan
 }
 
 // ═══ API ═══
@@ -122,20 +122,11 @@ async function apiPut(action,body){
   if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal update')}
   return await res.json();
 }
-
-// Kirim username agar input_by tersimpan
-async function sheetsAppend(values){return apiPost('append',{values,username:getUserUID()})}
-// Kirim username agar validasi edit milik sendiri
-async function sheetsUpdate(id,values){return apiPut('update',{id,values,username:getUserUID()})}
+async function sheetsAppend(values){return apiPost('append',{values})}
+async function sheetsUpdate(id,values){return apiPut('update',{id,values})}
 
 async function fetchAllData(){
-  const uid=getUserUID();
-  const role=getUserRole();
-  const group_id=getUserGroupId();
-  // Kirim uid, role, group_id agar backend filter data yang benar
-  let url=`${API_URL}/api/sheets?action=get&uid=${uid}&role=${role}`;
-  if(group_id)url+=`&group_id=${group_id}`;
-  const res=await fetch(url);
+  const res=await fetch(`${API_URL}/api/sheets?action=get`);
   if(!res.ok)throw new Error('Gagal ambil data: '+res.status);
   const json=await res.json();
   if(!json.success)throw new Error(json.error||'Gagal ambil data');
@@ -143,8 +134,7 @@ async function fetchAllData(){
     id:r.id,rowIndex:r.id,
     tanggal:r.tanggal||'',bulan:r.bulan||'',kategori:r.kategori||'',
     nominal:Number(r.nominal)||0,pembayaran:r.pembayaran||'',
-    detail:r.detail||'',metode:r.metode||'',jenis:r.jenis||'',
-    input_by:r.input_by||''
+    detail:r.detail||'',metode:r.metode||'',jenis:r.jenis||''
   })).filter(r=>r.tanggal);
 }
 
@@ -165,9 +155,12 @@ async function fetchDBOptions(){
       jenis:['Pemasukan','Pengeluaran']
     };
     fillBank('inBank','');fillBank('eBank','');
+    // return agar .then() bisa dipanggil
     return dbOpts;
   }catch(e){console.error('fetchDBOptions:',e)}
 }
+
+// ═══ CLOCK ═══
 
 // ═══ FORMAT & UTILS ═══
 function rp(v){if(v===undefined||v===null||v==='')return'Rp 0';return'Rp '+Number(v).toLocaleString('id-ID')}
@@ -182,6 +175,7 @@ function countUp(id,target,prefix=''){
   const timer=setInterval(()=>{cur+=target/steps;if(cur>=target){cur=target;clearInterval(timer)}el.textContent=prefix+rp(Math.round(cur))},step);
 }
 function fmtNom(el) {
+  // Simpan posisi cursor
   const raw = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
   if (raw === '') { el.value = ''; return; }
   el.value = Number(raw).toLocaleString('id-ID');
@@ -192,6 +186,7 @@ function fmtTransferNom(el){
   el.value=Number(raw).toLocaleString('id-ID');
 }
 function getNomVal(id) {
+  // Baca nilai nominal tanpa titik pemisah
   return Number((document.getElementById(id).value || '0').replace(/\./g, '').replace(/[^0-9]/g, '')) || 0;
 }
 function safeHTML(s){if(typeof s==='string'&&s.includes('<svg')){return s}const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
@@ -200,5 +195,9 @@ function toast(msg,type=''){
   el.innerHTML=safeHTML(msg);el.className='toast show '+type;
   clearTimeout(toastT);toastT=setTimeout(()=>{el.className='toast'},3200);
 }
+
+
+
+
 
 // ═══ POPUP: HERO KAS ═══
