@@ -474,3 +474,144 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:99px}
 
+
+/* ═══════════════════════════════════════
+   VIEWER MODE — LIGHT THEME (Biru #1D4ED8)
+═══════════════════════════════════════ */
+body.viewer-mode{
+  --bg:#F1F5F9;
+  --bg2:#E2E8F0;
+  --sur:rgba(0,0,0,0.04);
+  --bdr:#CBD5E1;--bdr2:#E2E8F0;
+  --tx:#0F172A;--tx2:#334155;--tx3:#64748B;
+  --ac:#1D4ED8;--ac2:#3B82F6;--glow:rgba(29,78,216,0.2);
+  --red:#DC2626;--grn:#16A34A;--yl:#D97706;
+  --glass:rgba(255,255,255,0.8);--glass-bdr:rgba(203,213,225,0.8);
+  --ffb:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--tx);
+}
+
+/* Background — matikan cosmic/ocean, pakai putih bersih */
+body.viewer-mode #cosmicBg,
+body.viewer-mode #oceanBg,
+body.viewer-mode #particles { display:none!important; }
+
+body.viewer-mode #pageBg {
+  background: linear-gradient(160deg, #EFF6FF 0%, #F1F5F9 50%, #EEF2FF 100%)!important;
+}
+
+/* Header */
+body.viewer-mode .hdr-safe { background: transparent; }
+body.viewer-mode .hdr {
+  background: rgba(255,255,255,0.92)!important;
+  border-color: rgba(203,213,225,0.8)!important;
+  backdrop-filter: blur(12px);
+}
+body.viewer-mode .brand-name {
+  background: linear-gradient(135deg,#1D4ED8,#3B82F6)!important;
+  -webkit-background-clip: text!important;
+  -webkit-text-fill-color: transparent!important;
+}
+body.viewer-mode .clock-pill {
+  background: rgba(29,78,216,0.08)!important;
+  color: #1D4ED8!important;
+  border-color: rgba(29,78,216,0.15)!important;
+}
+
+/* Cards & Glass */
+body.viewer-mode .card,
+body.viewer-mode .modal,
+body.viewer-mode .sett-group,
+body.viewer-mode .dc,
+body.viewer-mode .bs-wrap {
+  background: rgba(255,255,255,0.9)!important;
+  border-color: rgba(203,213,225,0.6)!important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06)!important;
+}
+
+/* Bottom nav */
+body.viewer-mode .bnav {
+  background: rgba(255,255,255,0.95)!important;
+  border-color: rgba(203,213,225,0.8)!important;
+}
+body.viewer-mode .bnav-btn { color: #64748B!important; }
+body.viewer-mode .bnav-btn.on { color: #1D4ED8!important; }
+
+/* Drawer */
+body.viewer-mode .drawer {
+  background: rgba(255,255,255,0.98)!important;
+  border-color: rgba(203,213,225,0.8)!important;
+}
+body.viewer-mode .drawer-overlay { background: rgba(0,0,0,0.2)!important; }
+
+/* Settings items */
+body.viewer-mode .sett-item {
+  background: rgba(255,255,255,0.8)!important;
+  border-color: rgba(203,213,225,0.5)!important;
+}
+body.viewer-mode .sett-lbl { color: #0F172A!important; }
+body.viewer-mode .sett-sub { color: #64748B!important; }
+body.viewer-mode .sett-arr { color: #94A3B8!important; }
+
+/* Toast */
+body.viewer-mode .toast {
+  background: rgba(255,255,255,0.95)!important;
+  color: #0F172A!important;
+  border: 1px solid rgba(203,213,225,0.8)!important;
+}
+
+/* Filter selects di Data */
+body.viewer-mode .fsel {
+  background: rgba(255,255,255,0.8)!important;
+  border-color: rgba(203,213,225,0.8)!important;
+  color: #0F172A!important;
+}
+body.viewer-mode .srch-wrap {
+  background: rgba(255,255,255,0.8)!important;
+  border-color: rgba(203,213,225,0.8)!important;
+}
+body.viewer-mode .srch-wrap input { color: #0F172A!important; }
+
+/* Data cards */
+body.viewer-mode .dc {
+  border-left-color: rgba(203,213,225,0.5)!important;
+}
+body.viewer-mode .dc.inc { border-left-color: #16A34A!important; }
+body.viewer-mode .dc.spd { border-left-color: #DC2626!important; }
+body.viewer-mode .dc-kat { color: #0F172A!important; }
+body.viewer-mode .dtag {
+  background: rgba(203,213,225,0.5)!important;
+  color: #334155!important;
+}
+
+/* Charts — paksa background putih */
+body.viewer-mode canvas { background: transparent!important; }
+
+/* Summary strip */
+body.viewer-mode .data-summary {
+  background: rgba(255,255,255,0.85)!important;
+  border-color: rgba(203,213,225,0.6)!important;
+}
+body.viewer-mode .ds-lbl { color: #64748B!important; }
+
+/* Section labels */
+body.viewer-mode .sec-lbl { color: #64748B!important; }
+
+/* Tombol aksi */
+body.viewer-mode .btn-ok {
+  background: linear-gradient(135deg,#1D4ED8,#3B82F6)!important;
+  color: #fff!important;
+}
+body.viewer-mode .btn-cx {
+  background: rgba(203,213,225,0.4)!important;
+  color: #334155!important;
+}
+
+/* Profil di settings */
+body.viewer-mode .sett-avatar-wrap {
+  background: rgba(29,78,216,0.08)!important;
+  border-color: rgba(29,78,216,0.2)!important;
+}
+
+/* Kartu ATM di dompet gabungan tetap berwarna (sudah inline style) */
