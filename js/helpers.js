@@ -37,12 +37,13 @@ function getActivePeriod(){
   const eff=getEffective25(y,m);
   let s,e;
   if(today>eff){
-    s=new Date(eff);
+    s=new Date(eff);s.setDate(s.getDate()+1);
     const nm=m===11?0:m+1,ny=m===11?y+1:y;
     e=getEffective25(ny,nm);
   } else {
     const pm=m===0?11:m-1,py=m===0?y-1:y;
-    s=getEffective25(py,pm);e=new Date(eff);
+    s=new Date(getEffective25(py,pm));s.setDate(s.getDate()+1);
+    e=new Date(eff);
   }
   return{startDate:s,endDate:e};
 }
@@ -155,7 +156,6 @@ async function fetchDBOptions(){
       jenis:['Pemasukan','Pengeluaran']
     };
     fillBank('inBank','');fillBank('eBank','');
-    // return agar .then() bisa dipanggil
     return dbOpts;
   }catch(e){console.error('fetchDBOptions:',e)}
 }
@@ -175,7 +175,6 @@ function countUp(id,target,prefix=''){
   const timer=setInterval(()=>{cur+=target/steps;if(cur>=target){cur=target;clearInterval(timer)}el.textContent=prefix+rp(Math.round(cur))},step);
 }
 function fmtNom(el) {
-  // Simpan posisi cursor
   const raw = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
   if (raw === '') { el.value = ''; return; }
   el.value = Number(raw).toLocaleString('id-ID');
@@ -186,7 +185,6 @@ function fmtTransferNom(el){
   el.value=Number(raw).toLocaleString('id-ID');
 }
 function getNomVal(id) {
-  // Baca nilai nominal tanpa titik pemisah
   return Number((document.getElementById(id).value || '0').replace(/\./g, '').replace(/[^0-9]/g, '')) || 0;
 }
 function safeHTML(s){if(typeof s==='string'&&s.includes('<svg')){return s}const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
@@ -195,9 +193,6 @@ function toast(msg,type=''){
   el.innerHTML=safeHTML(msg);el.className='toast show '+type;
   clearTimeout(toastT);toastT=setTimeout(()=>{el.className='toast'},3200);
 }
-
-
-
 
 
 // ═══ POPUP: HERO KAS ═══
