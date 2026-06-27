@@ -1,18 +1,32 @@
+const BANK_LOGO_BASE='./images/bank/';
+
 const BANK_THEMES={
-  'Jago':       {grad:'linear-gradient(135deg,#d97706,#fbbf24)',motif:'waves',txt:'#fff'},
-  'Cash':       {grad:'linear-gradient(135deg,#059669,#34d399)',motif:'cash',txt:'#fff'},
-  'BCA':        {grad:'linear-gradient(135deg,#1e40af,#3b82f6)',motif:'lines',txt:'#fff'},
-  'Seabank':    {grad:'linear-gradient(135deg,#ea580c,#f97316)',motif:'triangles',txt:'#fff'},
-  'Dana':       {grad:'linear-gradient(135deg,#2563eb,#7c3aed)',motif:'circles',txt:'#fff'},
-  'Shopeepay':  {grad:'linear-gradient(135deg,#dc2626,#f97316)',motif:'dots',txt:'#fff'},
-  'GoPay':      {grad:'linear-gradient(135deg,#047857,#10b981)',motif:'waves',txt:'#fff'},
-  'OVO':        {grad:'linear-gradient(135deg,#6d28d9,#8b5cf6)',motif:'circles',txt:'#fff'},
-  'default':    {grad:'linear-gradient(135deg,#7c3aed,#ec4899)',motif:'dots',txt:'#fff'},
+  'Jago':       {grad:'linear-gradient(135deg,#d97706,#fbbf24)',motif:'waves',     txt:'#fff',logo:'jago.png'},
+  'Cash':       {grad:'linear-gradient(135deg,#059669,#34d399)',motif:'cash',      txt:'#fff',logo:'cash.png'},
+  'BCA':        {grad:'linear-gradient(135deg,#1e40af,#3b82f6)',motif:'lines',     txt:'#fff',logo:'bca.png'},
+  'Seabank':    {grad:'linear-gradient(135deg,#ea580c,#f97316)',motif:'triangles', txt:'#fff',logo:'seabank.png'},
+  'Dana':       {grad:'linear-gradient(135deg,#2563eb,#7c3aed)',motif:'circles',   txt:'#fff',logo:'dana.png'},
+  'Shopeepay':  {grad:'linear-gradient(135deg,#dc2626,#f97316)',motif:'dots',      txt:'#fff',logo:'shopeepay.png'},
+  'GoPay':      {grad:'linear-gradient(135deg,#047857,#10b981)',motif:'waves',     txt:'#fff',logo:'gopay.png'},
+  'OVO':        {grad:'linear-gradient(135deg,#6d28d9,#8b5cf6)',motif:'circles',   txt:'#fff',logo:'ovo.png'},
+  'Mandiri':    {grad:'linear-gradient(135deg,#b45309,#f59e0b)',motif:'lines',     txt:'#fff',logo:'mandiri.png'},
+  'BNI':        {grad:'linear-gradient(135deg,#1d4ed8,#3b82f6)',motif:'dots',      txt:'#fff',logo:'bni.png'},
+  'BRI':        {grad:'linear-gradient(135deg,#1e3a8a,#1d4ed8)',motif:'wavesthick',txt:'#fff',logo:'bri.png'},
+  'default':    {grad:'linear-gradient(135deg,#7c3aed,#ec4899)',motif:'dots',      txt:'#fff',logo:null},
 };
 
 function getBankTheme(name){
-  const key=Object.keys(BANK_THEMES).find(k=>name.toLowerCase().includes(k.toLowerCase()));
+  const key=Object.keys(BANK_THEMES).find(k=>name&&name.toLowerCase().includes(k.toLowerCase()));
   return BANK_THEMES[key]||BANK_THEMES.default;
+}
+
+function renderBankLogo(bank,theme){
+  const fb=bank.slice(0,2).toUpperCase();
+  if(theme.logo){
+    const url=`${BANK_LOGO_BASE}${theme.logo}`;
+    return`<img src="${url}" style="height:26px;max-width:72px;object-fit:contain;filter:brightness(0) invert(1);display:block" onerror="this.outerHTML='<span style=\\'font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.12em\\'>${fb}</span>'">`;
+  }
+  return`<span style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.55);letter-spacing:0.12em">${fb}</span>`;
 }
 
 function getBankMotifSVG(motif,color='rgba(255,255,255,0.15)'){
@@ -35,8 +49,10 @@ function renderATMCard(bank,saldo,isActive){
         <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,0.12);transform:translateY(-50%)"></div>
         <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(0,0,0,0.1);transform:translateX(-50%)"></div>
       </div>
-      <!-- Inisial pojok kanan atas -->
-      <div style="position:absolute;top:18px;right:18px;font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.55);letter-spacing:0.12em">${bank.slice(0,2).toUpperCase()}</div>
+      <!-- Logo pojok kanan atas -->
+      <div style="position:absolute;top:14px;right:16px;display:flex;align-items:center;min-height:26px">
+        ${renderBankLogo(bank,theme)}
+      </div>
       <!-- Saldo -->
       <div style="position:absolute;bottom:36px;left:18px">
         <div style="font-size:0.52rem;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:3px">Saldo</div>
@@ -409,31 +425,17 @@ async function loadMetode(){
     const ba=Object.entries(bb).sort((a,b)=>b[1]-a[1]);
     document.getElementById('bankList').innerHTML=ba.map(([bank,val],i)=>{
       const pct=total>0?Math.round(val/total*100):0;
-      // Warna & inisial per bank
-      const bankMap={
-        'jago':     {bg:'#F5C518',color:'#1a1a1a',init:'J'},
-        'seabank':  {bg:'#FF6B2B',color:'#fff',init:'SB'},
-        'bca':      {bg:'#0066AE',color:'#fff',init:'BCA'},
-        'bri':      {bg:'#003087',color:'#fff',init:'BRI'},
-        'bni':      {bg:'#F37021',color:'#fff',init:'BNI'},
-        'mandiri':  {bg:'#003087',color:'#F5A623',init:'M'},
-        'dana':     {bg:'#118EEA',color:'#fff',init:'D'},
-        'ovo':      {bg:'#4C3494',color:'#fff',init:'OVO'},
-        'gopay':    {bg:'#00AED6',color:'#fff',init:'GP'},
-        'shopeepay':{bg:'#EE4D2D',color:'#fff',init:'SP'},
-        'linkaja':  {bg:'#E82529',color:'#fff',init:'LA'},
-        'jenius':   {bg:'#2B6CB0',color:'#fff',init:'JN'},
-        'transfer': {bg:'#60a5fa',color:'#1e3a5f',init:'TF'},
-        'qris':     {bg:'#a855f7',color:'#fff',init:'QR'},
-      };
-      const key=bank.toLowerCase().replace(/[^a-z]/g,'');
-      const found=Object.keys(bankMap).find(k=>key.includes(k));
+      const theme2=getBankTheme(bank);
+      const fb2=bank.slice(0,2).toUpperCase();
       let ico;
-      if(key.includes('cash')){
-        ico=`<span style="background:#34d399;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#064e3b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/></svg></span>`;
+      if(theme2.logo){
+        const logoUrl=`${BANK_LOGO_BASE}${theme2.logo}`;
+        ico=`<span style="background:${theme2.grad};border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+          <img src="${logoUrl}" style="height:18px;max-width:28px;object-fit:contain;filter:brightness(0) invert(1)"
+            onerror="this.outerHTML='<span style=\\'font-size:0.55rem;font-weight:800;color:#fff\\'>${fb2}</span>'">
+        </span>`;
       } else {
-        const style=found?bankMap[found]:{bg:'rgba(168,85,247,0.5)',color:'#fff',init:bank.slice(0,2).toUpperCase()};
-        ico=`<span style="background:${style.bg};color:${style.color};font-size:0.55rem;font-weight:800;letter-spacing:-0.02em;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${style.init}</span>`;
+        ico=`<span style="background:${theme2.grad};border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.55rem;font-weight:800;color:#fff">${fb2}</span>`;
       }
       return`<div class="bank-item" style="animation-delay:${i*0.05}s"><div class="bank-ico" style="background:transparent;padding:0">${ico}</div><div class="bank-info"><div class="bank-name">${bank}</div><div class="bank-sub">${pct}% dari total</div><div class="bank-bar-wrap"><div class="bank-bar-fill" style="width:0%" data-w="${pct}"></div></div></div><div class="bank-val">${rpShort(val)}</div></div>`;
     }).join('');
