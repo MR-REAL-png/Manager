@@ -162,6 +162,21 @@ function openSettModal(type){
     title.innerHTML=`${IC.bank.replace('width:13px;height:13px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Kelola Rekening`;
     renderRekeningModal();
   }
+  else if(type==='saldoawal'){
+    title.innerHTML=`${IC.card.replace('width:13px;height:13px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Saldo Awal Dompet`;
+    body.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+    document.getElementById('ovSett').classList.add('open');
+    (async()=>{
+      try{
+        if(!allRows.length)allRows=await fetchAllData();
+        renderSaldoAwalModal();
+      }catch(e){
+        body.innerHTML=`<div class="empty"><div class="ei">${IC.warn}</div><p>Gagal memuat data.<br>Coba refresh dulu.</p></div>`;
+        console.error('saldoawal modal error:',e);
+      }
+    })();
+    return;
+  }
   else if(type==='kategori'){
     title.innerHTML=`${IC.tag.replace('width:20px;height:20px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Kelola Kategori`;
     renderKategoriModal();
@@ -210,6 +225,21 @@ function renderRekeningModal(){
       ${customBanks.map(b=>renderChip(b,true)).join('')}
     </div>`:''}
     <div style="margin-top:8px;font-size:0.65rem;color:var(--tx3)">💡 Rekening ungu = kustom (bisa dihapus)</div>`;
+}
+
+function renderSaldoAwalModal(){
+  const body=document.getElementById('settModalBody');
+  const BUKAN_BANK=['cash','transfer','qris'];
+  const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
+  const saldoAwalMap=getSaldoAwalMap();
+  if(!banks.length){
+    body.innerHTML=`<div class="empty"><div class="ei">${IC.card}</div><p>Belum ada rekening.<br>Tambahkan transaksi dengan pilih rekening dulu.</p></div>`;
+    return;
+  }
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:6px;line-height:1.4">Isi saldo <b style="color:#c084fc">modal awal</b> tiap dompet, yaitu saldo <b>sebelum</b> transaksi pertama tercatat di app ini. Bukan saldo aktual sekarang.</p>
+    <p style="font-size:0.68rem;color:var(--tx3);margin-bottom:14px;line-height:1.4">💡 Rumus: Saldo Awal = Saldo Aktual Sekarang − Saldo yang tampil saat ini di dompet.</p>
+    ${banks.map((b,i)=>`<div class="fr"><label>${b}</label><input class="fi" type="text" id="saldoawal_${i}" data-bank="${b}" inputmode="numeric" placeholder="Rp 0" value="${saldoAwalMap[b]?Number(saldoAwalMap[b]).toLocaleString('id-ID'):''}" oninput="fmtTransferNom(this)"></div>`).join('')}`;
 }
 
 function renderKategoriModal(){
@@ -496,6 +526,17 @@ async function saveSettModal(){
   else if(settModalType==='rekening'){
     const val=document.getElementById('newBankInput')?.value.trim();
     if(val){const a=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_banks',JSON.stringify(a));fetchDBOptions();pushSettings();toast('Rekening ditambah','ok')}else toast('Sudah ada','err')}
+  }
+  else if(settModalType==='saldoawal'){
+    const BUKAN_BANK=['cash','transfer','qris'];
+    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
+    banks.forEach((b,i)=>{
+      const el=document.getElementById('saldoawal_'+i);
+      if(el)setSaldoAwal(b,el.value.replace(/\./g,'').replace(/[^0-9]/g,''));
+    });
+    pushSettings();
+    toast('Saldo awal disimpan','ok');
+    if(document.getElementById('pg-dompet')?.classList.contains('on'))loadDompet();
   }
   else if(settModalType==='kategori'){
     const val=document.getElementById('newKatInput')?.value.trim();
