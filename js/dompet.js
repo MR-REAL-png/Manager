@@ -70,20 +70,10 @@ async function loadDompet(){
   try{
     if(!allRows.length)allRows=await fetchAllData();
     await fetchDBOptions();
-    const BUKAN_BANK=['cash','transfer','qris'];
-    const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
-    const saldoMap={};
-    banks.forEach(b=>saldoMap[b]=0);
-    allRows.forEach(r=>{
-      if(!r.pembayaran)return;
-      if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]=(saldoMap[r.pembayaran]||0)+r.nominal;
-      else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]=(saldoMap[r.pembayaran]||0)-r.nominal;
-    });
     const transfers=await fetchTransfers();
-    transfers.forEach(t=>{
-      saldoMap[t.dari]=(saldoMap[t.dari]||0)-t.nominal;
-      saldoMap[t.ke]=(saldoMap[t.ke]||0)+t.nominal;
-    });
+    // Sumber hitung tunggal — dipakai juga oleh popup Ringkasan Arus Kas (modals.js)
+    // supaya "Total Aset" di dua tempat selalu sama.
+    const{banks,saldoMap}=hitungSaldoDompet(allRows,transfers);
 
     if(!banks.length){
       el.innerHTML='<div class="empty-state"><div class="empty-ico">💳</div><div class="empty-title">Belum ada rekening</div><div class="empty-sub">Tambahkan transaksi dengan pilih rekening</div></div>';
