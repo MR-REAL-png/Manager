@@ -1,4 +1,4 @@
-function openKasDetail(){
+async function openKasDetail(){
   const t=document.getElementById('bsTitle');
   if(t)t.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z"/></svg> Ringkasan Arus Kas';
   document.getElementById('bsOverlay').classList.add('open');
@@ -12,9 +12,31 @@ function openKasDetail(){
   // Top 3 kategori pengeluaran
   const top3=d.byKategori.slice(0,3);
   const totalKeluar=keluar||1;
+
+  // Saldo dompet & Total Aset dihitung lewat fungsi shared (helpers.js) —
+  // sama persis dengan yang dipakai di halaman Dompet, termasuk transfer & saldo awal,
+  // supaya angkanya selalu sinkron di kedua tempat.
+  const transfers=await fetchTransfers();
+  const{banks,saldoMap,totalSaldo}=hitungSaldoDompet(allRows,transfers);
+  const totalPos=totalSaldo>=0;
+  const saldoSectionHTML=!banks.length?'':`
+    <div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;padding:8px 0 4px;margin-top:4px">Saldo Dompet</div>
+    ${banks.map(b=>{
+      const s=saldoMap[b];
+      const pos=s>=0;
+      return`<div class="bs-kas-row">
+        <div class="bs-kas-row-lbl">${b}</div>
+        <div class="bs-kas-row-val" style="color:${pos?'var(--grn)':'var(--red)'}">${pos?'+':'−'}${rp(Math.abs(s))}</div>
+      </div>`;
+    }).join('')}
+    <div class="bs-kas-row" style="border-top:1px solid var(--bdr2);margin-top:4px;padding-top:8px">
+      <div class="bs-kas-row-lbl" style="font-weight:700;color:#fff">Total Aset <span style="font-weight:400;color:var(--tx3);font-size:0.58rem">(semua waktu)</span></div>
+      <div class="bs-kas-row-val" style="color:${totalPos?'var(--grn)':'var(--red)'};font-weight:700">${totalPos?'+':'−'}${rp(Math.abs(totalSaldo))}</div>
+    </div>`;
+
   body.innerHTML=`
   <div class="bs-kas-hero">
-    <div class="bs-kas-hero-lbl">Arus Kas Periode</div>
+    <div class="bs-kas-hero-lbl">Arus Kas Bulan Ini</div>
     <div class="bs-kas-hero-val" style="color:${col}">${pfx}${rp(Math.abs(kas))}</div>
     <div class="bs-kas-hero-sub">${fmtDateShort(d.startDate)} – ${fmtDateShort(d.endDate)}</div>
   </div>
@@ -46,33 +68,7 @@ function openKasDetail(){
       <div class="bs-kas-row-lbl">${k.kategori}</div>
       <div class="bs-kas-row-val" style="color:var(--red)">${rpShort(k.nominal)} <span style="color:var(--tx3);font-size:0.6rem">(${Math.round(k.nominal/totalKeluar*100)}%)</span></div>
     </div>`).join('')}`:''}
-    ${(()=>{
-      const BUKAN_BANK=['cash','transfer','qris'];
-      const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
-      if(!banks.length)return'';
-      const saldoMap={};
-      banks.forEach(b=>saldoMap[b]=0);
-      allRows.forEach(r=>{
-        if(!r.pembayaran||!saldoMap.hasOwnProperty(r.pembayaran))return;
-        if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]+=r.nominal;
-        else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]-=r.nominal;
-      });
-      const totalSaldo=banks.reduce((s,b)=>s+saldoMap[b],0);
-      const totalPos=totalSaldo>=0;
-      return`<div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;padding:8px 0 4px;margin-top:4px">Saldo Dompet</div>
-      ${banks.map(b=>{
-        const s=saldoMap[b];
-        const pos=s>=0;
-        return`<div class="bs-kas-row">
-          <div class="bs-kas-row-lbl">${b}</div>
-          <div class="bs-kas-row-val" style="color:${pos?'var(--grn)':'var(--red)'}">${pos?'+':'−'}${rp(Math.abs(s))}</div>
-        </div>`;
-      }).join('')}
-      <div class="bs-kas-row" style="border-top:1px solid var(--bdr2);margin-top:4px;padding-top:8px">
-        <div class="bs-kas-row-lbl" style="font-weight:700;color:#fff">Total Aset</div>
-        <div class="bs-kas-row-val" style="color:${totalPos?'var(--grn)':'var(--red)'};font-weight:700">${totalPos?'+':'−'}${rp(Math.abs(totalSaldo))}</div>
-      </div>`;
-    })()}
+    ${saldoSectionHTML}
   </div>`;
 }
 
