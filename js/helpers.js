@@ -194,5 +194,35 @@ function toast(msg,type=''){
   clearTimeout(toastT);toastT=setTimeout(()=>{el.className='toast'},3200);
 }
 
+// ═══ SALDO DOMPET (shared logic — dipakai dompet.js & modals.js agar selalu sinkron) ═══
+function getSaldoAwalMap(){
+  try{return JSON.parse(localStorage.getItem('mm_saldo_awal')||'{}')}catch(e){return{}}
+}
+function setSaldoAwal(bank,nominal){
+  const m=getSaldoAwalMap();
+  m[bank]=Number(nominal)||0;
+  localStorage.setItem('mm_saldo_awal',JSON.stringify(m));
+  return m;
+}
+// rows: allRows (semua transaksi), transfers: hasil fetchTransfers()
+// return { banks:[...], saldoMap:{bank:saldo}, totalSaldo:number }
+function hitungSaldoDompet(rows,transfers){
+  const BUKAN_BANK=['cash','transfer','qris'];
+  const saldoAwalMap=getSaldoAwalMap();
+  const banks=[...new Set((rows||[]).map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
+  const saldoMap={};
+  banks.forEach(b=>saldoMap[b]=saldoAwalMap[b]||0);
+  (rows||[]).forEach(r=>{
+    if(!r.pembayaran||!saldoMap.hasOwnProperty(r.pembayaran))return;
+    if(r.jenis==='Pemasukan')saldoMap[r.pembayaran]+=r.nominal;
+    else if(r.jenis==='Pengeluaran')saldoMap[r.pembayaran]-=r.nominal;
+  });
+  (transfers||[]).forEach(t=>{
+    if(saldoMap.hasOwnProperty(t.dari))saldoMap[t.dari]-=t.nominal;
+    if(saldoMap.hasOwnProperty(t.ke))saldoMap[t.ke]+=t.nominal;
+  });
+  const totalSaldo=banks.reduce((s,b)=>s+saldoMap[b],0);
+  return{banks,saldoMap,totalSaldo};
+}
 
 // ═══ POPUP: HERO KAS ═══
