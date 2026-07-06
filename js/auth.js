@@ -228,6 +228,7 @@ function collectSettings(){
     mm_fixed_cats:   JSON.parse(localStorage.getItem('mm_fixed_cats')||'[]'),
     mm_periode:      JSON.parse(localStorage.getItem('mm_periode')||'{}'),
     mm_settings:     JSON.parse(localStorage.getItem('mm_settings')||'{}'),
+    mm_saldo_awal:   JSON.parse(localStorage.getItem('mm_saldo_awal')||'{}'),
     mm_t:            localStorage.getItem('mm_t')||'cosmic',
   };
 }
@@ -241,6 +242,7 @@ function applySettings(data){
   if(data.mm_fixed_cats)  localStorage.setItem('mm_fixed_cats',  JSON.stringify(data.mm_fixed_cats));
   if(data.mm_periode)     localStorage.setItem('mm_periode',     JSON.stringify(data.mm_periode));
   if(data.mm_settings)    localStorage.setItem('mm_settings',    JSON.stringify(data.mm_settings));
+  if(data.mm_saldo_awal)  localStorage.setItem('mm_saldo_awal',  JSON.stringify(data.mm_saldo_awal));
   if(data.mm_t)           localStorage.setItem('mm_t',           data.mm_t);
   // Terapkan ke variabel runtime
   const s=data.mm_settings||{};
