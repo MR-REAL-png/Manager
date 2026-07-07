@@ -162,6 +162,21 @@ function openSettModal(type){
     title.innerHTML=`${IC.bank.replace('width:13px;height:13px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Kelola Rekening`;
     renderRekeningModal();
   }
+  else if(type==='cektanggal'){
+    title.innerHTML=`${IC.cal.replace('width:13px;height:13px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Cek Salah Tanggal`;
+    body.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
+    document.getElementById('ovSett').classList.add('open');
+    (async()=>{
+      try{
+        if(!allRows.length)allRows=await fetchAllData();
+        renderCekTanggalModal();
+      }catch(e){
+        body.innerHTML=`<div class="empty"><div class="ei">${IC.warn}</div><p>Gagal memuat data.<br>Coba refresh dulu.</p></div>`;
+        console.error('cektanggal modal error:',e);
+      }
+    })();
+    return;
+  }
   else if(type==='saldoawal'){
     title.innerHTML=`${IC.card.replace('width:13px;height:13px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Saldo Awal Dompet`;
     body.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
@@ -262,6 +277,41 @@ function renderKategoriModal(){
       ${customKats.map(k=>renderChip(k,true)).join('')}
     </div>`:''}
     <div style="margin-top:8px;font-size:0.65rem;color:var(--tx3)">💡 Kategori ungu = kustom (bisa dihapus)</div>`;
+}
+
+function renderCekTanggalModal(){
+  const body=document.getElementById('settModalBody');
+  const hasil=cekTransaksiSalahTanggal(true); // true = jangan console.log, cuma return data
+  if(!hasil){body.innerHTML=`<div class="empty"><div class="ei">${IC.warn}</div><p>Data belum ke-load.<br>Buka Dashboard dulu.</p></div>`;return;}
+  const{perPeriode,kandidatBatasPeriode,kandidatTimezone}=hasil;
+
+  const periodeRows=Object.values(perPeriode).sort((a,b)=>b.start-a.start).map(v=>{
+    return`<div class="bs-kas-row"><div class="bs-kas-row-lbl">${v.label}</div><div class="bs-kas-row-val" style="font-size:0.72rem;color:var(--tx2)">${v.count}x · ${IC.in} ${rpShort(v.masuk)} · ${IC.out} ${rpShort(v.keluar)}</div></div>`;
+  }).join('');
+
+  const renderKandidat=(list,emptyMsg,showPeriode)=>{
+    if(!list.length)return`<p style="font-size:0.72rem;color:var(--tx3);padding:8px 0">${emptyMsg}</p>`;
+    return list.map(r=>`
+      <div class="bs-kas-row" style="cursor:pointer" onclick="closeSettModal();openEdit(${r.id})">
+        <div>
+          <div class="bs-kas-row-lbl" style="color:#fff">${formatTgl(r.tanggal)} · ${r.kategori||r.jenis}</div>
+          <div style="font-size:0.65rem;color:var(--tx3)">${r.pembayaran||'-'}${showPeriode&&r._periodeLabel?' · periode '+r._periodeLabel:''}${r.detail?' · '+r.detail:''}</div>
+        </div>
+        <div class="bs-kas-row-val" style="color:${r.jenis==='Pemasukan'?'var(--grn)':'var(--red)'}">${rp(r.nominal)} ›</div>
+      </div>`).join('');
+  };
+
+  body.innerHTML=`
+    <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Cek transaksi yang kemungkinan salah tanggal / nyasar ke periode lain. Dikelompokkan pakai siklus periode kamu (bukan bulan kalender). Tap salah satu baris buat langsung edit.</p>
+
+    <div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;padding:8px 0 4px">Ringkasan per Periode</div>
+    <div class="bs-kas-rows" style="margin-bottom:6px">${periodeRows}</div>
+
+    <div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;padding:8px 0 4px">Dekat Batas Periode ±2 Hari (${kandidatBatasPeriode.length})</div>
+    <div class="bs-kas-rows" style="margin-bottom:6px">${renderKandidat(kandidatBatasPeriode,'Tidak ada kandidat 👍',true)}</div>
+
+    <div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;padding:8px 0 4px">Mismatch Timezone (${kandidatTimezone.length})</div>
+    <div class="bs-kas-rows">${renderKandidat(kandidatTimezone,'Tidak ada kandidat 👍',false)}</div>`;
 }
 
 function renderKatRataModal(){
