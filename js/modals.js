@@ -6,9 +6,11 @@ async function openKasDetail(){
   if(!avgDetailData){body.innerHTML=`<div class="empty"><div class="ei">${IC.chart}</div><p>Load dashboard dulu</p></div>`;return}
   const d=avgDetailData;
   const kas=d.kas,masuk=d.masuk,keluar=d.keluar,sisa=d.sisaHari,avgBudget=d.avgBudget;
+  const kasKumulatif=d.kasKumulatif!==undefined?d.kasKumulatif:kas;
   const kasPos=kas>=0;
-  const pfx=kasPos?'+':'−';
-  const col=kasPos?'var(--grn)':'var(--red)';
+  const kumPos=kasKumulatif>=0;
+  const pfx=kumPos?'+':'−';
+  const col=kumPos?'var(--grn)':'var(--red)';
   // Top 3 kategori pengeluaran
   const top3=d.byKategori.slice(0,3);
   const totalKeluar=keluar||1;
@@ -37,9 +39,9 @@ async function openKasDetail(){
 
   body.innerHTML=`
   <div class="bs-kas-hero">
-    <div class="bs-kas-hero-lbl">Arus Kas Bulan Ini</div>
-    <div class="bs-kas-hero-val" style="color:${col}">${pfx}${rp(Math.abs(kas))}</div>
-    <div class="bs-kas-hero-sub">${fmtDateShort(d.startDate)} – ${fmtDateShort(d.endDate)}</div>
+    <div class="bs-kas-hero-lbl">Arus Kas — Semua Waktu</div>
+    <div class="bs-kas-hero-val" style="color:${col}">${pfx}${rp(Math.abs(kasKumulatif))}</div>
+    <div class="bs-kas-hero-sub">Periode aktif: ${fmtDateShort(d.startDate)} – ${fmtDateShort(d.endDate)}</div>
   </div>
   <div class="bs-kas-pills">
     <div class="bs-kas-pill">
@@ -62,7 +64,7 @@ async function openKasDetail(){
     </div>
     <div class="bs-kas-row">
       <div class="bs-kas-row-lbl">Hemat dari Pemasukan</div>
-      <div class="bs-kas-row-val" style="color:${col}">${masuk>0?Math.round(kas/masuk*100):0}%</div>
+      <div class="bs-kas-row-val" style="color:${kasPos?'var(--grn)':'var(--red)'}">${masuk>0?Math.round(kas/masuk*100):0}%</div>
     </div>
     ${top3.length?`<div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;padding:8px 0 4px">Top Pengeluaran</div>
     ${top3.map(k=>`<div class="bs-kas-row">
