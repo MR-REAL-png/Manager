@@ -90,6 +90,23 @@ async function loadDashboard(){
     const elAvgBudget=document.getElementById('d-avg-budget');
     if(elAvgBudget){elAvgBudget.textContent=kas<=0?'—':rpShort(avgBudget);elAvgBudget.style.color=kas<=0?'var(--red)':'#fbbf24';}
     avgDetailData={totalFleksibel:totalFleks,totalDays:totalDaysPeriode,avgHarian,byKategori:byKatFleksArr,kas,masuk,keluar,sisaHari:sisaHariNow,avgBudget,startDate,endDate};
+    // ═══ ARUS KAS KUMULATIF (semua waktu) — alert kalau masih defisit dari periode² sebelumnya ═══
+    // Ini dihitung ulang dari NOL setiap kali dashboard dibuka (bukan state yang disimpan),
+    // jadi otomatis "sembuh" sendiri begitu total pemasukan >= total pengeluaran sepanjang waktu.
+    const totalMasukAllTime=allRows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
+    const totalKeluarAllTime=allRows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
+    const kasKumulatif=totalMasukAllTime-totalKeluarAllTime;
+    avgDetailData.kasKumulatif=kasKumulatif;
+    const _defAlert=document.getElementById('defisitAlert');
+    const _defText=document.getElementById('defisitAlertText');
+    if(_defAlert&&_defText){
+      if(kasKumulatif<0){
+        _defAlert.style.display='flex';
+        _defText.textContent=`Masih defisit ${rp(Math.abs(kasKumulatif))} dari periode-periode sebelumnya`;
+      } else {
+        _defAlert.style.display='none';
+      }
+    }
     // Hide komposisi jika ada budget sebelum render
     const _bKey=getBudgetMonthKey(new Date(startDate).getFullYear(),new Date(startDate).getMonth());
     const _budgets=getBudgetsForMonth(_bKey);
