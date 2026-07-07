@@ -225,4 +225,45 @@ function hitungSaldoDompet(rows,transfers){
   return{banks,saldoMap,totalSaldo};
 }
 
+// ═══ DIAGNOSTIK: TRANSAKSI SALAH TANGGAL ═══
+// Dari HP: buka Settings → "Cek Salah Tanggal" (pakai modal UI)
+// Dari laptop/console: cekTransaksiSalahTanggal() untuk lihat detail di console
+function cekTransaksiSalahTanggal(silent){
+  if(!allRows.length){if(!silent)console.warn('allRows kosong — buka halaman Data/Dashboard dulu biar data ke-load');return null;}
+
+  // 1) Ringkasan per bulan: jumlah transaksi & total, buat lihat bulan yang janggal
+  const perBulan={};
+  allRows.forEach(r=>{
+    const key=r.tanggal.slice(0,7); // YYYY-MM
+    if(!perBulan[key])perBulan[key]={count:0,masuk:0,keluar:0};
+    perBulan[key].count++;
+    if(r.jenis==='Pemasukan')perBulan[key].masuk+=r.nominal;
+    else if(r.jenis==='Pengeluaran')perBulan[key].keluar+=r.nominal;
+  });
+
+  // 2) Kandidat: transaksi di tanggal 1-3 atau 28-31 (paling sering "kececer" beda bulan)
+  const kandidatTanggalBatas=allRows.filter(r=>{
+    const day=Number(r.tanggal.slice(8,10));
+    return day<=3||day>=28;
+  }).sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+
+  // 3) Kandidat: mismatch timezone — cek apakah parsing Date geser hari
+  const kandidatTimezone=allRows.filter(r=>{
+    const iso=new Date(r.tanggal+'T00:00:00').toISOString().slice(0,10);
+    return iso!==r.tanggal;
+  });
+
+  if(!silent){
+    console.log('=== RINGKASAN PER BULAN ===');
+    console.table(perBulan);
+    console.log(`=== KANDIDAT DI TANGGAL BATAS (1-3 atau 28-31): ${kandidatTanggalBatas.length} transaksi ===`);
+    console.table(kandidatTanggalBatas.map(r=>({id:r.id,tanggal:r.tanggal,jenis:r.jenis,kategori:r.kategori,nominal:r.nominal,rekening:r.pembayaran,catatan:r.detail})));
+    console.log(`=== KANDIDAT MISMATCH TIMEZONE: ${kandidatTimezone.length} transaksi ===`);
+    if(kandidatTimezone.length)console.table(kandidatTimezone.map(r=>({id:r.id,tanggal:r.tanggal,jenis:r.jenis,nominal:r.nominal})));
+    toast(`Cek selesai — ${kandidatTanggalBatas.length} kandidat tanggal batas, ${kandidatTimezone.length} mismatch timezone. Lihat console (F12).`,'ok');
+  }
+
+  return{perBulan,kandidatTanggalBatas,kandidatTimezone};
+}
+
 // ═══ POPUP: HERO KAS ═══
