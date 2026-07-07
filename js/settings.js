@@ -171,7 +171,7 @@ function openSettModal(type){
         if(!allRows.length)allRows=await fetchAllData();
         renderCekTanggalModal();
       }catch(e){
-        body.innerHTML=`<div class="empty"><div class="ei">${IC.warn}</div><p>Gagal memuat data.<br>Coba refresh dulu.</p></div>`;
+        body.innerHTML=`<div class="empty"><div class="ei">${IC.warn}</div><p>Gagal memuat data.</p><p style="font-size:0.65rem;color:var(--tx3);margin-top:6px;word-break:break-word">${e.message||e}</p><button class="btn-cx" style="margin-top:10px" onclick="openSettModal('cektanggal')">${IC.reload} Coba Lagi</button></div>`;
         console.error('cektanggal modal error:',e);
       }
     })();
