@@ -228,24 +228,53 @@ function hitungSaldoDompet(rows,transfers){
 // ═══ DIAGNOSTIK: TRANSAKSI SALAH TANGGAL ═══
 // Dari HP: buka Settings → "Cek Salah Tanggal" (pakai modal UI)
 // Dari laptop/console: cekTransaksiSalahTanggal() untuk lihat detail di console
+// Catatan: dikelompokkan per PERIODE (siklus 25-24), bukan per bulan kalender,
+// karena app ini pakai periode custom lewat getEffective25()/getActivePeriod().
+function daysBetweenDates(a,b){
+  const da=new Date(a);da.setHours(0,0,0,0);
+  const db=new Date(b);db.setHours(0,0,0,0);
+  return Math.round((da-db)/86400000);
+}
+function getPeriodForDate(d){
+  const y=d.getFullYear(),m=d.getMonth();
+  const eff=getEffective25(y,m);
+  let s,e;
+  if(d>eff){
+    s=new Date(eff);s.setDate(s.getDate()+1);
+    const nm=m===11?0:m+1,ny=m===11?y+1:y;
+    e=getEffective25(ny,nm);
+  } else {
+    const pm=m===0?11:m-1,py=m===0?y-1:y;
+    s=new Date(getEffective25(py,pm));s.setDate(s.getDate()+1);
+    e=new Date(eff);
+  }
+  return{start:s,end:e};
+}
 function cekTransaksiSalahTanggal(silent){
   if(!allRows.length){if(!silent)console.warn('allRows kosong — buka halaman Data/Dashboard dulu biar data ke-load');return null;}
 
-  // 1) Ringkasan per bulan: jumlah transaksi & total, buat lihat bulan yang janggal
-  const perBulan={};
+  // 1) Ringkasan per PERIODE (bukan bulan kalender) — jumlah transaksi & total
+  const perPeriode={};
   allRows.forEach(r=>{
-    const key=r.tanggal.slice(0,7); // YYYY-MM
-    if(!perBulan[key])perBulan[key]={count:0,masuk:0,keluar:0};
-    perBulan[key].count++;
-    if(r.jenis==='Pemasukan')perBulan[key].masuk+=r.nominal;
-    else if(r.jenis==='Pengeluaran')perBulan[key].keluar+=r.nominal;
+    const d=new Date(r.tanggal+'T00:00:00');
+    const{start,end}=getPeriodForDate(d);
+    const key=`${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`;
+    if(!perPeriode[key])perPeriode[key]={label:`${fmtDateShort(start)} – ${fmtDateShort(end)}`,count:0,masuk:0,keluar:0,start,end};
+    perPeriode[key].count++;
+    if(r.jenis==='Pemasukan')perPeriode[key].masuk+=r.nominal;
+    else if(r.jenis==='Pengeluaran')perPeriode[key].keluar+=r.nominal;
   });
 
-  // 2) Kandidat: transaksi di tanggal 1-3 atau 28-31 (paling sering "kececer" beda bulan)
-  const kandidatTanggalBatas=allRows.filter(r=>{
-    const day=Number(r.tanggal.slice(8,10));
-    return day<=3||day>=28;
-  }).sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+  // 2) Kandidat: transaksi dalam radius 2 hari dari batas periode (bukan tanggal 1/28 kalender)
+  const RADIUS=2;
+  const kandidatBatasPeriode=allRows.map(r=>{
+    const d=new Date(r.tanggal+'T00:00:00');
+    const{start,end}=getPeriodForDate(d);
+    const distStart=daysBetweenDates(d,start);
+    const distEnd=daysBetweenDates(end,d);
+    return{...r,_distStart:distStart,_distEnd:distEnd,_periodeLabel:`${fmtDateShort(start)} – ${fmtDateShort(end)}`};
+  }).filter(r=>r._distStart<=RADIUS||r._distEnd<=RADIUS)
+    .sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
 
   // 3) Kandidat: mismatch timezone — cek apakah parsing Date geser hari
   const kandidatTimezone=allRows.filter(r=>{
@@ -254,16 +283,16 @@ function cekTransaksiSalahTanggal(silent){
   });
 
   if(!silent){
-    console.log('=== RINGKASAN PER BULAN ===');
-    console.table(perBulan);
-    console.log(`=== KANDIDAT DI TANGGAL BATAS (1-3 atau 28-31): ${kandidatTanggalBatas.length} transaksi ===`);
-    console.table(kandidatTanggalBatas.map(r=>({id:r.id,tanggal:r.tanggal,jenis:r.jenis,kategori:r.kategori,nominal:r.nominal,rekening:r.pembayaran,catatan:r.detail})));
+    console.log('=== RINGKASAN PER PERIODE (siklus 25-24) ===');
+    console.table(Object.fromEntries(Object.entries(perPeriode).map(([k,v])=>[v.label,{count:v.count,masuk:v.masuk,keluar:v.keluar}])));
+    console.log(`=== KANDIDAT DEKAT BATAS PERIODE (±${RADIUS} hari): ${kandidatBatasPeriode.length} transaksi ===`);
+    console.table(kandidatBatasPeriode.map(r=>({id:r.id,tanggal:r.tanggal,periode:r._periodeLabel,jenis:r.jenis,kategori:r.kategori,nominal:r.nominal,rekening:r.pembayaran})));
     console.log(`=== KANDIDAT MISMATCH TIMEZONE: ${kandidatTimezone.length} transaksi ===`);
     if(kandidatTimezone.length)console.table(kandidatTimezone.map(r=>({id:r.id,tanggal:r.tanggal,jenis:r.jenis,nominal:r.nominal})));
-    toast(`Cek selesai — ${kandidatTanggalBatas.length} kandidat tanggal batas, ${kandidatTimezone.length} mismatch timezone. Lihat console (F12).`,'ok');
+    toast(`Cek selesai — ${kandidatBatasPeriode.length} kandidat dekat batas periode, ${kandidatTimezone.length} mismatch timezone. Lihat console (F12).`,'ok');
   }
 
-  return{perBulan,kandidatTanggalBatas,kandidatTimezone};
+  return{perPeriode,kandidatBatasPeriode,kandidatTimezone};
 }
 
 // ═══ POPUP: HERO KAS ═══
