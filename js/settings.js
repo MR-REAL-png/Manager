@@ -292,7 +292,7 @@ function renderCekTanggalModal(){
   const renderKandidat=(list,emptyMsg,showPeriode)=>{
     if(!list.length)return`<p style="font-size:0.72rem;color:var(--tx3);padding:8px 0">${emptyMsg}</p>`;
     return list.map(r=>`
-      <div class="bs-kas-row" style="cursor:pointer" onclick="closeSettModal();openEdit(${r.id})">
+      <div class="bs-kas-row" style="cursor:pointer" onclick="closeOv(null,'ovSett');openEdit(${r.id})">
         <div>
           <div class="bs-kas-row-lbl" style="color:#fff">${formatTgl(r.tanggal)} · ${r.kategori||r.jenis}</div>
           <div style="font-size:0.65rem;color:var(--tx3)">${r.pembayaran||'-'}${showPeriode&&r._periodeLabel?' · periode '+r._periodeLabel:''}${r.detail?' · '+r.detail:''}</div>
