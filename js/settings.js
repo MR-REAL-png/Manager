@@ -168,7 +168,7 @@ function openSettModal(type){
     document.getElementById('ovSett').classList.add('open');
     (async()=>{
       try{
-        if(!allRows.length)allRows=await fetchAllData();
+        allRows=await fetchAllData();
         renderCekTanggalModal();
       }catch(e){
         body.innerHTML=`<div class="empty"><div class="ei">${IC.warn}</div><p>Gagal memuat data.</p><p style="font-size:0.65rem;color:var(--tx3);margin-top:6px;word-break:break-word">${e.message||e}</p><button class="btn-cx" style="margin-top:10px" onclick="openSettModal('cektanggal')">${IC.reload} Coba Lagi</button></div>`;
@@ -292,7 +292,7 @@ function renderCekTanggalModal(){
   const renderKandidat=(list,emptyMsg,showPeriode)=>{
     if(!list.length)return`<p style="font-size:0.72rem;color:var(--tx3);padding:8px 0">${emptyMsg}</p>`;
     return list.map(r=>`
-      <div class="bs-kas-row" style="cursor:pointer" onclick="closeOv(null,'ovSett');openEdit(${r.id})">
+      <div class="bs-kas-row" style="cursor:pointer" onclick="if(!isAdmin){toast('Aktifkan Edit Mode dulu buat edit transaksi','err');return;}closeOv(null,'ovSett');openEdit(${r.id})">
         <div>
           <div class="bs-kas-row-lbl" style="color:#fff">${formatTgl(r.tanggal)} · ${r.kategori||r.jenis}</div>
           <div style="font-size:0.65rem;color:var(--tx3)">${r.pembayaran||'-'}${showPeriode&&r._periodeLabel?' · periode '+r._periodeLabel:''}${r.detail?' · '+r.detail:''}</div>
