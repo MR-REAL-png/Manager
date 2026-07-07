@@ -183,7 +183,7 @@ function openSettModal(type){
     document.getElementById('ovSett').classList.add('open');
     (async()=>{
       try{
-        if(!allRows.length)allRows=await fetchAllData();
+        allRows=await fetchAllData();
         renderSaldoAwalModal();
       }catch(e){
         body.innerHTML=`<div class="empty"><div class="ei">${IC.warn}</div><p>Gagal memuat data.<br>Coba refresh dulu.</p></div>`;
