@@ -68,7 +68,7 @@ async function loadDompet(){
   if(!el)return;
   el.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
   try{
-    if(!allRows.length)allRows=await fetchAllData();
+    allRows=await fetchAllData();
     await fetchDBOptions();
     const transfers=await fetchTransfers();
     // Sumber hitung tunggal — dipakai juga oleh popup Ringkasan Arus Kas (modals.js)
