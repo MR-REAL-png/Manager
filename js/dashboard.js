@@ -66,6 +66,12 @@ async function loadDashboard(){
     const masuk=rows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
     const keluar=rows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
     const kas=masuk-keluar;
+    // ═══ ARUS KAS KUMULATIF (semua waktu) — ini yang ditampilkan sbg angka besar ═══
+    // Dihitung ulang dari NOL setiap kali dashboard dibuka (bukan state tersimpan),
+    // jadi selalu akurat & otomatis "sembuh" sendiri kalau totalnya balik surplus.
+    const totalMasukAllTime=allRows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
+    const totalKeluarAllTime=allRows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
+    const kasKumulatif=totalMasukAllTime-totalKeluarAllTime;
     const days=[...new Set(rows.map(r=>r.tanggal))].length;
     const tdim=new Date(parseInt(t),MOS.indexOf(b)+1,0).getDate();
     const FIXED_CATS=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
@@ -77,26 +83,20 @@ async function loadDashboard(){
     const byKatArr=Object.entries(byKat).map(([k,v])=>({kategori:k,nominal:v.reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
     const byKatFleks=groupBy(fleks,'kategori');
     const byKatFleksArr=Object.entries(byKatFleks).map(([k,v])=>({kategori:k,nominal:v.reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
-    document.getElementById('hk-periode-lbl').textContent=`${b} ${t}`;
-    countUp('d-kas',Math.abs(kas),kas<0?'−':'');
+    document.getElementById('hk-periode-lbl').textContent='Semua Waktu';
+    // Angka besar = kumulatif (semua waktu). Pills Masuk/Keluar di bawahnya tetap per-periode.
+    countUp('d-kas',Math.abs(kasKumulatif),kasKumulatif<0?'−':'');
     document.getElementById('d-masuk').textContent=rpShort(masuk);
     document.getElementById('d-keluar').textContent=rpShort(keluar);
     document.getElementById('d-avg').textContent=rpShort(avgHarian);
     document.getElementById('d-active-days').textContent=`${days} hari`;
     document.getElementById('d-total-days-val').textContent=`${tdim} hari`;
-    // Rata² Budget = kas sisa ÷ sisa hari
+    // Rata² Budget = kas sisa PERIODE INI ÷ sisa hari periode (sengaja tetap per-periode)
     const sisaHariNow=getSisaHari(endDate).total;
     const avgBudget=sisaHariNow>0?Math.round(kas/sisaHariNow):0;
     const elAvgBudget=document.getElementById('d-avg-budget');
     if(elAvgBudget){elAvgBudget.textContent=kas<=0?'—':rpShort(avgBudget);elAvgBudget.style.color=kas<=0?'var(--red)':'#fbbf24';}
-    avgDetailData={totalFleksibel:totalFleks,totalDays:totalDaysPeriode,avgHarian,byKategori:byKatFleksArr,kas,masuk,keluar,sisaHari:sisaHariNow,avgBudget,startDate,endDate};
-    // ═══ ARUS KAS KUMULATIF (semua waktu) — alert kalau masih defisit dari periode² sebelumnya ═══
-    // Ini dihitung ulang dari NOL setiap kali dashboard dibuka (bukan state yang disimpan),
-    // jadi otomatis "sembuh" sendiri begitu total pemasukan >= total pengeluaran sepanjang waktu.
-    const totalMasukAllTime=allRows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
-    const totalKeluarAllTime=allRows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
-    const kasKumulatif=totalMasukAllTime-totalKeluarAllTime;
-    avgDetailData.kasKumulatif=kasKumulatif;
+    avgDetailData={totalFleksibel:totalFleks,totalDays:totalDaysPeriode,avgHarian,byKategori:byKatFleksArr,kas,masuk,keluar,sisaHari:sisaHariNow,avgBudget,startDate,endDate,kasKumulatif};
     const _defAlert=document.getElementById('defisitAlert');
     const _defText=document.getElementById('defisitAlertText');
     if(_defAlert&&_defText){
