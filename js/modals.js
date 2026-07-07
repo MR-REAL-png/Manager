@@ -16,6 +16,7 @@ async function openKasDetail(){
   // Saldo dompet & Total Aset dihitung lewat fungsi shared (helpers.js) —
   // sama persis dengan yang dipakai di halaman Dompet, termasuk transfer & saldo awal,
   // supaya angkanya selalu sinkron di kedua tempat.
+  allRows=await fetchAllData();
   const transfers=await fetchTransfers();
   const{banks,saldoMap,totalSaldo}=hitungSaldoDompet(allRows,transfers);
   const totalPos=totalSaldo>=0;
