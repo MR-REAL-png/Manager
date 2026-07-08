@@ -15,29 +15,7 @@ async function submitInput(){
 }
 
 // ═══ EDIT/DELETE ═══
-function toggleEditMode(){
-  if(!isAdmin){
-    document.getElementById('adminPass').value='';document.getElementById('adminErr').style.display='none';
-    document.getElementById('ovAdmin').classList.add('open');
-    setTimeout(()=>document.getElementById('adminPass').focus(),200);
-  } else {
-    isAdmin=false;editMode=false;setTheme('cosmic');
-    const btn=document.getElementById('editModeBtn');if(btn){btn.innerHTML=IC.edit+' Edit';btn.classList.remove('on')}
-    toast(`${IC.lock.replace('width:20px;height:20px','width:13px;height:13px;vertical-align:-2px;margin-right:3px')} Edit mode nonaktif`,'ok');renderCards(allRows);
-  }
-}
-
-function doAdminLogin(){
-  const pass=document.getElementById('adminPass').value;
-  if(pass===adminPassword){
-    isAdmin=true;editMode=true;closeOv(null,'ovAdmin');setTheme('ocean');
-    const btn=document.getElementById('editModeBtn');if(btn){btn.innerHTML=IC.edit+' Selesai';btn.classList.add('on')}
-    toast(`${IC.ok.replace('width:20px;height:20px','width:13px;height:13px;vertical-align:-2px;margin-right:3px')} Edit mode aktif`,'ok');renderCards(allRows);
-  } else document.getElementById('adminErr').style.display='block';
-}
-
 function openEdit(rowIdx){
-  if(!isAdmin)return;
   const r=allRows.find(x=>x.rowIndex===rowIdx);if(!r)return;
   document.getElementById('editRow').value=rowIdx;
   document.getElementById('eTgl').value=r.tanggal;syncBulan('e');
@@ -292,7 +270,7 @@ function renderCekTanggalModal(){
   const renderKandidat=(list,emptyMsg,showPeriode)=>{
     if(!list.length)return`<p style="font-size:0.72rem;color:var(--tx3);padding:8px 0">${emptyMsg}</p>`;
     return list.map(r=>`
-      <div class="bs-kas-row" style="cursor:pointer" onclick="if(!isAdmin){toast('Aktifkan Edit Mode dulu buat edit transaksi','err');return;}closeOv(null,'ovSett');openEdit(${r.id})">
+      <div class="bs-kas-row" style="cursor:pointer" onclick="closeOv(null,'ovSett');openEdit(${r.id})">
         <div>
           <div class="bs-kas-row-lbl" style="color:#fff">${formatTgl(r.tanggal)} · ${r.kategori||r.jenis}</div>
           <div style="font-size:0.65rem;color:var(--tx3)">${r.pembayaran||'-'}${showPeriode&&r._periodeLabel?' · periode '+r._periodeLabel:''}${r.detail?' · '+r.detail:''}</div>
