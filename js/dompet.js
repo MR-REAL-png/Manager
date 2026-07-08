@@ -68,9 +68,9 @@ async function loadDompet(){
   if(!el)return;
   el.innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
   try{
-    allRows=await fetchAllData();
+    const[rows,transfers]=await Promise.all([fetchAllData(),fetchTransfers()]);
+    allRows=rows;
     await fetchDBOptions();
-    const transfers=await fetchTransfers();
     // Sumber hitung tunggal — dipakai juga oleh popup Ringkasan Arus Kas (modals.js)
     // supaya "Total Aset" di dua tempat selalu sama.
     const{banks,saldoMap}=hitungSaldoDompet(allRows,transfers);
@@ -273,29 +273,56 @@ function openTransferModal(){
     <div class="fr"><label>Tanggal</label><input class="fi" type="date" id="trTanggal" value="${getLocalDate()}"></div>`;
   modal.classList.add('open');
 }
-function showTab(){document.getElementById('tabLock').style.display='none';document.getElementById('tabContent').style.display='block';loadTabungan()}
+function showTab(){
+  document.getElementById('tabLock').style.display='none';
+  document.getElementById('tabContent').style.display='block';
+  const ys=document.getElementById('tabTahun');
+  if(ys&&!ys.value)ys.value=String(new Date().getFullYear());
+  loadTabungan();
+}
 function hideTab(){document.getElementById('tabContent').style.display='none';document.getElementById('tabLock').style.display='block'}
+
+// ═══ TARGET TABUNGAN — disimpan per TAHUN, migrasi otomatis dari format lama (flat per-bulan) ═══
+function getTargetsForYear(year){
+  const raw=JSON.parse(localStorage.getItem('mm_targets')||'{}');
+  const isLegacyFlat=Object.keys(raw).some(k=>typeof raw[k]==='number');
+  if(isLegacyFlat){
+    // Data lama (sebelum ada selector tahun) dianggap milik tahun berjalan saat migrasi
+    const curYear=String(new Date().getFullYear());
+    const migrated={[curYear]:raw};
+    localStorage.setItem('mm_targets',JSON.stringify(migrated));
+    return migrated[year]||{};
+  }
+  return raw[year]||{};
+}
+function saveTargetsForYear(year,targets){
+  const raw=JSON.parse(localStorage.getItem('mm_targets')||'{}');
+  const isLegacyFlat=Object.keys(raw).some(k=>typeof raw[k]==='number');
+  const base=isLegacyFlat?{}:raw;
+  base[year]=targets;
+  localStorage.setItem('mm_targets',JSON.stringify(base));
+}
 
 async function loadTabungan(){
   document.getElementById('tabList').innerHTML='<div class="ldrow"><div class="spin"></div>Memuat...</div>';
   try{
     if(!allRows.length)allRows=await fetchAllData();
+    const yearSel=document.getElementById('tabTahun');
+    if(yearSel&&!yearSel.value)yearSel.value=String(new Date().getFullYear());
+    const year=yearSel?yearSel.value:String(new Date().getFullYear());
     const tbm={};
     allRows.forEach(r=>{
-      if(r.jenis==='Pengeluaran'&&r.kategori&&r.kategori.toLowerCase().includes('tabungan'))
+      if(r.jenis==='Pengeluaran'&&r.kategori&&r.kategori.toLowerCase().includes('tabungan')&&r.tanggal.startsWith(year))
         tbm[r.bulan]=(tbm[r.bulan]||0)+r.nominal;
     });
-    let targetTotal=18000000,blt={};
-    try{
-      const savedTargets=JSON.parse(localStorage.getItem('mm_targets')||'{}');
-      if(Object.keys(savedTargets).length>0){blt=savedTargets;targetTotal=Object.values(blt).reduce((s,v)=>s+v,0);}
-    }catch(e){console.warn('Gagal baca target:',e)}
+    const blt=getTargetsForYear(year);
+    const targetTotal=Object.values(blt).reduce((s,v)=>s+v,0);
     const tt=Object.values(tbm).reduce((s,v)=>s+v,0);
     const pct=targetTotal>0?Math.min(Math.round(tt/targetTotal*100),100):0;
     document.getElementById('tabTotal').textContent=rp(targetTotal);
-    const sub=document.getElementById('tabSub');if(sub)sub.textContent=`Terkumpul: ${rp(tt)} · ${pct}% tercapai`;
+    const sub=document.getElementById('tabSub');if(sub)sub.textContent=`Terkumpul: ${rp(tt)} · ${pct}% tercapai · ${year}`;
     const fill=document.getElementById('tabBarFill');if(fill)setTimeout(()=>fill.style.width=pct+'%',100);
-    const bd=MOS.map(b=>({bulan:b,tabungan:tbm[b]||0,target:blt[b]||2000000})).filter(b=>b.tabungan>0||b.target>0);
+    const bd=MOS.map(b=>({bulan:b,tabungan:tbm[b]||0,target:blt[b]||0})).filter(b=>b.tabungan>0||b.target>0);
     renderTabList(bd);renderChartTab(bd);
   }catch(e){toast('Gagal load tabungan: '+e.message,'err');console.error(e)}
 }
@@ -339,6 +366,7 @@ async function saveTarget(){
   const total=Number(document.getElementById('tgtTotal').value)||0;
   const from=document.getElementById('tgtFrom').value;
   const to=document.getElementById('tgtTo').value;
+  const year=document.getElementById('tgtTahun')?.value||String(new Date().getFullYear());
   const fi=MOS.indexOf(from),ti=MOS.indexOf(to);
   if(!total||fi<0||ti<0||ti<fi){toast('Lengkapi form dulu','err');return}
   const count=ti-fi+1;
@@ -346,10 +374,10 @@ async function saveTarget(){
   const btn=document.getElementById('btnSaveTgt');
   btn.disabled=true;btn.textContent='Menyimpan...';
   try{
-    const existing=JSON.parse(localStorage.getItem('mm_targets')||'{}');
+    const existing=getTargetsForYear(year);
     for(let i=fi;i<=ti;i++){existing[MOS[i]]=perBulan;}
-    localStorage.setItem('mm_targets',JSON.stringify(existing));
-    toast('Target tersimpan!','ok');
+    saveTargetsForYear(year,existing);
+    toast(`Target ${year} tersimpan!`,'ok');
     loadTargetSett();
   }catch(e){toast('Gagal simpan: '+e.message,'err')}
   finally{btn.disabled=false;btn.innerHTML=IC.save+'Simpan Target'}
@@ -357,10 +385,11 @@ async function saveTarget(){
 
 async function loadTargetSett(){
   const el=document.getElementById('tgtCurList');
+  const year=document.getElementById('tgtTahun')?.value||String(new Date().getFullYear());
   try{
-    const targets=JSON.parse(localStorage.getItem('mm_targets')||'{}');
+    const targets=getTargetsForYear(year);
     const items=MOS.map(mo=>({bulan:mo,target:targets[mo]||0})).filter(m=>m.target>0);
-    if(!items.length){el.innerHTML=`<div class="empty"><div class="ei">${IC.target}</div><p>Belum ada target tersimpan</p></div>`;return}
+    if(!items.length){el.innerHTML=`<div class="empty"><div class="ei">${IC.target}</div><p>Belum ada target ${year} tersimpan</p></div>`;return}
     el.innerHTML=items.map((m,i)=>`<div class="tab-item" style="animation-delay:${i*0.05}s"><div class="tab-row"><span class="tab-mo">${IC.target} ${m.bulan}</span><span class="tab-pc" style="color:var(--grn)">${rpShort(m.target)}</span></div></div>`).join('');
   }catch(e){el.innerHTML=`<div class="empty"><div class="ei">${IC.warn}</div><p>Gagal baca target</p></div>`}
 }
