@@ -374,10 +374,12 @@ async function saveTarget(){
   const btn=document.getElementById('btnSaveTgt');
   btn.disabled=true;btn.textContent='Menyimpan...';
   try{
-    const existing=getTargetsForYear(year);
-    for(let i=fi;i<=ti;i++){existing[MOS[i]]=perBulan;}
-    saveTargetsForYear(year,existing);
-    toast(`Target ${year} tersimpan!`,'ok');
+    // Ganti TOTAL — target lama tahun ini dihapus, diganti sepenuhnya sesuai rentang baru.
+    // Bulan di luar rentang yang dipilih otomatis jadi tanpa target (0).
+    const fresh={};
+    for(let i=fi;i<=ti;i++){fresh[MOS[i]]=perBulan;}
+    saveTargetsForYear(year,fresh);
+    toast(`Target ${year} disimpan (menggantikan target lama)`,'ok');
     loadTargetSett();
   }catch(e){toast('Gagal simpan: '+e.message,'err')}
   finally{btn.disabled=false;btn.innerHTML=IC.save+'Simpan Target'}
