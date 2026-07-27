@@ -146,6 +146,36 @@ function openBudItemDetail(kat){
   setTimeout(()=>{const b=document.getElementById('budBarFill');if(b)b.style.width=b.dataset.w+'%'},100);
 }
 
+function openRekapKatDetail(kat){
+  const t=document.getElementById('bsTitle');
+  const isIn=rekapKatType==='Pemasukan';
+  if(t)t.innerHTML=`${isIn?IC.in:IC.out} ${kat}`;
+  document.getElementById('bsOverlay').classList.add('open');
+  const body=document.getElementById('bsBody');
+  const from=document.getElementById('rkFrom')?.value||'0000-01-01',to=document.getElementById('rkTo')?.value||'9999-12-31';
+  const txs=allRows.filter(r=>r.jenis===rekapKatType&&r.kategori===kat&&r.tanggal>=from&&r.tanggal<=to)
+    .sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
+  const total=txs.reduce((s,r)=>s+r.nominal,0);
+  const days=[...new Set(txs.map(r=>r.tanggal))].length;
+  body.innerHTML=`
+  <div class="bs-bud-hero" style="background:${isIn?'linear-gradient(135deg,#14532d,#16a34a)':'linear-gradient(135deg,#1e1b4b,#4c1d95)'}">
+    <div class="bs-bud-hero-top"><div class="bs-bud-hero-name">${kat}</div></div>
+    <div class="bs-bud-hero-amts"><span>${rp(total)} ${isIn?'diterima':'terpakai'}</span></div>
+  </div>
+  <div class="bs-bud-stats">
+    <div class="bs-bud-stat"><div class="bs-bud-stat-lbl">Jumlah Transaksi</div><div class="bs-bud-stat-val">${txs.length}x</div></div>
+    <div class="bs-bud-stat"><div class="bs-bud-stat-lbl">Hari Aktif</div><div class="bs-bud-stat-val">${days} hari</div></div>
+  </div>
+  ${txs.length?`<div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Riwayat Transaksi</div>
+  <div class="bs-bud-txlist">${txs.slice(0,20).map(r=>`<div class="bs-bud-tx">
+    <div class="bs-bud-tx-left">
+      <div class="bs-bud-tx-tgl">${formatTgl(r.tanggal)}</div>
+      ${r.detail?`<div class="bs-bud-tx-det">${r.detail}</div>`:''}
+    </div>
+    <div class="bs-bud-tx-nom" style="color:${isIn?'var(--grn)':''}">${isIn?'+':'−'}${rp(r.nominal)}</div>
+  </div>`).join('')}${txs.length>20?`<div style="text-align:center;font-size:0.65rem;color:var(--tx3);padding:4px">+${txs.length-20} transaksi lainnya</div>`:''}</div>`:''}`;
+}
+
 // ═══ POPUP: RATA² BUDGET ═══
 function openBudgetRataDetail(){}
 
