@@ -348,7 +348,7 @@ function renderChartTab(data){
 
 // ═══ TARGET SETTING ═══
 function hitungTarget(){
-  const total=Number(document.getElementById('tgtTotal').value)||0;
+  const total=getNomVal('tgtTotal');
   const from=document.getElementById('tgtFrom').value;
   const to=document.getElementById('tgtTo').value;
   const fi=MOS.indexOf(from),ti=MOS.indexOf(to);
@@ -363,7 +363,7 @@ function hitungTarget(){
 }
 
 async function saveTarget(){
-  const total=Number(document.getElementById('tgtTotal').value)||0;
+  const total=getNomVal('tgtTotal');
   const from=document.getElementById('tgtFrom').value;
   const to=document.getElementById('tgtTo').value;
   const year=document.getElementById('tgtTahun')?.value||String(new Date().getFullYear());
