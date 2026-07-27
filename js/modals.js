@@ -474,6 +474,7 @@ function fillFormFromAI(data) {
 document.addEventListener('DOMContentLoaded',async()=>{
   initParticles();initOceanParticles();
   updateClock();loadTheme();loadSettings();initLogo();
+  updateSyncBadge();
   document.getElementById('inTgl').value=getLocalDate();syncBulan('in');
   const now=new Date();
   document.getElementById('rekapTahun').value=String(now.getFullYear());
@@ -494,6 +495,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
         await pullSettings();
         initRealtimeSync();
         fetchDBOptions().then(()=>loadDashboard());
+        syncPendingTx();
         return;
       }
     }catch(e){}
@@ -501,3 +503,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
   // Belum login — tampilkan PIN overlay
   showPinOverlay();
 });
+
+// ═══ OFFLINE/ONLINE DETECTION ═══
+window.addEventListener('online',()=>{updateSyncBadge();syncPendingTx();});
+window.addEventListener('offline',updateSyncBadge);
+setInterval(()=>{if(navigator.onLine)syncPendingTx()},20000);
