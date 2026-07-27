@@ -77,7 +77,8 @@ const ADMIN_PASS_DEFAULT='sheril';
 // ═══ GLOBAL STATE ═══
 let allRows=[],dbOpts={banks:[],kategoris:[],metodes:[],jenis:[]};
 let isAdmin=false,editMode=false;
-let chartKat=null,chartTab=null,chartRekap=null,chartMetode=null,chartKal=null,chartHarian=null;
+let chartKat=null,chartTab=null,chartRekap=null,chartMetode=null,chartKal=null,chartHarian=null,chartRekapKat=null;
+let rekapKatType='Pengeluaran';
 let toastT,avgDetailData=null;
 let kalYear=new Date().getFullYear(),kalMonth=new Date().getMonth();
 let settModalType='';
