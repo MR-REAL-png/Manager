@@ -422,6 +422,90 @@ async function loadRekap(){
   }catch(e){toast('Gagal load rekap','err')}
 }
 
+// ═══ REKAP PERKATEGORI ═══
+function rkSetType(type){
+  rekapKatType=type;
+  const btnOut=document.getElementById('rkTypeOut'),btnIn=document.getElementById('rkTypeIn');
+  const onGrad='linear-gradient(135deg,#7c3aed,#ec4899)';
+  if(btnOut&&btnIn){
+    if(type==='Pengeluaran'){
+      btnOut.style.background=onGrad;btnOut.style.color='#fff';btnOut.style.borderColor='transparent';
+      btnIn.style.background='var(--glass)';btnIn.style.color='var(--tx2)';btnIn.style.borderColor='var(--bdr2)';
+    }else{
+      btnIn.style.background=onGrad;btnIn.style.color='#fff';btnIn.style.borderColor='transparent';
+      btnOut.style.background='var(--glass)';btnOut.style.color='var(--tx2)';btnOut.style.borderColor='var(--bdr2)';
+    }
+  }
+  loadRekapKategori();
+}
+function rkPreset(key){
+  const today=new Date();
+  const fromEl=document.getElementById('rkFrom'),toEl=document.getElementById('rkTo');
+  if(key==='bulan'){
+    fromEl.value=`${today.getFullYear()}-${pad(today.getMonth()+1)}-01`;
+    toEl.value=getLocalDate();
+  }else if(key==='tahun'){
+    fromEl.value=`${today.getFullYear()}-01-01`;
+    toEl.value=getLocalDate();
+  }else if(key==='all'){
+    fromEl.value='';toEl.value='';fromEl.dataset.touched='1';toEl.dataset.touched='1';
+  }
+  loadRekapKategori();
+}
+async function loadRekapKategori(){
+  const list=document.getElementById('rkList');
+  if(list)list.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div>';
+  try{
+    if(!allRows.length)allRows=await fetchAllData();
+    const fromEl=document.getElementById('rkFrom'),toEl=document.getElementById('rkTo');
+    // Default: bulan berjalan kalau input masih kosong (pertama kali dibuka)
+    if(fromEl&&toEl&&!fromEl.value&&!toEl.value&&!fromEl.dataset.touched){
+      const today=new Date();
+      fromEl.value=`${today.getFullYear()}-${pad(today.getMonth()+1)}-01`;
+      toEl.value=getLocalDate();
+    }
+    const from=fromEl?.value||'0000-01-01',to=toEl?.value||'9999-12-31';
+    const rows=allRows.filter(r=>r.jenis===rekapKatType&&r.tanggal>=from&&r.tanggal<=to);
+    const byKat=groupBy(rows,'kategori');
+    const ranked=Object.keys(byKat).map(k=>({kategori:k,nominal:byKat[k].reduce((s,r)=>s+r.nominal,0)})).sort((a,b)=>b.nominal-a.nominal);
+    const total=ranked.reduce((s,k)=>s+k.nominal,0);
+    document.getElementById('rkTotalLbl').textContent=`Total ${rekapKatType}`;
+    document.getElementById('rkTotalVal').textContent=rp(total);
+    if(!ranked.length){
+      list.innerHTML=`<div class="empty"><div class="ei">${IC.tag}</div><p>Belum ada transaksi ${rekapKatType.toLowerCase()}<br>di rentang ini.</p></div>`;
+    }else{
+      list.innerHTML=ranked.map((k,i)=>{
+        const pct=total>0?Math.round(k.nominal/total*100):0;
+        return`<div class="bud-item tap-card" style="animation-delay:${i*0.05}s;cursor:pointer" onclick="openRekapKatDetail('${k.kategori.replace(/'/g,"\\'")}')"><div class="bud-top"><span class="bud-name">${k.kategori}</span><span class="bud-pct">${pct}%</span></div><div class="bud-bar"><div class="bud-fill" style="width:0%;background:${CHART_COLORS[i%CHART_COLORS.length]}" data-w="${pct}"></div></div><div class="bud-amts"><span>${rpShort(k.nominal)}</span><span>dari ${rpShort(total)}</span></div></div>`;
+      }).join('');
+      setTimeout(()=>{list.querySelectorAll('.bud-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
+    }
+    renderChartRekapKat(ranked.slice(0,5).map(k=>k.kategori),rows,from,to);
+  }catch(e){toast('Gagal load rekap kategori','err');console.error(e)}
+}
+function renderChartRekapKat(topKats,rows,from,to){
+  const ctx=document.getElementById('chartRekapKat')?.getContext('2d');if(!ctx)return;
+  if(chartRekapKat){try{chartRekapKat.destroy()}catch(e){}chartRekapKat=null;}
+  if(!topKats.length)return;
+  // Susun daftar bulan (YYYY-MM) dari from..to biar tren kontinu
+  const fromD=from&&from!=='0000-01-01'?new Date(from):new Date(rows[0]?.tanggal||getLocalDate());
+  const toD=to&&to!=='9999-12-31'?new Date(to):new Date();
+  const months=[];
+  const cur=new Date(fromD.getFullYear(),fromD.getMonth(),1);
+  const end=new Date(toD.getFullYear(),toD.getMonth(),1);
+  while(cur<=end&&months.length<36){months.push(`${cur.getFullYear()}-${pad(cur.getMonth()+1)}`);cur.setMonth(cur.getMonth()+1);}
+  const tc='rgba(255,255,255,0.5)';
+  const datasets=topKats.map((k,i)=>{
+    const color=CHART_COLORS[i%CHART_COLORS.length];
+    return{
+      label:k,
+      data:months.map(mk=>rows.filter(r=>r.kategori===k&&r.tanggal.startsWith(mk)).reduce((s,r)=>s+r.nominal,0)),
+      borderColor:color,backgroundColor:color,borderWidth:2,pointRadius:2,tension:0.3,fill:false
+    };
+  });
+  chartRekapKat=new Chart(ctx,{type:'line',data:{labels:months.map(mk=>{const[y,m]=mk.split('-');return MOS[Number(m)-1].slice(0,3)+' '+y.slice(2)}),datasets},options:{responsive:true,animation:{duration:800},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:9},color:tc}}},scales:{y:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(1)+'jt',color:tc,font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},x:{ticks:{color:tc,font:{size:9}},grid:{display:false},border:{display:false}}}}});
+}
+
 // ═══ METODE ═══
 async function loadMetode(){
   document.getElementById('bankList').innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div>';
