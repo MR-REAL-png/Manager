@@ -126,17 +126,96 @@ async function apiPut(action,body){
 async function sheetsAppend(values){return apiPost('append',{values})}
 async function sheetsUpdate(id,values){return apiPut('update',{id,values})}
 
+// ═══ OFFLINE MODE: cache data & antrian transaksi ═══
+function isNetworkFail(e){
+  return !navigator.onLine || (e&&e.name==='TypeError') || /Failed to fetch|NetworkError|network/i.test((e&&e.message)||'');
+}
+function getPendingQueue(){
+  try{return JSON.parse(localStorage.getItem('mm_pending_tx')||'[]')}catch(e){return[]}
+}
+function queuePendingTx(values){
+  const queue=getPendingQueue();
+  const localId='local_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  queue.push({localId,values,createdAt:Date.now()});
+  localStorage.setItem('mm_pending_tx',JSON.stringify(queue));
+  return localId;
+}
+function removeFromQueue(localId){
+  const queue=getPendingQueue().filter(q=>q.localId!==localId);
+  localStorage.setItem('mm_pending_tx',JSON.stringify(queue));
+}
+function updateSyncBadge(){
+  const el=document.getElementById('syncBanner');if(!el)return;
+  const queue=getPendingQueue();
+  if(!navigator.onLine){
+    el.style.display='block';
+    el.style.background='linear-gradient(90deg,#64748b,#475569)';
+    el.textContent=queue.length?`Offline — ${queue.length} transaksi menunggu sinkron`:'Offline — perubahan akan disinkron otomatis';
+  }else if(queue.length){
+    el.style.display='block';
+    el.style.background='linear-gradient(90deg,#f59e0b,#f97316)';
+    el.textContent=`Menyinkron ${queue.length} transaksi...`;
+  }else{
+    el.style.display='none';
+  }
+}
+async function syncPendingTx(){
+  if(!navigator.onLine)return;
+  const queue=getPendingQueue();
+  if(!queue.length)return;
+  let ok=0;
+  for(const item of[...queue]){
+    try{
+      await apiPost('append',{values:[item.values]});
+      removeFromQueue(item.localId);
+      ok++;
+    }catch(e){
+      if(isNetworkFail(e))break; // masih offline sebenarnya, stop biar gak spam
+      removeFromQueue(item.localId); // error valid dari server (data invalid dll) → buang biar gak nyangkut selamanya
+    }
+  }
+  if(ok>0){
+    allRows=[];
+    await fetchDBOptions();
+    if(document.getElementById('pg-data')?.classList.contains('on'))loadData();
+    if(document.getElementById('pg-dashboard')?.classList.contains('on'))loadDashboard();
+    toast(`${ok} transaksi berhasil disinkron`,'ok');
+  }
+  updateSyncBadge();
+}
+
 async function fetchAllData(){
-  const res=await fetch(`${API_URL}/api/sheets?action=get`);
-  if(!res.ok)throw new Error('Gagal ambil data: '+res.status);
-  const json=await res.json();
-  if(!json.success)throw new Error(json.error||'Gagal ambil data');
-  return (json.data||[]).map(r=>({
-    id:r.id,rowIndex:r.id,
-    tanggal:r.tanggal||'',bulan:r.bulan||'',kategori:r.kategori||'',
-    nominal:Number(r.nominal)||0,pembayaran:r.pembayaran||'',
-    detail:r.detail||'',metode:r.metode||'',jenis:r.jenis||''
-  })).filter(r=>r.tanggal);
+  let rows;
+  try{
+    const res=await fetch(`${API_URL}/api/sheets?action=get`);
+    if(!res.ok)throw new Error('Gagal ambil data: '+res.status);
+    const json=await res.json();
+    if(!json.success)throw new Error(json.error||'Gagal ambil data');
+    rows=(json.data||[]).map(r=>({
+      id:r.id,rowIndex:r.id,
+      tanggal:r.tanggal||'',bulan:r.bulan||'',kategori:r.kategori||'',
+      nominal:Number(r.nominal)||0,pembayaran:r.pembayaran||'',
+      detail:r.detail||'',metode:r.metode||'',jenis:r.jenis||''
+    })).filter(r=>r.tanggal);
+    try{localStorage.setItem('mm_cache_rows',JSON.stringify(rows));localStorage.setItem('mm_cache_time',String(Date.now()))}catch(e){}
+  }catch(e){
+    // Gagal ambil data segar (kemungkinan offline) → pakai cache lokal terakhir kalau ada
+    const cached=localStorage.getItem('mm_cache_rows');
+    if(cached){
+      rows=JSON.parse(cached);
+      toast('Offline — menampilkan data tersimpan terakhir','warn');
+    }else{
+      updateSyncBadge();
+      throw e;
+    }
+  }
+  // Selipkan transaksi yang masih menunggu sinkron biar tetap kelihatan di UI
+  const pending=getPendingQueue().map(q=>{
+    const[tgl,bulan,kat,nom,bank,ket,metode,jenis]=q.values;
+    return{id:q.localId,rowIndex:q.localId,tanggal:tgl,bulan,kategori:kat,nominal:Number(nom)||0,pembayaran:bank,detail:ket,metode,jenis,_pending:true};
+  });
+  updateSyncBadge();
+  return[...pending,...rows];
 }
 
 async function fetchDBOptions(){
