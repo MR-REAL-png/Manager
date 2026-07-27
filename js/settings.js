@@ -26,19 +26,19 @@ function openEdit(rowIdx){
     fillBank('eBank',r.metode);
     setTimeout(()=>{document.getElementById('eBank').value=r.pembayaran},80);
   },80);
-  document.getElementById('eNom').value=r.nominal;document.getElementById('eKet').value=r.detail||'';
+  document.getElementById('eNom').value=Number(r.nominal).toLocaleString('id-ID');document.getElementById('eKet').value=r.detail||'';
   document.getElementById('ovEdit').classList.add('open');
 }
 
 async function doEdit(){
   const ri=Number(document.getElementById('editRow').value);
   const tgl=document.getElementById('eTgl').value,j=document.getElementById('eJenis').value;
-  const k=document.getElementById('eKat').value,n=document.getElementById('eNom').value;
+  const k=document.getElementById('eKat').value,n=getNomVal('eNom');
   const m=document.getElementById('eMetode').value,b=document.getElementById('eBank').value;
   const d=document.getElementById('eKet').value,bln=document.getElementById('eBulan').value;
   if(!tgl||!j||!k||!n){toast('Lengkapi field','err');return}
   document.getElementById('eLoad').style.display='flex';
-  try{await sheetsUpdate(ri,[tgl,bln,k,Number(n),b,d,m,j]);toast('Diupdate!','ok');closeOv(null,'ovEdit');allRows=[];loadData()}
+  try{await sheetsUpdate(ri,[tgl,bln,k,n,b,d,m,j]);toast('Diupdate!','ok');closeOv(null,'ovEdit');allRows=[];loadData()}
   catch(e){toast('Gagal update','err')}
   finally{document.getElementById('eLoad').style.display='none'}
 }
@@ -113,7 +113,7 @@ function openSettModal(type){
         ${kats.map((k,i)=>{
           const id='bgt_'+i;
           const val=budgets[k]||'';
-          return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" data-kat="${k}" placeholder="Rp — tidak ada limit" value="${val}" min="0" oninput="updateAnggaranTotal()"></div>`;
+          return`<div class="fr"><label>${k}</label><input class="fi" type="text" id="${id}" data-kat="${k}" placeholder="Rp — tidak ada limit" value="${val?Number(val).toLocaleString('id-ID'):''}" inputmode="numeric" oninput="fmtNom(this);updateAnggaranTotal()"></div>`;
         }).join('')}
         <div id="anggaranTotalBox" style="margin-top:10px;padding:10px 12px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);border-radius:10px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:0.75rem;color:var(--tx2)">${IC.chart.replace('width:20px;height:20px','width:13px;height:13px;vertical-align:-2px;margin-right:4px')} Total Anggaran</span>
@@ -363,7 +363,7 @@ function copyBudgetFromPrevMonth(targetKey) {
 function updateAnggaranTotal(){
   const inputs=document.querySelectorAll('#settModalBody input[data-kat]');
   let total=0;
-  inputs.forEach(inp=>{const v=Number(inp.value);if(v>0)total+=v;});
+  inputs.forEach(inp=>{const v=Number((inp.value||'').replace(/\./g,''));if(v>0)total+=v;});
   const el=document.getElementById('anggaranTotalVal');
   if(el)el.textContent=total>0?rp(total):'—';
 }
@@ -404,7 +404,7 @@ function anggaranNavMonth(dir){
     ${kats.map((k,i)=>{
       const id='bgt_'+i;
       const val=newBudgets[k]||'';
-      return`<div class="fr"><label>${k}</label><input class="fi" type="number" id="${id}" data-kat="${k}" placeholder="Rp — tidak ada limit" value="${val}" min="0" oninput="updateAnggaranTotal()"></div>`;
+      return`<div class="fr"><label>${k}</label><input class="fi" type="text" id="${id}" data-kat="${k}" placeholder="Rp — tidak ada limit" value="${val?Number(val).toLocaleString('id-ID'):''}" inputmode="numeric" oninput="fmtNom(this);updateAnggaranTotal()"></div>`;
     }).join('')}
     <div id="anggaranTotalBox" style="margin-top:10px;padding:10px 12px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);border-radius:10px;display:flex;justify-content:space-between;align-items:center">
       <span style="font-size:0.75rem;color:var(--tx2)">${IC.chart.replace('width:20px;height:20px','width:13px;height:13px;vertical-align:-2px;margin-right:4px')} Total Anggaran</span>
@@ -455,7 +455,7 @@ async function saveSettModal(){
     const budgets=getBudgetsForMonth(key);
     (dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income')).forEach((k,i)=>{
       const el=document.getElementById('bgt_'+i);
-      if(el&&el.value)budgets[k]=Number(el.value);
+      if(el&&el.value)budgets[k]=Number(el.value.replace(/\./g,''));
       else if(el&&!el.value)delete budgets[k];
     });
     saveBudgetsForMonth(key,budgets);
