@@ -27,6 +27,7 @@ function goPage(p){
   else if(p==='tabungan'&&document.getElementById('tabContent').style.display!=='none')loadTabungan();
   else if(p==='dompet')loadDompet();
   else if(p==='rekap')loadRekap();
+  else if(p==='rekapkat')loadRekapKategori();
   else if(p==='metode')loadMetode();
   else if(p==='kalender')renderKalender();
   else if(p==='notif')loadNotif();
@@ -372,9 +373,11 @@ function renderCards(rows){
     const cards=txs.map((r,ri)=>{
       const isIn=r.jenis==='Pemasukan',cls=isIn?'inc':'spd',arr=isIn?'↓':'↑';
       const kat=r.kategori||'';
+      const pendingBadge=r._pending?'<span style="font-size:0.62rem;margin-left:4px;color:#f59e0b" title="Menunggu sinkron">⏳</span>':'';
+      const tapHandler=r._pending?"toast('Menunggu sinkron dulu, belum bisa diedit','warn')":`openStrukDetail(${r.rowIndex})`;
       const tags=[r.pembayaran,r.metode].filter(Boolean).map(t=>`<span class="dtag">${t}</span>`).join('');
       const ketHtml=r.detail?`<span class="dc-ket-inline">${r.detail}</span>`:'';
-      return`<div class="dc ${cls}" style="animation-delay:${Math.min((gi*0.03)+(ri*0.02),0.3)}s" onclick="event.stopPropagation();openStrukDetail(${r.rowIndex})"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags"><div class="dc-tags-left">${tags}</div>${ketHtml}</div></div>`;
+      return`<div class="dc ${cls}" style="animation-delay:${Math.min((gi*0.03)+(ri*0.02),0.3)}s" onclick="event.stopPropagation();${tapHandler}"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat}${pendingBadge}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags"><div class="dc-tags-left">${tags}</div>${ketHtml}</div></div>`;
     }).join('');
     return`<div class="date-group"><div class="dg-header"><div class="dg-dot ${dotCls}"></div><span class="dg-date">${IC.cal} ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
   }).join('');
