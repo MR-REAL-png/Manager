@@ -5,7 +5,7 @@
 
 // CACHE_NAME dinaikkan tiap kali file ini diedit signifikan, biar browser
 // selalu deteksi update dengan benar (bukan nyangkut cache lama).
-const CACHE_NAME = 'sereal-20260728-1';
+const CACHE_NAME = 'sereal-20260728-2';
 const OFFLINE_URL = './index.html';
 
 // File statis yang di-cache saat install
@@ -22,6 +22,10 @@ const STATIC_ASSETS = [
   './js/dompet.js',
   './js/settings.js',
   './js/modals.js',
+  './v2/',
+  './v2/index.html',
+  './v2/css/theme-new.css',
+  './v2/js/render.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
 ];
 
