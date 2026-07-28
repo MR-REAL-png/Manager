@@ -115,12 +115,22 @@ function openInputModal(){
 // ═══ API ═══
 async function apiPost(action,body){
   const res=await fetch(`${API_URL}/api/sheets?action=${action}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal simpan')}
+  if(!res.ok){
+    const e=await res.json().catch(()=>({}));
+    const err=new Error(e.error||'Gagal simpan');
+    if(e.offline)err.offline=true;
+    throw err;
+  }
   return await res.json();
 }
 async function apiPut(action,body){
   const res=await fetch(`${API_URL}/api/sheets?action=${action}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!res.ok){const e=await res.json();throw new Error(e.error||'Gagal update')}
+  if(!res.ok){
+    const e=await res.json().catch(()=>({}));
+    const err=new Error(e.error||'Gagal update');
+    if(e.offline)err.offline=true;
+    throw err;
+  }
   return await res.json();
 }
 async function sheetsAppend(values){return apiPost('append',{values})}
@@ -128,7 +138,7 @@ async function sheetsUpdate(id,values){return apiPut('update',{id,values})}
 
 // ═══ OFFLINE MODE: cache data & antrian transaksi ═══
 function isNetworkFail(e){
-  return !navigator.onLine || (e&&e.name==='TypeError') || /Failed to fetch|NetworkError|network/i.test((e&&e.message)||'');
+  return !navigator.onLine || (e&&e.offline) || (e&&e.name==='TypeError') || /Failed to fetch|NetworkError|network|offline/i.test((e&&e.message)||'');
 }
 function getPendingQueue(){
   try{return JSON.parse(localStorage.getItem('mm_pending_tx')||'[]')}catch(e){return[]}
