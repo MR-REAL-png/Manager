@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SE_REAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/v2/css/theme-new.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js').catch(e=>console.warn('SW gagal daftar:',e));
+  });
+}
+</script>
+</head>
+<body>
+<div id="frame">
+
+<div id="syncBanner"></div>
+
+<!-- ═══ PIN LOGIN (struktur & id sama dgn versi lama, cuma tampilannya beda — auth.js dipakai apa adanya) ═══ -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-stars" id="pinStars"></div>
+  <div class="pin-blob pin-blob-1"></div>
+  <div class="pin-blob pin-blob-2"></div>
+  <div class="pin-wrap">
+    <div class="pin-logo" id="pinLogo"></div>
+    <div class="pin-subtitle" id="pinSubtitle">Masukkan PIN</div>
+    <div class="pin-datetime" id="pinDatetime"></div>
+    <div class="pin-name-wrap" id="pinNameWrap" style="display:none">
+      <input class="pin-name-input" id="pinNameInput" type="text" placeholder="Nama kamu..." maxlength="20" autocomplete="off">
+    </div>
+    <div class="pin-dots" id="pinDots">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-keypad">
+      <button class="pk" onclick="pinKey('1')">1</button>
+      <button class="pk" onclick="pinKey('2')">2</button>
+      <button class="pk" onclick="pinKey('3')">3</button>
+      <button class="pk" onclick="pinKey('4')">4</button>
+      <button class="pk" onclick="pinKey('5')">5</button>
+      <button class="pk" onclick="pinKey('6')">6</button>
+      <button class="pk" onclick="pinKey('7')">7</button>
+      <button class="pk" onclick="pinKey('8')">8</button>
+      <button class="pk" onclick="pinKey('9')">9</button>
+      <button class="pk pk-empty"></button>
+      <button class="pk" onclick="pinKey('0')">0</button>
+      <button class="pk" onclick="pinDel()">⌫</button>
+    </div>
+    <button class="pin-switch" id="pinSwitch" onclick="pinToggleMode()">Belum punya akun? Daftar</button>
+  </div>
+</div>
+
+<!-- ═══ MAIN SHELL ═══ -->
+<div id="screen-main">
+  <div class="topbar">
+    <div class="hello">Halo, <b id="helloName">—</b> 👋</div>
+    <div class="bell" onclick="toast('Belum ada notifikasi baru')">🔔</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page on" id="pg-dashboard">
+    <div class="hero">
+      <div class="hero-top">
+        <div class="hero-lbl" id="heroLbl">Arus Kas Periode Ini</div>
+        <div class="eye" onclick="toggleSaldoV2()" id="eyeBtn">👁️</div>
+      </div>
+      <div class="hero-val" id="heroVal">Rp 0</div>
+      <div class="hero-split">
+        <div class="hero-chip"><div class="hero-chip-lbl">↑ Masuk</div><div class="hero-chip-val" id="heroIn">Rp 0</div></div>
+        <div class="hero-chip"><div class="hero-chip-lbl">↓ Keluar</div><div class="hero-chip-val" id="heroOut">Rp 0</div></div>
+      </div>
+    </div>
+
+    <div class="qa-row">
+      <div class="qa" onclick="openAddSheet()">
+        <div class="qa-ico" style="background:linear-gradient(135deg,var(--brand),var(--brand-2))">➕</div>
+        <div class="qa-lbl">Tambah</div>
+      </div>
+      <div class="qa" onclick="goPageV2('data')">
+        <div class="qa-ico" style="background:linear-gradient(135deg,#2CB598,#16A97A)">🧾</div>
+        <div class="qa-lbl">Riwayat</div>
+      </div>
+      <div class="qa" onclick="goPageV2('dompet')">
+        <div class="qa-ico" style="background:linear-gradient(135deg,#F0B85C,var(--gold))">👛</div>
+        <div class="qa-lbl">Dompet</div>
+      </div>
+      <div class="qa" onclick="goPageV2('rekapkat')">
+        <div class="qa-ico" style="background:linear-gradient(135deg,#E5748B,var(--red))">📊</div>
+        <div class="qa-lbl">Rekap</div>
+      </div>
+    </div>
+
+    <div class="sec-hd"><div class="sec-title">Komposisi Pengeluaran</div><div class="sec-link">Periode ini</div></div>
+    <div class="chart-card"><canvas id="chartDashKat" height="200"></canvas></div>
+
+    <div class="sec-hd"><div class="sec-title">Tren 6 Bulan Terakhir</div></div>
+    <div class="chart-card"><canvas id="chartDashTren" height="200"></canvas></div>
+  </div>
+
+  <!-- DATA -->
+  <div class="page" id="pg-data">
+    <div class="sec-title" style="margin-bottom:12px">Riwayat Transaksi</div>
+    <div id="dataList"></div>
+  </div>
+
+  <!-- DOMPET -->
+  <div class="page" id="pg-dompet">
+    <div class="sec-title" style="margin-bottom:12px">Dompet Saya</div>
+    <div class="wallet-scroll" id="walletScroll"></div>
+    <div class="wdots" id="walletDots"></div>
+    <div class="sec-hd"><div class="sec-title">Semua Rekening</div></div>
+    <div class="card" id="walletList"></div>
+  </div>
+
+  <!-- REKAP PERKATEGORI -->
+  <div class="page" id="pg-rekapkat">
+    <div class="sec-title" style="margin-bottom:12px">Rekap Perkategori</div>
+    <div class="seg">
+      <div class="seg-btn on" id="segOut" onclick="rkSetTypeV2('Pengeluaran')">Pengeluaran</div>
+      <div class="seg-btn" id="segIn" onclick="rkSetTypeV2('Pemasukan')">Pemasukan</div>
+    </div>
+    <div class="chips">
+      <div class="chip on" onclick="rkPresetV2('bulan',this)">Bulan Ini</div>
+      <div class="chip" onclick="rkPresetV2('tahun',this)">Tahun Ini</div>
+      <div class="chip" onclick="rkPresetV2('all',this)">Semua</div>
+    </div>
+    <div class="date-range-row">
+      <input type="date" id="rkFromV2" onchange="this.dataset.touched='1';loadRekapKategoriV2()">
+      <span style="color:var(--ink-faint);font-size:0.72rem">–</span>
+      <input type="date" id="rkToV2" onchange="this.dataset.touched='1';loadRekapKategoriV2()">
+    </div>
+    <div class="rk-total"><div class="rk-total-lbl" id="rkLblV2">Total Pengeluaran</div><div class="rk-total-val" id="rkValV2">Rp 0</div></div>
+    <div class="card" id="rkListV2"></div>
+    <div class="sec-hd"><div class="sec-title">Tren Bulanan (Top 5)</div></div>
+    <div class="chart-card"><canvas id="chartRekapKatV2" height="200"></canvas></div>
+  </div>
+
+  <!-- LAINNYA -->
+  <div class="page" id="pg-lainnya">
+    <div class="sec-title" style="margin-bottom:14px">Lainnya</div>
+    <div class="set-group">
+      <div class="set-group-lbl">Fitur</div>
+      <div class="menu-grid">
+        <div class="menu-item" onclick="openTabunganV2()"><div class="menu-item-ico" style="background:var(--gold)">💰</div><div class="menu-item-name">Tabungan</div></div>
+        <div class="menu-item" onclick="openRekapTotalV2()"><div class="menu-item-ico" style="background:#5B8DEF">📅</div><div class="menu-item-name">Rekap Total</div></div>
+        <div class="menu-item" onclick="goPageV2('rekapkat')"><div class="menu-item-ico" style="background:var(--red)">📊</div><div class="menu-item-name">Rekap Perkategori</div></div>
+        <div class="menu-item" onclick="openMetodeBayarV2()"><div class="menu-item-ico" style="background:var(--green)">💳</div><div class="menu-item-name">Metode Bayar</div></div>
+        <div class="menu-item" onclick="openKalenderV2()"><div class="menu-item-ico" style="background:var(--brand)">🗓️</div><div class="menu-item-name">Kalender</div></div>
+        <div class="menu-item" onclick="toast('Masih di tampilan lama untuk sekarang')"><div class="menu-item-ico" style="background:#8B6FE8">🎯</div><div class="menu-item-name">Anggaran Kategori</div></div>
+      </div>
+    </div>
+    <div class="set-group">
+      <div class="set-group-lbl">Akun</div>
+      <div class="card">
+        <div class="set-row"><div class="set-ico" style="background:var(--brand)">👤</div><div><div class="set-name" id="settUserLogin">—</div><div class="set-sub">Akun aktif</div></div></div>
+        <div class="set-row" onclick="toast('Masih di tampilan lama untuk sekarang')"><div class="set-ico" style="background:var(--gold)">🔑</div><div class="set-name">Ubah PIN</div><div class="chev">›</div></div>
+      </div>
+    </div>
+    <div class="set-group">
+      <div class="set-group-lbl">Lainnya</div>
+      <div class="card">
+        <div class="set-row" onclick="toast('Masih di tampilan lama untuk sekarang')"><div class="set-ico" style="background:var(--red)">🔔</div><div class="set-name">Notifikasi & Alert</div><div class="chev">›</div></div>
+        <div class="set-row" onclick="pinLogout()"><div class="set-ico" style="background:var(--ink-faint)">🚪</div><div class="set-name">Keluar</div><div class="chev">›</div></div>
+      </div>
+    </div>
+    <div id="settAvatar" style="display:none"></div>
+  </div>
+
+  <div class="bottomnav">
+    <div class="nav-btn on" data-nav="dashboard" onclick="goPageV2('dashboard')"><span>🏠</span>Beranda</div>
+    <div class="nav-btn" data-nav="data" onclick="goPageV2('data')"><span>🧾</span>Data</div>
+    <div class="nav-fab" onclick="openAddSheet()">➕</div>
+    <div class="nav-btn" data-nav="dompet" onclick="goPageV2('dompet')"><span>👛</span>Dompet</div>
+    <div class="nav-btn" data-nav="lainnya" onclick="goPageV2('lainnya')"><span>☰</span>Lainnya</div>
+  </div>
+</div>
+
+<!-- ═══ SHEET: TAMBAH TRANSAKSI ═══ -->
+<div class="overlay" id="ovAdd" onclick="if(event.target===this)closeSheetV2('ovAdd')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hd"><div class="sheet-title">Tambah Transaksi</div><div class="sheet-close" onclick="closeSheetV2('ovAdd')">✕</div></div>
+    <div class="type-toggle">
+      <div class="type-btn on out" id="addTypeOut" onclick="setAddTypeV2('Pengeluaran')">Pengeluaran</div>
+      <div class="type-btn in" id="addTypeIn" onclick="setAddTypeV2('Pemasukan')">Pemasukan</div>
+    </div>
+    <div class="f-group"><label class="f-lbl">Tanggal</label><input class="f-input" type="date" id="addTgl"></div>
+    <div class="f-group"><label class="f-lbl">Nominal</label><input class="f-input" id="addNom" placeholder="Rp 0" inputmode="numeric" oninput="fmtAddNomV2(this)"></div>
+    <div class="f-group"><label class="f-lbl">Kategori</label><select class="f-input" id="addKat"></select></div>
+    <div class="f-row">
+      <div class="f-group"><label class="f-lbl">Metode</label>
+        <select class="f-input" id="addMetode"><option>Transfer</option><option>Cash</option><option>QRIS</option></select>
+      </div>
+      <div class="f-group"><label class="f-lbl">Rekening</label><select class="f-input" id="addBank"></select></div>
+    </div>
+    <div class="f-group"><label class="f-lbl">Keterangan</label><input class="f-input" id="addKet" placeholder="Opsional"></div>
+    <div class="btn-main" onclick="submitInputV2()">Simpan Transaksi</div>
+  </div>
+</div>
+
+<!-- ═══ SHEET: DETAIL (dipakai bareng — kategori, tabungan, rekap total, metode, kalender) ═══ -->
+<div class="overlay" id="ovDetail" onclick="if(event.target===this)closeSheetV2('ovDetail')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hd"><div class="sheet-title" id="detailTitleV2">Detail</div><div class="sheet-close" onclick="closeSheetV2('ovDetail')">✕</div></div>
+    <div id="detailBodyV2"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/helpers.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/v2/js/render.js"></script>
+</body>
+</html>
