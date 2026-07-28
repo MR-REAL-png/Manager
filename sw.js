@@ -1,40 +1,134 @@
-// SE_REAL Service Worker — cache app shell biar tetap kebuka walau offline
-const CACHE_NAME = 'sereal-shell-v1';
+// ═══════════════════════════════════════════════════
+// service-worker.js — SE_REAL PWA Service Worker
+// Cache-first untuk aset statis jarang berubah, network-first untuk API & app code
+// ═══════════════════════════════════════════════════
 
-self.addEventListener('install', e => {
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/').catch(() => {})));
-});
+// CACHE_NAME dinaikkan tiap kali file ini diedit signifikan, biar browser
+// selalu deteksi update dengan benar (bukan nyangkut cache lama).
+const CACHE_NAME = 'sereal-20260728-1';
+const OFFLINE_URL = './index.html';
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+// File statis yang di-cache saat install
+const STATIC_ASSETS = [
+  './',
+  './index.html',
+  './css/base.css',
+  './css/components.css',
+  './css/pin.css',
+  './js/config.js',
+  './js/helpers.js',
+  './js/auth.js',
+  './js/dashboard.js',
+  './js/dompet.js',
+  './js/settings.js',
+  './js/modals.js',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+];
+
+// ── INSTALL: cache semua file statis ──
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
+// ── ACTIVATE: hapus cache lama ──
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(k => k !== CACHE_NAME)
+          .map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
+  );
+});
 
-  // Jangan campur tangan request ke backend (Vercel API / Supabase) —
-  // biar app-level offline-queue (mm_pending_tx) yang handle logika sync-nya.
-  if (url.hostname.includes('vercel.app') || url.hostname.includes('supabase.co') || url.pathname.startsWith('/api/')) {
+// ── FETCH: strategi per jenis request ──
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip non-GET (POST/PUT append & update transaksi ditangani app-level
+  // offline-queue di helpers.js, bukan di sini)
+  if (request.method !== 'GET') return;
+
+  // API calls (Vercel API / Supabase) → Network first, fallback JSON offline
+  if (url.pathname.startsWith('/api/') || url.hostname.includes('supabase')) {
+    event.respondWith(networkFirst(request));
     return;
   }
-  if (e.request.method !== 'GET') return;
 
-  // Cache-first untuk asset statis (html/css/js/gambar) — langsung dari cache kalau ada
-  // (biar cepat & tetap jalan offline), sambil update cache di background.
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fetchPromise = fetch(e.request).then(res => {
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached || fetchPromise;
-    })
-  );
+  // File JS/CSS statis → Network first supaya update selalu kepakai,
+  // fallback ke cache kalau offline
+  if (/\.(js|css)$/.test(url.pathname)) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // Navigasi (buka/reload halaman) & index.html → Network first juga,
+  // supaya perubahan HTML langsung kepakai tanpa harus hard refresh.
+  if (request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('/index.html')) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // Aset lain (gambar, font, chart.js CDN, dll) → Cache first, fallback network
+  event.respondWith(cacheFirst(request));
+});
+
+// Cache first: cek cache dulu, baru network
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return caches.match(OFFLINE_URL);
+  }
+}
+
+// Network first: coba network, fallback ke cache
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    // Kembalikan response offline berformat JSON untuk API,
+    // biar apiPost/apiPut/fetchAllData di helpers.js tetap bisa parsing normal
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Offline — data tidak tersedia',
+      offline: true,
+    }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// ── MESSAGE: dari app untuk trigger update cache manual kalau perlu ──
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  if (event.data?.type === 'CACHE_URLS') {
+    const urls = event.data.urls || [];
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urls));
+  }
 });
