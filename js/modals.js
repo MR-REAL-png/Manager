@@ -149,7 +149,7 @@ function openBudItemDetail(kat){
 function openRekapKatDetail(kat){
   const t=document.getElementById('bsTitle');
   const isIn=rekapKatType==='Pemasukan';
-  if(t)t.innerHTML=`${isIn?IC.in:IC.out} ${kat}`;
+  if(t)t.innerHTML=`${isIn?IC.in:IC.out} Detail Kategori`;
   document.getElementById('bsOverlay').classList.add('open');
   const body=document.getElementById('bsBody');
   const from=document.getElementById('rkFrom')?.value||'0000-01-01',to=document.getElementById('rkTo')?.value||'9999-12-31';
@@ -157,23 +157,86 @@ function openRekapKatDetail(kat){
     .sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
   const total=txs.reduce((s,r)=>s+r.nominal,0);
   const days=[...new Set(txs.map(r=>r.tanggal))].length;
+  const avg=txs.length?Math.round(total/txs.length):0;
+
+  // % kontribusi kategori ini terhadap total jenis yang sama di rentang yang sama
+  const grandTotal=allRows.filter(r=>r.jenis===rekapKatType&&r.tanggal>=from&&r.tanggal<=to).reduce((s,r)=>s+r.nominal,0);
+  const sharePct=grandTotal>0?Math.round(total/grandTotal*100):0;
+
+  // Bandingkan ke periode sebelumnya dengan durasi yang sama (kalau rentang custom dipilih)
+  let trendHtml='';
+  if(from!=='0000-01-01'&&to!=='9999-12-31'){
+    const fromD=new Date(from),toD=new Date(to);
+    const durMs=toD-fromD;
+    const prevTo=new Date(fromD.getTime()-86400000);
+    const prevFrom=new Date(prevTo.getTime()-durMs);
+    const prevFromStr=`${prevFrom.getFullYear()}-${pad(prevFrom.getMonth()+1)}-${pad(prevFrom.getDate())}`;
+    const prevToStr=`${prevTo.getFullYear()}-${pad(prevTo.getMonth()+1)}-${pad(prevTo.getDate())}`;
+    const prevTotal=allRows.filter(r=>r.jenis===rekapKatType&&r.kategori===kat&&r.tanggal>=prevFromStr&&r.tanggal<=prevToStr).reduce((s,r)=>s+r.nominal,0);
+    if(prevTotal>0){
+      const diff=Math.round((total-prevTotal)/prevTotal*100);
+      const up=diff>=0;
+      const col=isIn?(up?'#4ade80':'#f87171'):(up?'#f87171':'#4ade80');
+      trendHtml=`<div style="display:inline-flex;align-items:center;gap:3px;font-size:0.66rem;color:${col};font-weight:700;background:rgba(255,255,255,0.12);padding:3px 8px;border-radius:20px;margin-top:8px">${up?'↑':'↓'} ${Math.abs(diff)}% dari periode sebelumnya</div>`;
+    }
+  }
+
+  // Ambil emoji di depan nama kategori (kalau ada) buat jadi ikon besar
+  const emojiMatch=kat.match(/^(\p{Extended_Pictographic}\uFE0F?)/u);
+  const emoji=emojiMatch?emojiMatch[0]:(isIn?'💰':'🏷️');
+  const katNameClean=emojiMatch?kat.slice(emojiMatch[0].length).trim():kat;
+
+  // Kelompokkan transaksi per tanggal biar lebih rapi dibaca
+  const grouped=groupBy(txs,'tanggal');
+  const tglKeys=Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+  const todayStr=getLocalDate();
+  const yd=new Date();yd.setDate(yd.getDate()-1);
+  const yestStr=`${yd.getFullYear()}-${pad(yd.getMonth()+1)}-${pad(yd.getDate())}`;
+  const dateLabel=tgl=>tgl===todayStr?'Hari Ini':tgl===yestStr?'Kemarin':formatTgl(tgl);
+
+  const txListHtml=tglKeys.slice(0,15).map((tgl,gi)=>{
+    const dayTxs=grouped[tgl];
+    const dayTotal=dayTxs.reduce((s,r)=>s+r.nominal,0);
+    const rows=dayTxs.map((r,ri)=>`
+      <div class="bs-bud-tx" style="animation:fadeInUp 0.3s ease ${Math.min((gi*0.04)+(ri*0.02),0.3)}s both">
+        <div class="bs-bud-tx-left">
+          <div class="bs-bud-tx-det" style="${r.detail?'':'opacity:0.5'}">${r.detail||'Tanpa keterangan'}</div>
+          <div style="display:flex;gap:4px;margin-top:3px">${[r.pembayaran,r.metode].filter(Boolean).map(x=>`<span class="dtag">${x}</span>`).join('')}</div>
+        </div>
+        <div class="bs-bud-tx-nom" style="color:${isIn?'var(--grn)':''}">${isIn?'+':'−'}${rp(r.nominal)}</div>
+      </div>`).join('');
+    return`<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 2px;margin-bottom:6px">
+        <span style="font-size:0.62rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.06em">${dateLabel(tgl)}</span>
+        <span style="font-size:0.62rem;color:var(--tx3);font-weight:600">${rp(dayTotal)}</span>
+      </div>
+      <div class="bs-bud-txlist">${rows}</div>
+    </div>`;
+  }).join('');
+
   body.innerHTML=`
-  <div class="bs-bud-hero" style="background:${isIn?'linear-gradient(135deg,#14532d,#16a34a)':'linear-gradient(135deg,#1e1b4b,#4c1d95)'}">
-    <div class="bs-bud-hero-top"><div class="bs-bud-hero-name">${kat}</div></div>
-    <div class="bs-bud-hero-amts"><span>${rp(total)} ${isIn?'diterima':'terpakai'}</span></div>
-  </div>
-  <div class="bs-bud-stats">
-    <div class="bs-bud-stat"><div class="bs-bud-stat-lbl">Jumlah Transaksi</div><div class="bs-bud-stat-val">${txs.length}x</div></div>
-    <div class="bs-bud-stat"><div class="bs-bud-stat-lbl">Hari Aktif</div><div class="bs-bud-stat-val">${days} hari</div></div>
-  </div>
-  ${txs.length?`<div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Riwayat Transaksi</div>
-  <div class="bs-bud-txlist">${txs.slice(0,20).map(r=>`<div class="bs-bud-tx">
-    <div class="bs-bud-tx-left">
-      <div class="bs-bud-tx-tgl">${formatTgl(r.tanggal)}</div>
-      ${r.detail?`<div class="bs-bud-tx-det">${r.detail}</div>`:''}
+  <div class="bs-bud-hero" style="background:${isIn?'linear-gradient(135deg,#0f3d24,#16a34a)':'linear-gradient(135deg,#1e1b4b,#7c3aed)'};position:relative;overflow:hidden;padding:16px">
+    <div style="position:absolute;right:-14px;top:-20px;font-size:5.5rem;opacity:0.14;line-height:1;transform:rotate(-12deg)">${emoji}</div>
+    <div style="display:flex;align-items:center;gap:10px;position:relative">
+      <div style="width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">${emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div class="bs-bud-hero-name" style="font-size:1.02rem">${katNameClean}</div>
+        <div style="font-size:0.68rem;opacity:0.8">${isIn?'diterima':'terpakai'} · ${sharePct}% dari total ${rekapKatType.toLowerCase()}</div>
+      </div>
     </div>
-    <div class="bs-bud-tx-nom" style="color:${isIn?'var(--grn)':''}">${isIn?'+':'−'}${rp(r.nominal)}</div>
-  </div>`).join('')}${txs.length>20?`<div style="text-align:center;font-size:0.65rem;color:var(--tx3);padding:4px">+${txs.length-20} transaksi lainnya</div>`:''}</div>`:''}`;
+    <div id="rkdTotalVal" style="position:relative;font-size:1.65rem;font-weight:900;font-family:var(--ffd);margin-top:10px">Rp 0</div>
+    ${trendHtml}
+  </div>
+  <div class="bs-bud-stats" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="bs-bud-stat"><div class="bs-bud-stat-lbl">Transaksi</div><div class="bs-bud-stat-val">${txs.length}×</div></div>
+    <div class="bs-bud-stat"><div class="bs-bud-stat-lbl">Rata-rata</div><div class="bs-bud-stat-val">${rpShort(avg)}</div></div>
+    <div class="bs-bud-stat"><div class="bs-bud-stat-lbl">Hari Aktif</div><div class="bs-bud-stat-val">${days}h</div></div>
+  </div>
+  ${txs.length?`<div style="font-size:0.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Riwayat Transaksi</div>
+  ${txListHtml}${tglKeys.length>15?`<div style="text-align:center;font-size:0.65rem;color:var(--tx3);padding:4px">+${tglKeys.length-15} hari lainnya</div>`:''}`
+  :`<div class="empty"><div class="ei">${IC.tag}</div><p>Belum ada transaksi ${rekapKatType.toLowerCase()}<br>di rentang ini.</p></div>`}`;
+
+  countUp('rkdTotalVal',total);
 }
 
 // ═══ POPUP: RATA² BUDGET ═══
