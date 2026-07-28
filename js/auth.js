@@ -92,6 +92,7 @@ async function pinSubmit(){
         await pullSettings();
         initRealtimeSync();
         fetchDBOptions().then(()=>loadDashboard());
+        if(typeof syncPendingTx==='function')syncPendingTx();
       }else{
         pinShakeError(json.error||'PIN salah');
       }
@@ -249,7 +250,7 @@ function applySettings(data){
   if(s.notifEnabled!==undefined)notifEnabled=s.notifEnabled;
   if(s.alertPct)alertPct=s.alertPct;
   if(s.adminPassword)adminPassword=s.adminPassword;
-  if(data.mm_t)setTheme(data.mm_t,false);
+  if(data.mm_t&&typeof setTheme==='function')setTheme(data.mm_t,false);
 }
 
 // Push settings ke Supabase (fire and forget, tidak blokir UI)
