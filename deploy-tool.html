@@ -389,6 +389,18 @@ function autoRename(fileName) {
   // Ambil kata pertama saja (split by spasi, underscore, atau dash)
   const firstWord = fullBase.split(/[\s_\-]/)[0];
 
+  // Service worker WAJIB tetap di root (bukan js/) — kalau ke-routing ke
+  // subfolder, scope-nya kepotong dan service worker gagal jalan sama sekali.
+  // Deteksi dari nama file SEBELUM aturan js/ di bawah, cek fullBase asli
+  // (bukan firstWord) supaya "service-worker_15.js" dll tetap kedeteksi.
+  const baseLower = fullBase.toLowerCase();
+  const isServiceWorker = ext === 'js' && (
+    baseLower === 'sw' ||
+    baseLower.startsWith('sw_') || baseLower.startsWith('sw-') ||
+    baseLower.startsWith('service-worker') || baseLower.startsWith('service_worker') || baseLower.startsWith('serviceworker')
+  );
+  if (isServiceWorker) return 'sw.js';
+
   // Gambar → root, pakai nama asli (tidak rename)
   if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico'].includes(ext)) {
     return fileName;
