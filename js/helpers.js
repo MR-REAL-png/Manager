@@ -205,7 +205,8 @@ async function fetchAllData(){
       id:r.id,rowIndex:r.id,
       tanggal:r.tanggal||'',bulan:r.bulan||'',kategori:r.kategori||'',
       nominal:Number(r.nominal)||0,pembayaran:r.pembayaran||'',
-      detail:r.detail||'',metode:r.metode||'',jenis:r.jenis||''
+      detail:r.detail||'',metode:r.metode||'',jenis:r.jenis||'',
+      createdAt:r.created_at||'',updatedAt:r.updated_at||''
     })).filter(r=>r.tanggal);
     try{localStorage.setItem('mm_cache_rows',JSON.stringify(rows));localStorage.setItem('mm_cache_time',String(Date.now()))}catch(e){}
   }catch(e){
