@@ -260,6 +260,16 @@ function openStrukDetail(rowIdx){
   // Cari semua tx hari yang sama untuk konteks
   const sameDayTxs=allRows.filter(x=>x.tanggal===r.tanggal&&x.rowIndex!==rowIdx);
   const dayNet=allRows.filter(x=>x.tanggal===r.tanggal).reduce((s,x)=>x.jenis==='Pemasukan'?s+x.nominal:s-x.nominal,0);
+  // Info kapan dibuat & terakhir diedit (kalau ada bedanya)
+  const fmtWaktu=(iso)=>{
+    if(!iso)return null;
+    const d=new Date(iso);
+    if(isNaN(d))return null;
+    return `${d.getDate()} ${MOS[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+  const createdStr=fmtWaktu(r.createdAt);
+  const updatedStr=fmtWaktu(r.updatedAt);
+  const wasEdited=r.createdAt&&r.updatedAt&&(new Date(r.updatedAt)-new Date(r.createdAt)>2000);
   const rows=[
     {lbl:'Tanggal',val:formatTgl(r.tanggal),hl:true},
     {lbl:'Kategori',val:r.kategori,hl:true},
@@ -269,6 +279,8 @@ function openStrukDetail(rowIdx){
     r.bulan?{lbl:'Bulan',val:r.bulan}:null,
     {lbl:'Kas Hari Ini',val:`${dayNet>=0?'+':'−'}${rp(Math.abs(dayNet))}`,hl:false},
     {lbl:'Tx Lain Hari Ini',val:sameDayTxs.length?`${sameDayTxs.length} transaksi`:'Tidak ada'},
+    wasEdited&&updatedStr?{lbl:'Terakhir Diedit',val:updatedStr,hl:true}:null,
+    createdStr?{lbl:'Dibuat',val:createdStr}:null,
   ].filter(Boolean);
   body.innerHTML=`<div class="bs-struk">
     <div class="bs-struk-header">
