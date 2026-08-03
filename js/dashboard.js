@@ -16,7 +16,16 @@ function goPage(p){
   const di=document.getElementById('di-'+p);if(di)di.classList.add('active');
   window.scrollTo(0,0);
   // Tampilkan skeleton dulu sebelum load
-  if(p==='data'){
+  if(p==='dashboard'){
+    // Chart di dashboard sempat display:none saat halaman ini disembunyikan,
+    // jadi Chart.js bisa salah baca dimensi & animasinya glitch pas balik kesini.
+    // Paksa resize dulu biar layout-nya kebaca ulang dengan benar.
+    setTimeout(()=>{
+      if(chartKat)try{chartKat.resize()}catch(e){}
+      if(chartHarian)try{chartHarian.resize()}catch(e){}
+    },50);
+  }
+  else if(p==='data'){
     // Langsung tampilkan skeleton, baru load data
     const el=document.getElementById('dataList');
     if(el&&!allRows.length){
