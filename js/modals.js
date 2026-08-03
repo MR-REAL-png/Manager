@@ -283,14 +283,11 @@ function openStrukDetail(rowIdx){
     createdStr?{lbl:'Dibuat',val:createdStr}:null,
   ].filter(Boolean);
   body.innerHTML=`<div class="bs-struk">
-    <div class="bs-struk-header">
-      <div class="bs-struk-header-ico">${katIco}</div>
-      <div class="bs-struk-header-kat">${katName}</div>
-      <span class="bs-struk-header-jenis ${cls}">${isIn?IC.in:IC.out} ${r.jenis}</span>
-    </div>
     <div class="bs-struk-nom">
-      <div class="bs-struk-nom-lbl">Nominal</div>
       <div class="bs-struk-nom-val ${cls}">${arr} ${rp(r.nominal)}</div>
+    </div>
+    <div class="bs-struk-header">
+      <div class="bs-struk-header-ico">${katIco}</div><div class="bs-struk-header-kat" style="display:inline">${katName}</div>
     </div>
     <div class="bs-struk-rows">
       ${rows.map(row=>`<div class="bs-struk-row">
@@ -298,12 +295,17 @@ function openStrukDetail(rowIdx){
         <div class="bs-struk-row-val${row.hl?' hl':''}">${row.val}</div>
       </div>`).join('')}
     </div>
-    <div class="bs-struk-footer">
-      <div class="bs-struk-footer-txt">SE_REAL · ${new Date().toLocaleDateString('id-ID')}</div>
+    <div class="bs-struk-actions">
+      <button class="btn-cx" onclick="closeBs();openEdit(${r.rowIndex})">${IC.edit.replace('width:12px;height:12px','width:13px;height:13px;vertical-align:-2px;margin-right:4px')} Edit</button>
+      <button class="btn-del" style="margin-right:0" onclick="closeBs();hapusFromStruk(${r.rowIndex})">${IC.warn.replace('width:20px;height:20px','width:13px;height:13px;vertical-align:-2px;margin-right:4px')} Hapus</button>
     </div>
-    <button class="btn-ok" style="width:100%;margin-top:12px" onclick="closeBs();openEdit(${r.rowIndex})">${IC.edit.replace('width:12px;height:12px','width:13px;height:13px;vertical-align:-2px;margin-right:4px')} Edit Transaksi</button>
   </div>`;
   }catch(e){console.error('struk error',e)}
+}
+
+function hapusFromStruk(rowIdx){
+  document.getElementById('editRow').value=rowIdx;
+  doDelete();
 }
 
 
