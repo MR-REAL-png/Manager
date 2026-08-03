@@ -76,25 +76,24 @@
 .bs-bud-tx-nom{font-size:0.75rem;font-weight:800;color:var(--red);font-family:var(--ffd)}
 
 /* ── STRUK TRANSAKSI ── */
-.bs-struk{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);overflow:hidden}
-.bs-struk-header{padding:14px 16px 10px;text-align:center;border-bottom:1px dashed rgba(255,255,255,0.15)}
-.bs-struk-header-ico{font-size:2rem;margin-bottom:4px;line-height:1}
-.bs-struk-header-kat{font-size:1rem;font-weight:800;color:#fff;margin-bottom:4px}
-.bs-struk-header-jenis{display:inline-flex;align-items:center;gap:3px;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:50px}
-.bs-struk-header-jenis.inc{background:var(--grn-bg);color:var(--grn)}
-.bs-struk-header-jenis.spd{background:var(--red-bg);color:var(--red)}
-.bs-struk-nom{padding:14px 16px;text-align:center;border-bottom:1px dashed rgba(255,255,255,0.15)}
-.bs-struk-nom-lbl{font-size:0.55rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
-.bs-struk-nom-val{font-family:var(--ffd);font-size:2rem;font-weight:700;line-height:1}
+.bs-struk{background:var(--sur,rgba(255,255,255,0.03));border:1px solid var(--bdr2);border-radius:20px;overflow:hidden;padding:22px 18px 18px}
+.bs-struk-nom{text-align:center}
+.bs-struk-nom-lbl{display:none}
+.bs-struk-nom-val{font-family:var(--ffd);font-size:2.1rem;font-weight:700;line-height:1;display:inline-flex;align-items:center;gap:6px}
 .bs-struk-nom-val.inc{color:var(--grn)}.bs-struk-nom-val.spd{color:var(--red)}
-.bs-struk-rows{padding:10px 16px;display:flex;flex-direction:column;gap:0}
-.bs-struk-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.bs-struk-header{border-bottom:none;padding:0 0 16px;text-align:center}
+.bs-struk-header-ico{font-size:1.05rem;margin-bottom:0;line-height:1;display:inline-block;vertical-align:-1px;margin-right:5px}
+.bs-struk-header-kat{font-size:0.95rem;font-weight:700;color:#fff;margin-bottom:0}
+.bs-struk-header-jenis{display:none}
+.bs-struk-rows{padding:14px 0 0;border-top:1px dashed rgba(255,255,255,0.18);display:flex;flex-direction:column;gap:0}
+.bs-struk-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07)}
 .bs-struk-row:last-child{border-bottom:none}
-.bs-struk-row-lbl{font-size:0.65rem;color:var(--tx3);font-weight:600}
-.bs-struk-row-val{font-size:0.72rem;font-weight:700;color:var(--tx2);text-align:right;max-width:60%}
+.bs-struk-row-lbl{font-size:0.74rem;color:var(--tx3);font-weight:600}
+.bs-struk-row-val{font-size:0.8rem;font-weight:700;color:var(--tx2);text-align:right;max-width:60%}
 .bs-struk-row-val.hl{color:#fff}
-.bs-struk-footer{padding:10px 16px;text-align:center;border-top:1px dashed rgba(255,255,255,0.15)}
-.bs-struk-footer-txt{font-size:0.55rem;color:var(--tx3);letter-spacing:0.08em;text-transform:uppercase}
+.bs-struk-footer{display:none}
+.bs-struk-actions{display:flex;gap:10px;margin-top:16px}
+.bs-struk-actions button{flex:1;height:42px;border-radius:var(--rsm);font-family:var(--ffb);font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
 
 /* ── KAL DETAIL ENHANCED ── */
 .kal-detail{background:var(--glass);border:1px solid var(--glass-bdr);border-radius:var(--rsm);padding:0;margin-bottom:12px;overflow:hidden}
