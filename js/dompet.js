@@ -16,12 +16,19 @@ const BANK_THEMES={
 };
 
 function getBankTheme(name){
+  // Tema custom yang diatur user sendiri (warna+logo) selalu menang duluan
+  const custom=getCustomBankThemes();
+  const customKey=Object.keys(custom).find(k=>k.toLowerCase()===String(name||'').toLowerCase());
+  if(customKey)return{...BANK_THEMES.default,...custom[customKey]};
   const key=Object.keys(BANK_THEMES).find(k=>name&&name.toLowerCase().includes(k.toLowerCase()));
   return BANK_THEMES[key]||BANK_THEMES.default;
 }
 
 function renderBankLogo(bank,theme){
   const fb=bank.slice(0,2).toUpperCase();
+  if(theme.logoDataUrl){
+    return`<img src="${theme.logoDataUrl}" style="height:28px;max-width:80px;object-fit:contain;display:block" onerror="this.outerHTML='<span style=\\'font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.12em\\'>${fb}</span>'">`;
+  }
   if(theme.logo){
     const url=`${BANK_LOGO_BASE}${theme.logo}`;
     return`<img src="${url}" style="height:26px;max-width:72px;object-fit:contain;filter:brightness(0) invert(1);display:block" onerror="this.outerHTML='<span style=\\'font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.12em\\'>${fb}</span>'">`;
