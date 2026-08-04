@@ -284,6 +284,34 @@ function toast(msg,type=''){
   clearTimeout(toastT);toastT=setTimeout(()=>{el.className='toast'},3200);
 }
 
+// ═══ TEMA REKENING CUSTOM (warna + logo yang diatur user sendiri) ═══
+function getCustomBankThemes(){
+  try{return JSON.parse(localStorage.getItem('mm_bank_themes')||'{}')}catch(e){return{}}
+}
+function setCustomBankTheme(bankName,theme){
+  const all=getCustomBankThemes();
+  all[bankName]={...(all[bankName]||{}),...theme};
+  localStorage.setItem('mm_bank_themes',JSON.stringify(all));
+  return all;
+}
+function removeCustomBankTheme(bankName){
+  const all=getCustomBankThemes();
+  delete all[bankName];
+  localStorage.setItem('mm_bank_themes',JSON.stringify(all));
+  return all;
+}
+// Gelapin warna hex sekian persen, buat bikin gradient 2-stop otomatis dari 1 warna pilihan user
+function shadeColor(hex,percent){
+  hex=hex.replace('#','');
+  if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  const num=parseInt(hex,16);
+  let r=(num>>16)+Math.round(2.55*percent);
+  let g=(num>>8&0x00FF)+Math.round(2.55*percent);
+  let b=(num&0x0000FF)+Math.round(2.55*percent);
+  r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));
+  return'#'+(r<<16|g<<8|b).toString(16).padStart(6,'0');
+}
+
 // ═══ SALDO DOMPET (shared logic — dipakai dompet.js & modals.js agar selalu sinkron) ═══
 function getSaldoAwalMap(){
   try{return JSON.parse(localStorage.getItem('mm_saldo_awal')||'{}')}catch(e){return{}}
