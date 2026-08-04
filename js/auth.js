@@ -226,6 +226,7 @@ function collectSettings(){
     mm_budgets_v2:   JSON.parse(localStorage.getItem('mm_budgets_v2')||'{}'),
     mm_custom_kats:  JSON.parse(localStorage.getItem('mm_custom_kats')||'[]'),
     mm_custom_banks: JSON.parse(localStorage.getItem('mm_custom_banks')||'[]'),
+    mm_bank_themes:  JSON.parse(localStorage.getItem('mm_bank_themes')||'{}'),
     mm_fixed_cats:   JSON.parse(localStorage.getItem('mm_fixed_cats')||'[]'),
     mm_periode:      JSON.parse(localStorage.getItem('mm_periode')||'{}'),
     mm_settings:     JSON.parse(localStorage.getItem('mm_settings')||'{}'),
@@ -240,6 +241,7 @@ function applySettings(data){
   if(data.mm_budgets_v2)  localStorage.setItem('mm_budgets_v2',  JSON.stringify(data.mm_budgets_v2));
   if(data.mm_custom_kats) localStorage.setItem('mm_custom_kats', JSON.stringify(data.mm_custom_kats));
   if(data.mm_custom_banks)localStorage.setItem('mm_custom_banks',JSON.stringify(data.mm_custom_banks));
+  if(data.mm_bank_themes) localStorage.setItem('mm_bank_themes', JSON.stringify(data.mm_bank_themes));
   if(data.mm_fixed_cats)  localStorage.setItem('mm_fixed_cats',  JSON.stringify(data.mm_fixed_cats));
   if(data.mm_periode)     localStorage.setItem('mm_periode',     JSON.stringify(data.mm_periode));
   if(data.mm_settings)    localStorage.setItem('mm_settings',    JSON.stringify(data.mm_settings));
