@@ -216,9 +216,10 @@ function renderRekeningModal(){
   const customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
   const defaultBanks=(dbOpts.banks||[]).filter(b=>!customBanks.includes(b));
   const renderChip=(b,isCustom)=>`
-    <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--glass);border:1px solid ${isCustom?'rgba(168,85,247,0.4)':'var(--bdr2)'};border-radius:50px;font-size:0.75rem;color:${isCustom?'#c084fc':'var(--tx2)'}">
+    <div style="display:flex;align-items:center;gap:4px;padding:4px 6px 4px 10px;background:var(--glass);border:1px solid ${isCustom?'rgba(168,85,247,0.4)':'var(--bdr2)'};border-radius:50px;font-size:0.75rem;color:${isCustom?'#c084fc':'var(--tx2)'}">
       ${b}
-      ${isCustom?`<button onclick="removeCustomBank('${b}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:0 0 0 4px;display:flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button>`:''}
+      <button onclick="openBankThemeEditor('${b.replace(/'/g,"\\'")}')" title="Atur warna & logo" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:2px;display:flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"/></svg></button>
+      ${isCustom?`<button onclick="removeCustomBank('${b}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:2px;display:flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button>`:''}
     </div>`;
   body.innerHTML=`
     <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px">Tambah rekening/dompet digital kustom.</p>
@@ -229,7 +230,71 @@ function renderRekeningModal(){
       ${defaultBanks.map(b=>renderChip(b,false)).join('')}
       ${customBanks.map(b=>renderChip(b,true)).join('')}
     </div>`:''}
-    <div style="margin-top:8px;font-size:0.65rem;color:var(--tx3)">💡 Rekening ungu = kustom (bisa dihapus)</div>`;
+    <div style="margin-top:8px;font-size:0.65rem;color:var(--tx3)">💡 Rekening ungu = kustom (bisa dihapus) · tap ikon 🖌️ buat atur warna & logo kartu</div>`;
+}
+
+function openBankThemeEditor(bankName){
+  const title=document.getElementById('settModalTitle'),body=document.getElementById('settModalBody');
+  title.innerHTML=`${IC.edit.replace('width:12px;height:12px','width:14px;height:14px;vertical-align:-2px;margin-right:3px')} Tema: ${bankName}`;
+  const custom=getCustomBankThemes()[bankName]||{};
+  const theme=getBankTheme(bankName);
+  // Ambil warna dasar dari gradient yang aktif sekarang buat isi awal color picker
+  const baseColorMatch=(theme.grad||'').match(/#[0-9a-fA-F]{6}/);
+  let baseColor=baseColorMatch?baseColorMatch[0]:'#7c3aed';
+  if(!custom.grad&&bankName.toLowerCase().includes('superbank'))baseColor='#c7e634'; // sesuai warna brand Superbank
+  body.innerHTML=`
+    <div class="fr"><label>Warna Kartu</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="color" id="bankColorInput" value="${baseColor}" style="width:44px;height:38px;border-radius:8px;border:1.5px solid var(--bdr2);background:none;cursor:pointer">
+        <div id="bankColorPreview" style="flex:1;height:38px;border-radius:10px;background:${theme.grad}"></div>
+      </div>
+    </div>
+    <div class="fr"><label>Logo Kartu (opsional)</label>
+      <input type="file" id="bankLogoInput" accept="image/*" style="display:none" onchange="onBankLogoPicked(event)">
+      <div id="bankLogoPreviewWrap" style="display:flex;align-items:center;gap:10px">
+        <div id="bankLogoPreview" style="width:56px;height:38px;border-radius:8px;background:${theme.grad};display:flex;align-items:center;justify-content:center;overflow:hidden">${custom.logoDataUrl?`<img src="${custom.logoDataUrl}" style="max-width:100%;max-height:100%;object-fit:contain">`:`<span style="font-size:0.6rem;color:rgba(255,255,255,0.7)">${bankName.slice(0,2).toUpperCase()}</span>`}</div>
+        <button class="btn-cx" onclick="document.getElementById('bankLogoInput').click()">${IC.upload} Upload Logo</button>
+        ${custom.logoDataUrl?`<button onclick="clearBankLogo()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.68rem">Hapus</button>`:''}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-cx" style="flex:1" onclick="renderRekeningModal()">${IC.reload} Kembali</button>
+      <button class="btn-ok" style="flex:1" onclick="saveBankTheme('${bankName.replace(/'/g,"\\'")}')">${IC.save} Simpan</button>
+    </div>`;
+  document.getElementById('bankColorInput').oninput=(e)=>{
+    const c1=e.target.value,c2=shadeColor(c1,-15);
+    document.getElementById('bankColorPreview').style.background=`linear-gradient(135deg,${c1},${c2})`;
+    const logoBg=document.getElementById('bankLogoPreview');if(logoBg)logoBg.style.background=`linear-gradient(135deg,${c1},${c2})`;
+  };
+}
+let _bankLogoDataUrl=null;
+function onBankLogoPicked(e){
+  const file=e.target.files[0];if(!file)return;
+  if(file.size>1024*1024){toast('Logo maks 1MB ya','err');return}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    _bankLogoDataUrl=reader.result;
+    const wrap=document.getElementById('bankLogoPreview');
+    wrap.innerHTML=`<img src="${_bankLogoDataUrl}" style="max-width:100%;max-height:100%;object-fit:contain">`;
+  };
+  reader.readAsDataURL(file);
+}
+function clearBankLogo(){
+  _bankLogoDataUrl='';
+  const wrap=document.getElementById('bankLogoPreview');
+  if(wrap)wrap.innerHTML=`<span style="font-size:0.6rem;color:rgba(255,255,255,0.7)">••</span>`;
+}
+function saveBankTheme(bankName){
+  const color=document.getElementById('bankColorInput').value;
+  const grad=`linear-gradient(135deg,${color},${shadeColor(color,-15)})`;
+  const themeUpdate={grad};
+  if(_bankLogoDataUrl==='')themeUpdate.logoDataUrl=null; // sengaja dihapus
+  else if(_bankLogoDataUrl)themeUpdate.logoDataUrl=_bankLogoDataUrl;
+  setCustomBankTheme(bankName,themeUpdate);
+  _bankLogoDataUrl=null;
+  pushSettings();
+  toast('Tema rekening disimpan','ok');
+  renderRekeningModal();
 }
 
 function renderSaldoAwalModal(){
