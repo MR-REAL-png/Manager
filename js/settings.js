@@ -300,10 +300,13 @@ function saveBankTheme(bankName){
 function renderSaldoAwalModal(){
   const body=document.getElementById('settModalBody');
   const BUKAN_BANK=['cash','transfer','qris'];
-  const banks=[...new Set(allRows.map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
+  let customBanks=[];
+  try{customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]')}catch(e){}
+  const banks=[...new Set([...allRows.map(r=>r.pembayaran).filter(Boolean),...customBanks])]
+    .filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())).sort();
   const saldoAwalMap=getSaldoAwalMap();
   if(!banks.length){
-    body.innerHTML=`<div class="empty"><div class="ei">${IC.card}</div><p>Belum ada rekening.<br>Tambahkan transaksi dengan pilih rekening dulu.</p></div>`;
+    body.innerHTML=`<div class="empty"><div class="ei">${IC.card}</div><p>Belum ada rekening.<br>Tambahkan di Settings → Kelola Rekening dulu.</p></div>`;
     return;
   }
   body.innerHTML=`
