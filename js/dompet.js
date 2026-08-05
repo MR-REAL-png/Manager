@@ -83,7 +83,7 @@ async function loadDompet(){
     const{banks,saldoMap}=hitungSaldoDompet(allRows,transfers);
 
     if(!banks.length){
-      el.innerHTML='<div class="empty-state"><div class="empty-ico">💳</div><div class="empty-title">Belum ada rekening</div><div class="empty-sub">Tambahkan transaksi dengan pilih rekening</div></div>';
+      el.innerHTML='<div class="empty-state"><div class="empty-ico">💳</div><div class="empty-title">Belum ada rekening</div><div class="empty-sub">Tambahkan rekening di Settings → Kelola Rekening</div></div>';
       return;
     }
 
