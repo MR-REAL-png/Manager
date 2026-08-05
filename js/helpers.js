@@ -327,7 +327,15 @@ function setSaldoAwal(bank,nominal){
 function hitungSaldoDompet(rows,transfers){
   const BUKAN_BANK=['cash','transfer','qris'];
   const saldoAwalMap=getSaldoAwalMap();
-  const banks=[...new Set((rows||[]).map(r=>r.pembayaran).filter(Boolean).filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())))].sort();
+  // Bank/rekening dianggap "ada" kalau muncul di salah satu dari 3 sumber ini:
+  // 1) pernah dipakai transaksi, 2) pernah dipakai transfer (dari/ke),
+  // 3) sudah didaftarin di "Kelola Rekening" (mm_custom_banks) walau belum pernah dipakai sama sekali.
+  const fromTx=(rows||[]).map(r=>r.pembayaran).filter(Boolean);
+  const fromTransfer=(transfers||[]).flatMap(t=>[t.dari,t.ke]).filter(Boolean);
+  let customBanks=[];
+  try{customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]')}catch(e){}
+  const banks=[...new Set([...fromTx,...fromTransfer,...customBanks])]
+    .filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())).sort();
   const saldoMap={};
   banks.forEach(b=>saldoMap[b]=saldoAwalMap[b]||0);
   (rows||[]).forEach(r=>{
