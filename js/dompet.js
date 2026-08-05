@@ -331,7 +331,32 @@ async function loadTabungan(){
     const fill=document.getElementById('tabBarFill');if(fill)setTimeout(()=>fill.style.width=pct+'%',100);
     const bd=MOS.map(b=>({bulan:b,tabungan:tbm[b]||0,target:blt[b]||0})).filter(b=>b.tabungan>0||b.target>0);
     renderTabList(bd);renderChartTab(bd);
+
+    // Saldo tabungan per rekening — ALL-TIME (bukan cuma tahun terpilih),
+    // biar mewakili saldo tabungan yang sekarang beneran ada, bukan cuma tahun ini.
+    // Logika: pengeluaran kategori Tabungan = "income" khusus buat kartu ini,
+    // karena dari kacamata dompet tabungan, uang itu justru MASUK ke sana.
+    const BUKAN_BANK=['cash','transfer','qris'];
+    const bankTotals={};
+    allRows.forEach(r=>{
+      if(r.jenis==='Pengeluaran'&&r.kategori&&r.kategori.toLowerCase().includes('tabungan')&&r.pembayaran){
+        const bank=r.pembayaran.trim();
+        if(BUKAN_BANK.includes(bank.toLowerCase()))return;
+        bankTotals[bank]=(bankTotals[bank]||0)+r.nominal;
+      }
+    });
+    renderTabBankCards(bankTotals);
   }catch(e){toast('Gagal load tabungan: '+e.message,'err');console.error(e)}
+}
+
+function renderTabBankCards(bankTotals){
+  const el=document.getElementById('tabBankCarousel');if(!el)return;
+  const banks=Object.keys(bankTotals).sort((a,b)=>bankTotals[b]-bankTotals[a]);
+  if(!banks.length){
+    el.innerHTML=`<div class="empty-state" style="width:100%"><div class="empty-ico">🏦</div><div class="empty-title">Belum ada tabungan tercatat</div><div class="empty-sub">Bank tempat kamu nabung bakal muncul di sini</div></div>`;
+    return;
+  }
+  el.innerHTML=banks.map(bank=>renderATMCard(bank,bankTotals[bank],false)).join('');
 }
 
 function renderTabList(data){
