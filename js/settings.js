@@ -783,11 +783,18 @@ async function doExportGSheet(from,to,bln){
     }
   }catch(err){
     clearInterval(interval);
+    // PENTING: Google Apps Script web app sering throw error CORS pas browser
+    // coba baca response-nya (karena redirect internal script.google.com →
+    // script.googleusercontent.com kadang gak sertakan header CORS). Tapi
+    // doPost() di server-nya SUDAH selesai eksekusi & insert data SEBELUM
+    // redirect itu kejadian — jadi error di sini SERING BUKAN berarti gagal
+    // beneran, cuma browser gagal BACA konfirmasinya. Makanya pesannya jujur
+    // soal ketidakpastian ini, bukan klaim "Gagal" yang bisa keliru.
     bar.style.width='100%';
-    bar.style.background='linear-gradient(90deg,#ef4444,#dc2626)';
-    lbl.textContent='Gagal';
+    bar.style.background='linear-gradient(90deg,#f59e0b,#f97316)';
+    lbl.textContent='Terkirim?';
     await new Promise(r=>setTimeout(r,600));
-    toast('Gagal kirim ke GSheet: '+err.message,'err');
+    toast('Kemungkinan besar sudah terkirim — cek Google Sheets buat mastiin (browser gagal baca respons, ini keterbatasan umum GAS, bukan berarti pasti gagal)','warn');
     resetGSheetBtn(btn);
   }
 }
