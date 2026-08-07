@@ -454,7 +454,7 @@ function anggaranNavMonth(dir){
   const budgets=getBudgetsForMonth(key);
   const inputs=document.querySelectorAll('#settModalBody input[data-kat]');
   let hasInput=false;
-  inputs.forEach(inp=>{if(inp.value){hasInput=true;budgets[inp.dataset.kat]=Number(inp.value);}else{delete budgets[inp.dataset.kat];}});
+  inputs.forEach(inp=>{if(inp.value){hasInput=true;budgets[inp.dataset.kat]=Number(inp.value.replace(/\./g,''));}else{delete budgets[inp.dataset.kat];}});
   if(hasInput)saveBudgetsForMonth(key,budgets);
 
   // Navigasi bulan
