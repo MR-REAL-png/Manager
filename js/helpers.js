@@ -48,7 +48,7 @@ function getActivePeriod(){
   return{startDate:s,endDate:e};
 }
 function getActivePeriodResolved(){
-  const periodeCustom=JSON.parse(localStorage.getItem('mm_periode')||'{}');
+  const periodeCustom=getStorageJSON('mm_periode',{});
   if(periodeCustom.startDate&&periodeCustom.endDate){
     return{startDate:new Date(periodeCustom.startDate),endDate:new Date(periodeCustom.endDate)};
   }
@@ -141,7 +141,7 @@ function isNetworkFail(e){
   return !navigator.onLine || (e&&e.offline) || (e&&e.name==='TypeError') || /Failed to fetch|NetworkError|network|offline/i.test((e&&e.message)||'');
 }
 function getPendingQueue(){
-  try{return JSON.parse(localStorage.getItem('mm_pending_tx')||'[]')}catch(e){return[]}
+  return getStorageJSON('mm_pending_tx',[]);
 }
 function queuePendingTx(values){
   const queue=getPendingQueue();
@@ -237,8 +237,8 @@ async function fetchDBOptions(){
       if(r.pembayaran&&!r.pembayaran.includes('Cash'))banks.push(r.pembayaran);
       if(r.kategori)kategoris.push(r.kategori);
     });
-    const customKats=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');
-    const customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
+    const customKats=getStorageJSON('mm_custom_kats',[]);
+    const customBanks=getStorageJSON('mm_custom_banks',[]);
     dbOpts={
       banks:[...new Set([...banks,...customBanks])],
       kategoris:[...new Set([...kategoris,...customKats])].sort(),
@@ -284,9 +284,22 @@ function toast(msg,type=''){
   clearTimeout(toastT);toastT=setTimeout(()=>{el.className='toast'},3200);
 }
 
+// Baca JSON dari localStorage dengan aman — kalau datanya korup/gagal parse,
+// balikin fallback alih-alih throw error yang bisa bikin fungsi pemanggilnya berhenti.
+function getStorageJSON(key,fallback){
+  try{
+    const raw=localStorage.getItem(key);
+    if(raw===null||raw===undefined)return fallback;
+    return JSON.parse(raw);
+  }catch(e){
+    console.warn('getStorageJSON gagal parse:',key,e);
+    return fallback;
+  }
+}
+
 // ═══ TEMA REKENING CUSTOM (warna + logo yang diatur user sendiri) ═══
 function getCustomBankThemes(){
-  try{return JSON.parse(localStorage.getItem('mm_bank_themes')||'{}')}catch(e){return{}}
+  return getStorageJSON('mm_bank_themes',{});
 }
 function setCustomBankTheme(bankName,theme){
   const all=getCustomBankThemes();
@@ -314,7 +327,7 @@ function shadeColor(hex,percent){
 
 // ═══ SALDO DOMPET (shared logic — dipakai dompet.js & modals.js agar selalu sinkron) ═══
 function getSaldoAwalMap(){
-  try{return JSON.parse(localStorage.getItem('mm_saldo_awal')||'{}')}catch(e){return{}}
+  return getStorageJSON('mm_saldo_awal',{});
 }
 function setSaldoAwal(bank,nominal){
   const m=getSaldoAwalMap();
@@ -333,7 +346,7 @@ function hitungSaldoDompet(rows,transfers){
   const fromTx=(rows||[]).map(r=>r.pembayaran).filter(Boolean);
   const fromTransfer=(transfers||[]).flatMap(t=>[t.dari,t.ke]).filter(Boolean);
   let customBanks=[];
-  try{customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]')}catch(e){}
+  customBanks=getStorageJSON('mm_custom_banks',[]);
   const banks=[...new Set([...fromTx,...fromTransfer,...customBanks])]
     .filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())).sort();
   const saldoMap={};
