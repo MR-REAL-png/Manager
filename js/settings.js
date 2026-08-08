@@ -71,7 +71,7 @@ async function doDelete(){
 
 // ═══ PENGATURAN ═══
 function loadSettings(){
-  const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');
+  const s=getStorageJSON('mm_settings',{});
   if(s.username){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=s.username});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=s.username;const dt=document.querySelector('.drawer-title');if(dt)dt.textContent=s.username;}
   if(s.notifEnabled!==undefined)notifEnabled=s.notifEnabled;
   if(s.alertPct)alertPct=s.alertPct;
@@ -213,7 +213,7 @@ function openSettModal(type){
 
 function renderRekeningModal(){
   const body=document.getElementById('settModalBody');
-  const customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
+  const customBanks=getStorageJSON('mm_custom_banks',[]);
   const defaultBanks=(dbOpts.banks||[]).filter(b=>!customBanks.includes(b));
   const renderChip=(b,isCustom)=>`
     <div style="display:flex;align-items:center;gap:4px;padding:4px 6px 4px 10px;background:var(--glass);border:1px solid ${isCustom?'rgba(168,85,247,0.4)':'var(--bdr2)'};border-radius:50px;font-size:0.75rem;color:${isCustom?'#c084fc':'var(--tx2)'}">
@@ -301,7 +301,7 @@ function renderSaldoAwalModal(){
   const body=document.getElementById('settModalBody');
   const BUKAN_BANK=['cash','transfer','qris'];
   let customBanks=[];
-  try{customBanks=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]')}catch(e){}
+  customBanks=getStorageJSON('mm_custom_banks',[]);
   const banks=[...new Set([...allRows.map(r=>r.pembayaran).filter(Boolean),...customBanks])]
     .filter(b=>!BUKAN_BANK.includes(b.trim().toLowerCase())).sort();
   const saldoAwalMap=getSaldoAwalMap();
@@ -317,7 +317,7 @@ function renderSaldoAwalModal(){
 
 function renderKategoriModal(){
   const body=document.getElementById('settModalBody');
-  const customKats=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');
+  const customKats=getStorageJSON('mm_custom_kats',[]);
   const allKats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
   const defaultKats=allKats.filter(k=>!customKats.includes(k));
   const renderChip=(k,isCustom)=>`
@@ -374,7 +374,7 @@ function renderCekTanggalModal(){
 
 function renderKatRataModal(){
   const body=document.getElementById('settModalBody');
-  const excl=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
+  const excl=getStorageJSON('mm_fixed_cats',["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]);
   const allKats=(dbOpts.kategoris||[]).filter(k=>!k.toLowerCase().includes('income'));
   body.innerHTML=`
     <p style="font-size:0.72rem;color:var(--tx2);margin-bottom:10px;line-height:1.4">Centang kategori yang dikecualikan dari perhitungan rata-rata harian.</p>
@@ -382,12 +382,12 @@ function renderKatRataModal(){
 }
 
 function removeCustomBank(name){
-  let a=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');
+  let a=getStorageJSON('mm_custom_banks',[]);
   a=a.filter(b=>b!==name);localStorage.setItem('mm_custom_banks',JSON.stringify(a));
   renderRekeningModal();fetchDBOptions();pushSettings();
 }
 function removeCustomKat(name){
-  let a=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');
+  let a=getStorageJSON('mm_custom_kats',[]);
   a=a.filter(k=>k!==name);localStorage.setItem('mm_custom_kats',JSON.stringify(a));
   renderKategoriModal();fetchDBOptions();pushSettings();
 }
@@ -402,14 +402,14 @@ function getBudgetMonthKey(year, month) {
 }
 
 function getAllBudgetsV2() {
-  return JSON.parse(localStorage.getItem('mm_budgets_v2') || '{}');
+  return getStorageJSON('mm_budgets_v2',{});
 }
 
 function getBudgetsForMonth(key) {
   const all = getAllBudgetsV2();
   // Fallback: jika bulan ini belum ada, coba migrate dari mm_budgets lama
   if (!all[key]) {
-    const legacy = JSON.parse(localStorage.getItem('mm_budgets') || '{}');
+    const legacy = getStorageJSON('mm_budgets',{});
     if (Object.keys(legacy).length > 0) return legacy;
     return {};
   }
@@ -511,7 +511,7 @@ function anggaranCopyPrev(){
 
 async function saveSettModal(){
   const body=document.getElementById('settModalBody');
-  const budgets=JSON.parse(localStorage.getItem('mm_budgets')||'{}');
+  const budgets=getStorageJSON('mm_budgets',{});
   if(settModalType==='export'){
     const from=document.getElementById('expFrom')?.value;
     const to=document.getElementById('expTo')?.value;
@@ -529,7 +529,7 @@ async function saveSettModal(){
     const a=document.createElement('a');a.href=url;a.download=`transaksi_${from||'all'}_${to||'all'}.csv`;a.click();
     URL.revokeObjectURL(url);toast('CSV diunduh!','ok');closeOv(null,'ovSett');return;
   }
-  if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=val;const dt=document.querySelector('.drawer-title');if(dt)dt.textContent=val;const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('Nama diperbarui','ok')}}
+  if(settModalType==='nama'){const val=document.getElementById('settNamaInput').value.trim();if(val){['settUsername','drawerUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=val});const bn=document.querySelector('.brand-name');if(bn)bn.textContent=val;const dt=document.querySelector('.drawer-title');if(dt)dt.textContent=val;const s=getStorageJSON('mm_settings',{});s.username=val;localStorage.setItem('mm_settings',JSON.stringify(s));toast('Nama diperbarui','ok')}}
   else if(settModalType==='anggaran'){
     const key=getBudgetMonthKey(anggaranModalYear,anggaranModalMonth);
     const budgets=getBudgetsForMonth(key);
@@ -633,7 +633,7 @@ async function saveSettModal(){
   }
   else if(settModalType==='rekening'){
     const val=document.getElementById('newBankInput')?.value.trim();
-    if(val){const a=JSON.parse(localStorage.getItem('mm_custom_banks')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_banks',JSON.stringify(a));fetchDBOptions();pushSettings();toast('Rekening ditambah','ok')}else toast('Sudah ada','err')}
+    if(val){const a=getStorageJSON('mm_custom_banks',[]);if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_banks',JSON.stringify(a));fetchDBOptions();pushSettings();toast('Rekening ditambah','ok')}else toast('Sudah ada','err')}
   }
   else if(settModalType==='saldoawal'){
     const BUKAN_BANK=['cash','transfer','qris'];
@@ -648,7 +648,7 @@ async function saveSettModal(){
   }
   else if(settModalType==='kategori'){
     const val=document.getElementById('newKatInput')?.value.trim();
-    if(val){const a=JSON.parse(localStorage.getItem('mm_custom_kats')||'[]');if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_kats',JSON.stringify(a));fetchDBOptions();pushSettings();toast('Kategori ditambah','ok')}else toast('Sudah ada','err')}
+    if(val){const a=getStorageJSON('mm_custom_kats',[]);if(!a.includes(val)){a.push(val);localStorage.setItem('mm_custom_kats',JSON.stringify(a));fetchDBOptions();pushSettings();toast('Kategori ditambah','ok')}else toast('Sudah ada','err')}
   }
   else if(settModalType==='password'){const old=document.getElementById('passOld').value,nw=document.getElementById('passNew').value,cf=document.getElementById('passConf').value;if(old!==adminPassword){toast('Password lama salah','err');return}if(nw!==cf){toast('Konfirmasi tidak cocok','err');return}if(nw.length<4){toast('Min 4 karakter','err');return}adminPassword=nw;saveSettingsStorage();pushSettings();toast('Password diperbarui','ok')}
   closeOv(null,'ovSett');
@@ -841,10 +841,10 @@ function autoFriday(inputId){
   inp.value=`${y}-${m}-${dd}`;
 }
 function updateKatRataLabel(){
-  const excl=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
+  const excl=getStorageJSON('mm_fixed_cats',["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]);
   const el=document.getElementById('katRataLabel');if(el)el.textContent=`${excl.length} kategori dikecualikan`;
 }
-function saveSettingsStorage(){const s=JSON.parse(localStorage.getItem('mm_settings')||'{}');s.notifEnabled=notifEnabled;s.alertPct=alertPct;s.adminPassword=adminPassword;localStorage.setItem('mm_settings',JSON.stringify(s))}
+function saveSettingsStorage(){const s=getStorageJSON('mm_settings',{});s.notifEnabled=notifEnabled;s.alertPct=alertPct;s.adminPassword=adminPassword;localStorage.setItem('mm_settings',JSON.stringify(s))}
 function toggleNotif(){notifEnabled=!notifEnabled;const nt=document.getElementById('notifToggle');if(nt)nt.classList.toggle('on',notifEnabled);saveSettingsStorage();pushSettings();toast(notifEnabled?'Notifikasi aktif':'Notifikasi nonaktif','ok')}
 function resetPeriode(){localStorage.removeItem('mm_periode');updatePeriodUI();closeOv(null,'ovSett');loadDashboard();toast('Periode direset ke otomatis','ok')}
 
@@ -912,7 +912,7 @@ function fillBank(id,metode){
   const banks=(dbOpts.banks||[]).filter(b=>!BUKAN_BANK.includes(b.replace(/[^a-zA-Z]/g,'').toLowerCase()));
   sel.innerHTML='<option value="">— Pilih Bank —</option>'+banks.map(b=>`<option value="${b}">${b}</option>`).join('');
 }
-function getRecentKats(){try{return JSON.parse(localStorage.getItem('mm_recent_kat')||'[]')}catch(e){return[]}}
+function getRecentKats(){return getStorageJSON('mm_recent_kat',[]);}
 function saveRecentKat(kat,jenis){let a=getRecentKats().filter(x=>x.kat!==kat);a.unshift({kat,jenis});localStorage.setItem('mm_recent_kat',JSON.stringify(a.slice(0,5)))}
 function renderQuickKat(){
   const wrap=document.getElementById('quickKatWrap');if(!wrap)return;
