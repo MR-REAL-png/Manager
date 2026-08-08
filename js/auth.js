@@ -223,14 +223,14 @@ function getUserUID(){
 // Kumpulkan semua settings lokal jadi satu object
 function collectSettings(){
   return{
-    mm_budgets_v2:   JSON.parse(localStorage.getItem('mm_budgets_v2')||'{}'),
-    mm_custom_kats:  JSON.parse(localStorage.getItem('mm_custom_kats')||'[]'),
-    mm_custom_banks: JSON.parse(localStorage.getItem('mm_custom_banks')||'[]'),
-    mm_bank_themes:  JSON.parse(localStorage.getItem('mm_bank_themes')||'{}'),
-    mm_fixed_cats:   JSON.parse(localStorage.getItem('mm_fixed_cats')||'[]'),
-    mm_periode:      JSON.parse(localStorage.getItem('mm_periode')||'{}'),
-    mm_settings:     JSON.parse(localStorage.getItem('mm_settings')||'{}'),
-    mm_saldo_awal:   JSON.parse(localStorage.getItem('mm_saldo_awal')||'{}'),
+    mm_budgets_v2:   getStorageJSON('mm_budgets_v2',{}),
+    mm_custom_kats:  getStorageJSON('mm_custom_kats',[]),
+    mm_custom_banks: getStorageJSON('mm_custom_banks',[]),
+    mm_bank_themes:  getStorageJSON('mm_bank_themes',{}),
+    mm_fixed_cats:   getStorageJSON('mm_fixed_cats',[]),
+    mm_periode:      getStorageJSON('mm_periode',{}),
+    mm_settings:     getStorageJSON('mm_settings',{}),
+    mm_saldo_awal:   getStorageJSON('mm_saldo_awal',{}),
     mm_t:            localStorage.getItem('mm_t')||'cosmic',
   };
 }
