@@ -79,7 +79,7 @@ async function loadDashboard(){
     const kasKumulatif=totalMasukAllTime-totalKeluarAllTime;
     const days=[...new Set(rows.map(r=>r.tanggal))].length;
     const tdim=new Date(parseInt(t),MOS.indexOf(b)+1,0).getDate();
-    const FIXED_CATS=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
+    const FIXED_CATS=getStorageJSON('mm_fixed_cats',["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]);
     const fleks=rows.filter(r=>r.jenis==='Pengeluaran'&&!FIXED_CATS.some(fc=>r.kategori.toLowerCase().includes(fc.toLowerCase())));
     const totalFleks=fleks.reduce((s,r)=>s+r.nominal,0);
     const totalDaysPeriode=Math.round((ed-sd)/(1000*60*60*24));
