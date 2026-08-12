@@ -546,7 +546,14 @@ async function loadMetode(){
     const bln=document.getElementById('metodeBulan').value;
     const rows=allRows.filter(r=>r.jenis==='Pengeluaran'&&(!bln||r.bulan===bln));
     const bm={Cash:0,Transfer:0,QRIS:0},bb={};
-    rows.forEach(r=>{bm[r.metode]=(bm[r.metode]||0)+r.nominal;const bank=r.pembayaran||r.metode;bb[bank]=(bb[bank]||0)+r.nominal});
+    rows.forEach(r=>{
+      bm[r.metode]=(bm[r.metode]||0)+r.nominal;
+      // Cuma masuk breakdown "Per Rekening" kalau pembayaran-nya beneran keisi
+      // nama rekening — JANGAN fallback ke metode (Cash/Transfer/QRIS), soalnya
+      // itu bikin "QRIS" nyempil seolah-olah rekening padahal itu metode bayar.
+      const bank=(r.pembayaran||'').trim();
+      if(bank)bb[bank]=(bb[bank]||0)+r.nominal;
+    });
     const total=rows.reduce((s,r)=>s+r.nominal,0);
     document.getElementById('m-cash').textContent=rpShort(bm.Cash||0);
     document.getElementById('m-transfer').textContent=rpShort(bm.Transfer||0);
@@ -563,17 +570,7 @@ async function loadMetode(){
     document.getElementById('bankList').innerHTML=ba.map(([bank,val],i)=>{
       const pct=total>0?Math.round(val/total*100):0;
       const theme2=getBankTheme(bank);
-      const fb2=bank.slice(0,2).toUpperCase();
-      let ico;
-      if(theme2.logo){
-        const logoUrl=`${BANK_LOGO_BASE}${theme2.logo}`;
-        ico=`<span style="background:${theme2.grad};border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
-          <img src="${logoUrl}" style="height:18px;max-width:28px;object-fit:contain;filter:brightness(0) invert(1)"
-            onerror="this.outerHTML='<span style=\\'font-size:0.55rem;font-weight:800;color:#fff\\'>${fb2}</span>'">
-        </span>`;
-      } else {
-        ico=`<span style="background:${theme2.grad};border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.55rem;font-weight:800;color:#fff">${fb2}</span>`;
-      }
+      const ico=`<span style="background:${theme2.grad};border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${renderBankLogo(bank,theme2)}</span>`;
       return`<div class="bank-item" style="animation-delay:${i*0.05}s"><div class="bank-ico" style="background:transparent;padding:0">${ico}</div><div class="bank-info"><div class="bank-name">${bank}</div><div class="bank-sub">${pct}% dari total</div><div class="bank-bar-wrap"><div class="bank-bar-fill" style="width:0%" data-w="${pct}"></div></div></div><div class="bank-val">${rpShort(val)}</div></div>`;
     }).join('');
     setTimeout(()=>{document.querySelectorAll('.bank-bar-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
