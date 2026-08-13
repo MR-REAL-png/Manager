@@ -135,8 +135,6 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
   background-color:rgba(15,12,41,0.97);
   backdrop-filter:blur(24px);
   -webkit-backdrop-filter:blur(24px);
-  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 70' preserveAspectRatio='none'%3E%3Cpath d='M0 0 L155 0 Q168 0 174 10 Q182 24 195 24 Q208 24 216 10 Q222 0 235 0 L390 0 L390 70 L0 70 Z' fill='white'/%3E%3C/svg%3E") center/100% 100% no-repeat;
-  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 70' preserveAspectRatio='none'%3E%3Cpath d='M0 0 L155 0 Q168 0 174 10 Q182 24 195 24 Q208 24 216 10 Q222 0 235 0 L390 0 L390 70 L0 70 Z' fill='white'/%3E%3C/svg%3E") center/100% 100% no-repeat;
 }
 [data-theme="ocean"] .bnav::after{background-color:rgba(10,52,120,0.97)}
 .bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.35);transition:color .2s;padding:8px 4px;position:relative;font-size:1.05rem;height:62px}
@@ -146,7 +144,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .bnav-btn.on::after{transform:scaleX(1)}
 .bnav-lbl{font-size:0.48rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
 .bnav-fab{flex:0 0 76px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;padding:0;position:relative;top:-20px;z-index:10001;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.bnav-fab-inner{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;color:#fff;border:3px solid rgba(15,12,41,0.97);transition:all .2s var(--ease);position:relative;z-index:1;box-shadow:0 4px 16px rgba(0,0,0,0.4)}
+.bnav-fab-inner{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;color:#fff;border:3px solid rgba(15,12,41,0.97);transition:all .2s var(--ease);position:relative;z-index:1}
 .bnav-fab-inner::before{display:none}
 [data-theme="ocean"] .bnav-fab-inner{background:linear-gradient(135deg,#38bdf8,#0ea5e9);border-color:rgba(10,52,120,0.97)}
 [data-theme="ocean"] .bnav-fab-inner::before{display:none}
@@ -460,10 +458,6 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-fa
 .skel-card{height:70px;border-radius:var(--rsm);margin-bottom:8px}
 .skel-line{height:12px;border-radius:99px;width:70%;margin-bottom:6px}
 .skel-line.sm{width:40%}
-.skel-inline{display:inline-block;height:13px;width:60px;vertical-align:middle}
-.skel-inline.sm{height:12px;width:38px}
-.skel-inline.lg{height:28px;width:130px;border-radius:8px}
-.skel-circle{width:150px;height:150px;border-radius:50%;margin:24px auto;display:block}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(30,25,60,0.97);color:#fff;padding:10px 20px;border-radius:50px;font-size:0.8rem;font-weight:700;opacity:0;transition:all .3s var(--ease);z-index:99999;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,0.4);white-space:nowrap;max-width:90%;text-align:center;border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(12px)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{background:rgba(34,197,94,0.92);border-color:rgba(34,197,94,0.5);color:#fff}
