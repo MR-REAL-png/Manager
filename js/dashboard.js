@@ -16,12 +16,16 @@ function goPage(p){
   const di=document.getElementById('di-'+p);if(di)di.classList.add('active');
   window.scrollTo(0,0);
   // Tampilkan skeleton dulu sebelum load
-  if(p==='data'){
-    // Langsung tampilkan skeleton, baru load data
-    const el=document.getElementById('dataList');
-    if(el&&!allRows.length){
-      el.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
-    }
+  if(p==='dashboard'){
+    // Chart di dashboard sempat display:none saat halaman ini disembunyikan,
+    // jadi Chart.js bisa salah baca dimensi & animasinya glitch pas balik kesini.
+    // Paksa resize dulu biar layout-nya kebaca ulang dengan benar.
+    setTimeout(()=>{
+      if(chartKat)try{chartKat.resize()}catch(e){}
+      if(chartHarian)try{chartHarian.resize()}catch(e){}
+    },50);
+  }
+  else if(p==='data'){
     loadData();
   }
   else if(p==='tabungan'&&document.getElementById('tabContent').style.display!=='none')loadTabungan();
@@ -47,37 +51,14 @@ function doRefresh(){
 }
 
 // ═══ DASHBOARD ═══
-function showDashboardSkeleton(){
-  const setSkel=(id,cls)=>{const el=document.getElementById(id);if(el)el.innerHTML=`<span class="skel ${cls}"></span>`};
-  setSkel('dashPeriodVal','skel-inline');
-  setSkel('dashPeriodDays','skel-inline sm');
-  setSkel('hk-periode-lbl','skel-inline sm');
-  setSkel('d-kas','skel-inline lg');
-  setSkel('hk-period-text','skel-inline');
-  setSkel('d-masuk','skel-inline sm');
-  setSkel('d-keluar','skel-inline sm');
-  setSkel('d-avg','skel-inline sm');
-  setSkel('d-active-days','skel-inline sm');
-  setSkel('d-total-days-val','skel-inline sm');
-  setSkel('d-avg-budget','skel-inline sm');
-  const chartWrap=document.querySelector('#pg-dashboard .chart-wrap');
-  if(chartWrap)chartWrap.innerHTML='<div class="skel skel-circle"></div>';
-}
-
 async function loadDashboard(){
   const now=new Date();
   const b=MOS[now.getMonth()],t=String(now.getFullYear());
   const lbl=document.getElementById('dashPeriodLabel');
   if(lbl)lbl.textContent=`${b} ${t}`;
-  if(!allRows.length){
-    // Load pertama kali (belum ada data ke-cache) — tampilkan skeleton shimmer
-    // biar kerasa ada progress, bukan cuma "..." statis.
-    showDashboardSkeleton();
-  }else{
-    document.getElementById('d-kas').textContent='...';
-    document.getElementById('d-masuk').textContent='...';
-    document.getElementById('d-keluar').textContent='...';
-  }
+  document.getElementById('d-kas').textContent='...';
+  document.getElementById('d-masuk').textContent='...';
+  document.getElementById('d-keluar').textContent='...';
   document.getElementById('budgetList').innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
   const _bmon=document.getElementById('budgetMonitor');if(_bmon)_bmon.style.display='none';
   const _bmonLbl=document.getElementById('bmonSecLbl');if(_bmonLbl)_bmonLbl.style.display='none';
@@ -98,7 +79,7 @@ async function loadDashboard(){
     const kasKumulatif=totalMasukAllTime-totalKeluarAllTime;
     const days=[...new Set(rows.map(r=>r.tanggal))].length;
     const tdim=new Date(parseInt(t),MOS.indexOf(b)+1,0).getDate();
-    const FIXED_CATS=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
+    const FIXED_CATS=getStorageJSON('mm_fixed_cats',["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]);
     const fleks=rows.filter(r=>r.jenis==='Pengeluaran'&&!FIXED_CATS.some(fc=>r.kategori.toLowerCase().includes(fc.toLowerCase())));
     const totalFleks=fleks.reduce((s,r)=>s+r.nominal,0);
     const totalDaysPeriode=Math.round((ed-sd)/(1000*60*60*24));
@@ -339,6 +320,10 @@ async function loadData(){
   try{
     // Selalu tampilkan skeleton dulu (animasi konsisten dengan menu lain)
     el.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
+    // Kasih jeda kecil biar skeleton sempat ke-render ke layar dulu —
+    // tanpa ini, kalau allRows udah ke-cache, renderCards() jalan instan
+    // di tick yang sama dan skeleton-nya ketimpa sebelum sempat kelihatan.
+    await new Promise(r=>setTimeout(r,220));
     if(!allRows.length)allRows=await fetchAllData();
     renderCards(allRows);
     syncFilterBulan();
