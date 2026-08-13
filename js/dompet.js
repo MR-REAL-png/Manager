@@ -24,16 +24,18 @@ function getBankTheme(name){
   return BANK_THEMES[key]||BANK_THEMES.default;
 }
 
-function renderBankLogo(bank,theme){
+function renderBankLogo(bank,theme,height,maxWidth){
+  height=height||28;maxWidth=maxWidth||80;
   const fb=bank.slice(0,2).toUpperCase();
+  const fbSize=Math.max(9,Math.round(height*0.4));
   if(theme.logoDataUrl){
-    return`<img src="${theme.logoDataUrl}" style="height:28px;max-width:80px;object-fit:contain;display:block" onerror="this.outerHTML='<span style=\\'font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.12em\\'>${fb}</span>'">`;
+    return`<img src="${theme.logoDataUrl}" style="height:${height}px;max-width:${maxWidth}px;object-fit:contain;display:block" onerror="this.outerHTML='<span style=\\'font-size:${fbSize}px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.1em\\'>${fb}</span>'">`;
   }
   if(theme.logo){
     const url=`${BANK_LOGO_BASE}${theme.logo}`;
-    return`<img src="${url}" style="height:26px;max-width:72px;object-fit:contain;filter:brightness(0) invert(1);display:block" onerror="this.outerHTML='<span style=\\'font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.12em\\'>${fb}</span>'">`;
+    return`<img src="${url}" style="height:${Math.round(height*0.93)}px;max-width:${Math.round(maxWidth*0.9)}px;object-fit:contain;filter:brightness(0) invert(1);display:block" onerror="this.outerHTML='<span style=\\'font-size:${fbSize}px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.1em\\'>${fb}</span>'">`;
   }
-  return`<span style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.55);letter-spacing:0.12em">${fb}</span>`;
+  return`<span style="font-size:${fbSize}px;font-weight:700;color:rgba(255,255,255,0.55);letter-spacing:0.1em">${fb}</span>`;
 }
 
 function getBankMotifSVG(motif,color='rgba(255,255,255,0.15)'){
@@ -554,6 +556,10 @@ async function loadMetode(){
       const bank=(r.pembayaran||'').trim();
       if(bank)bb[bank]=(bb[bank]||0)+r.nominal;
     });
+    // Rekening yang sudah didaftarkan (custom) tapi belum ada transaksi
+    // Pengeluaran di bulan ini tetap ditampilkan (Rp0), konsisten sama Dompet.
+    const customBanks=getStorageJSON('mm_custom_banks',[]);
+    customBanks.forEach(b=>{if(!bb.hasOwnProperty(b))bb[b]=0});
     const total=rows.reduce((s,r)=>s+r.nominal,0);
     document.getElementById('m-cash').textContent=rpShort(bm.Cash||0);
     document.getElementById('m-transfer').textContent=rpShort(bm.Transfer||0);
@@ -570,7 +576,7 @@ async function loadMetode(){
     document.getElementById('bankList').innerHTML=ba.map(([bank,val],i)=>{
       const pct=total>0?Math.round(val/total*100):0;
       const theme2=getBankTheme(bank);
-      const ico=`<span style="background:${theme2.grad};border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${renderBankLogo(bank,theme2)}</span>`;
+      const ico=`<span style="background:${theme2.grad};border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${renderBankLogo(bank,theme2,18,24)}</span>`;
       return`<div class="bank-item" style="animation-delay:${i*0.05}s"><div class="bank-ico" style="background:transparent;padding:0">${ico}</div><div class="bank-info"><div class="bank-name">${bank}</div><div class="bank-sub">${pct}% dari total</div><div class="bank-bar-wrap"><div class="bank-bar-fill" style="width:0%" data-w="${pct}"></div></div></div><div class="bank-val">${rpShort(val)}</div></div>`;
     }).join('');
     setTimeout(()=>{document.querySelectorAll('.bank-bar-fill').forEach(e=>e.style.width=e.dataset.w+'%')},100);
