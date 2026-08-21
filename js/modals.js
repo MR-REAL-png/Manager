@@ -16,10 +16,12 @@ async function openKasDetail(){
   const totalKeluar=keluar||1;
 
   // Saldo dompet & Total Aset dihitung lewat fungsi shared (helpers.js) —
-  // sama persis dengan yang dipakai di halaman Dompet, termasuk transfer & saldo awal,
-  // supaya angkanya selalu sinkron di kedua tempat.
-  const[rows,transfers]=await Promise.all([fetchAllData(),fetchTransfers()]);
-  allRows=rows;
+  // sama persis dengan yang dipakai di halaman Dompet. PENTING: sengaja pakai
+  // allRows yang SUDAH ada (snapshot yang sama dipakai avgDetailData di atas),
+  // bukan fetch ulang — kalau fetch ulang, bagian "Saldo Dompet" bisa beda
+  // snapshot data dari bagian hero Arus Kas/Masuk/Keluar di atasnya (dua-duanya
+  // di popup yang sama tapi jadi nggak sinkron satu sama lain).
+  const transfers=await fetchTransfers();
   const{banks,saldoMap,totalSaldo}=hitungSaldoDompet(allRows,transfers);
   const totalPos=totalSaldo>=0;
   const saldoSectionHTML=!banks.length?'':`
@@ -246,8 +248,10 @@ function openBudgetRataDetail(){}
 function openStrukDetail(rowIdx){
   try{
   const r=allRows.find(x=>x.rowIndex===rowIdx);if(!r)return;
-  document.getElementById('ovStruk').classList.add('open');
-  const body=document.getElementById('strukBody');
+  const t=document.getElementById('bsTitle');
+  if(t)t.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"/></svg> Detail Transaksi';
+  document.getElementById('bsOverlay').classList.add('open');
+  const body=document.getElementById('bsBody');
   const isIn=r.jenis==='Pemasukan';
   const cls=isIn?'inc':'spd';
   const arr=isIn?'↓':'↑';
@@ -258,16 +262,6 @@ function openStrukDetail(rowIdx){
   // Cari semua tx hari yang sama untuk konteks
   const sameDayTxs=allRows.filter(x=>x.tanggal===r.tanggal&&x.rowIndex!==rowIdx);
   const dayNet=allRows.filter(x=>x.tanggal===r.tanggal).reduce((s,x)=>x.jenis==='Pemasukan'?s+x.nominal:s-x.nominal,0);
-  // Info kapan dibuat & terakhir diedit (kalau ada bedanya)
-  const fmtWaktu=(iso)=>{
-    if(!iso)return null;
-    const d=new Date(iso);
-    if(isNaN(d))return null;
-    return `${d.getDate()} ${MOS[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  };
-  const createdStr=fmtWaktu(r.createdAt);
-  const updatedStr=fmtWaktu(r.updatedAt);
-  const wasEdited=r.createdAt&&r.updatedAt&&(new Date(r.updatedAt)-new Date(r.createdAt)>2000);
   const rows=[
     {lbl:'Tanggal',val:formatTgl(r.tanggal),hl:true},
     {lbl:'Kategori',val:r.kategori,hl:true},
@@ -277,15 +271,16 @@ function openStrukDetail(rowIdx){
     r.bulan?{lbl:'Bulan',val:r.bulan}:null,
     {lbl:'Kas Hari Ini',val:`${dayNet>=0?'+':'−'}${rp(Math.abs(dayNet))}`,hl:false},
     {lbl:'Tx Lain Hari Ini',val:sameDayTxs.length?`${sameDayTxs.length} transaksi`:'Tidak ada'},
-    wasEdited&&updatedStr?{lbl:'Terakhir Diedit',val:updatedStr,hl:true}:null,
-    createdStr?{lbl:'Dibuat',val:createdStr}:null,
   ].filter(Boolean);
   body.innerHTML=`<div class="bs-struk">
-    <div class="bs-struk-nom">
-      <div class="bs-struk-nom-val ${cls}">${arr} ${rp(r.nominal)}</div>
-    </div>
     <div class="bs-struk-header">
-      <div class="bs-struk-header-ico">${katIco}</div><div class="bs-struk-header-kat" style="display:inline">${katName}</div>
+      <div class="bs-struk-header-ico">${katIco}</div>
+      <div class="bs-struk-header-kat">${katName}</div>
+      <span class="bs-struk-header-jenis ${cls}">${isIn?IC.in:IC.out} ${r.jenis}</span>
+    </div>
+    <div class="bs-struk-nom">
+      <div class="bs-struk-nom-lbl">Nominal</div>
+      <div class="bs-struk-nom-val ${cls}">${arr} ${rp(r.nominal)}</div>
     </div>
     <div class="bs-struk-rows">
       ${rows.map(row=>`<div class="bs-struk-row">
@@ -293,17 +288,12 @@ function openStrukDetail(rowIdx){
         <div class="bs-struk-row-val${row.hl?' hl':''}">${row.val}</div>
       </div>`).join('')}
     </div>
-    <div class="bs-struk-actions">
-      <button class="btn-cx" onclick="closeOv(null,'ovStruk');openEdit(${r.rowIndex})">${IC.edit.replace('width:12px;height:12px','width:13px;height:13px;vertical-align:-2px;margin-right:4px')} Edit</button>
-      <button class="btn-del" style="margin-right:0" onclick="closeOv(null,'ovStruk');hapusFromStruk(${r.rowIndex})">${IC.warn.replace('width:20px;height:20px','width:13px;height:13px;vertical-align:-2px;margin-right:4px')} Hapus</button>
+    <div class="bs-struk-footer">
+      <div class="bs-struk-footer-txt">SE_REAL · ${new Date().toLocaleDateString('id-ID')}</div>
     </div>
+    <button class="btn-ok" style="width:100%;margin-top:12px" onclick="closeBs();openEdit(${r.rowIndex})">${IC.edit.replace('width:12px;height:12px','width:13px;height:13px;vertical-align:-2px;margin-right:4px')} Edit Transaksi</button>
   </div>`;
   }catch(e){console.error('struk error',e)}
-}
-
-function hapusFromStruk(rowIdx){
-  document.getElementById('editRow').value=rowIdx;
-  doDelete();
 }
 
 
