@@ -16,16 +16,12 @@ function goPage(p){
   const di=document.getElementById('di-'+p);if(di)di.classList.add('active');
   window.scrollTo(0,0);
   // Tampilkan skeleton dulu sebelum load
-  if(p==='dashboard'){
-    // Chart di dashboard sempat display:none saat halaman ini disembunyikan,
-    // jadi Chart.js bisa salah baca dimensi & animasinya glitch pas balik kesini.
-    // Paksa resize dulu biar layout-nya kebaca ulang dengan benar.
-    setTimeout(()=>{
-      if(chartKat)try{chartKat.resize()}catch(e){}
-      if(chartHarian)try{chartHarian.resize()}catch(e){}
-    },50);
-  }
-  else if(p==='data'){
+  if(p==='data'){
+    // Langsung tampilkan skeleton, baru load data
+    const el=document.getElementById('dataList');
+    if(el&&!allRows.length){
+      el.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
+    }
     loadData();
   }
   else if(p==='tabungan'&&document.getElementById('tabContent').style.display!=='none')loadTabungan();
@@ -79,7 +75,7 @@ async function loadDashboard(){
     const kasKumulatif=totalMasukAllTime-totalKeluarAllTime;
     const days=[...new Set(rows.map(r=>r.tanggal))].length;
     const tdim=new Date(parseInt(t),MOS.indexOf(b)+1,0).getDate();
-    const FIXED_CATS=getStorageJSON('mm_fixed_cats',["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]);
+    const FIXED_CATS=JSON.parse(localStorage.getItem('mm_fixed_cats')||'["Tabungan","Kos","Tf Rumah","Listrik Rumah","Internet","Listrik"]');
     const fleks=rows.filter(r=>r.jenis==='Pengeluaran'&&!FIXED_CATS.some(fc=>r.kategori.toLowerCase().includes(fc.toLowerCase())));
     const totalFleks=fleks.reduce((s,r)=>s+r.nominal,0);
     const totalDaysPeriode=Math.round((ed-sd)/(1000*60*60*24));
@@ -320,10 +316,6 @@ async function loadData(){
   try{
     // Selalu tampilkan skeleton dulu (animasi konsisten dengan menu lain)
     el.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
-    // Kasih jeda kecil biar skeleton sempat ke-render ke layar dulu —
-    // tanpa ini, kalau allRows udah ke-cache, renderCards() jalan instan
-    // di tick yang sama dan skeleton-nya ketimpa sebelum sempat kelihatan.
-    await new Promise(r=>setTimeout(r,220));
     if(!allRows.length)allRows=await fetchAllData();
     renderCards(allRows);
     syncFilterBulan();
@@ -365,10 +357,33 @@ function syncFilterBulan(){
   if(curVal)sel.value=curVal;
 }
 
+function isTxIncomplete(r){
+  return !r.kategori||!r.metode||!r.pembayaran;
+}
+
 function renderCards(rows){
   const el=document.getElementById('dataList');
   if(!rows.length){el.innerHTML=`<div class="empty-state"><div class="empty-ico">💸</div><div class="empty-title">Belum ada transaksi</div><div class="empty-sub">Tap <strong>+</strong> untuk menambahkan transaksi pertama</div></div>`;return}
   const sorted=[...rows].sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
+
+  // Transaksi yang kategori/metode/rekening-nya kosong ditampilkan di paling
+  // atas biar gampang dilengkapi, plus tetap ditandai badge di posisi asli
+  // (dalam grup tanggalnya) di bawah.
+  const incomplete=sorted.filter(isTxIncomplete);
+  const incompleteHTML=incomplete.length?`<div class="incomplete-section">
+    <div class="incomplete-hd">${IC.warn} Perlu Dilengkapi (${incomplete.length})</div>
+    ${incomplete.map(r=>{
+      const isIn=r.jenis==='Pemasukan',cls=isIn?'inc':'spd',arr=isIn?'↓':'↑';
+      const missing=[!r.kategori&&'Kategori',!r.metode&&'Metode',!r.pembayaran&&'Rekening'].filter(Boolean).join(', ');
+      const tapHandler=r._pending?"toast('Menunggu sinkron dulu, belum bisa diedit','warn')":`openStrukDetail(${r.rowIndex})`;
+      return`<div class="dc incomplete-card ${cls}" onclick="event.stopPropagation();${tapHandler}">
+        <div class="dc-row1"><div class="dc-left"><span class="dc-kat">${r.kategori||'(Tanpa Kategori)'}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div>
+        <div class="dc-divider"></div>
+        <div class="dc-tags"><span class="incomplete-missing">${IC.warn} Lengkapi: ${missing}</span><span class="dc-ket-inline">${formatTgl(r.tanggal)}</span></div>
+      </div>`;
+    }).join('')}
+  </div>`:'';
+
   const totM=rows.filter(r=>r.jenis==='Pemasukan').reduce((s,r)=>s+r.nominal,0);
   const totK=rows.filter(r=>r.jenis==='Pengeluaran').reduce((s,r)=>s+r.nominal,0);
   const kas=totM-totK;
@@ -382,14 +397,15 @@ function renderCards(rows){
       const isIn=r.jenis==='Pemasukan',cls=isIn?'inc':'spd',arr=isIn?'↓':'↑';
       const kat=r.kategori||'';
       const pendingBadge=r._pending?'<span style="font-size:0.62rem;margin-left:4px;color:#f59e0b" title="Menunggu sinkron">⏳</span>':'';
+      const incompleteBadge=isTxIncomplete(r)?'<span style="font-size:0.62rem;margin-left:4px;color:#f59e0b" title="Data belum lengkap">⚠️</span>':'';
       const tapHandler=r._pending?"toast('Menunggu sinkron dulu, belum bisa diedit','warn')":`openStrukDetail(${r.rowIndex})`;
       const tags=[r.pembayaran,r.metode].filter(Boolean).map(t=>`<span class="dtag">${t}</span>`).join('');
       const ketHtml=r.detail?`<span class="dc-ket-inline">${r.detail}</span>`:'';
-      return`<div class="dc ${cls}" style="animation-delay:${Math.min((gi*0.03)+(ri*0.02),0.3)}s" onclick="event.stopPropagation();${tapHandler}"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat}${pendingBadge}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags"><div class="dc-tags-left">${tags}</div>${ketHtml}</div></div>`;
+      return`<div class="dc ${cls}" style="animation-delay:${Math.min((gi*0.03)+(ri*0.02),0.3)}s" onclick="event.stopPropagation();${tapHandler}"><div class="dc-row1"><div class="dc-left"><span class="dc-kat">${kat||'(Tanpa Kategori)'}${pendingBadge}${incompleteBadge}</span></div><div class="dc-right"><span class="dc-nom ${cls}">${arr} ${rp(r.nominal)}</span></div></div><div class="dc-divider"></div><div class="dc-tags"><div class="dc-tags-left">${tags}</div>${ketHtml}</div></div>`;
     }).join('');
     return`<div class="date-group"><div class="dg-header"><div class="dg-dot ${dotCls}"></div><span class="dg-date">${IC.cal} ${formatTgl(tgl)}</span><span class="dg-kas ${dk>=0?'g':'r'}">${dk>=0?'+':'−'}${rp(Math.abs(dk))}</span></div><div class="dg-cards">${cards}</div></div>`;
   }).join('');
-  el.innerHTML=strip+html;
+  el.innerHTML=incompleteHTML+strip+html;
 }
 
 function filterData(){
