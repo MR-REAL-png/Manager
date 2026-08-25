@@ -17,11 +17,6 @@ function goPage(p){
   window.scrollTo(0,0);
   // Tampilkan skeleton dulu sebelum load
   if(p==='data'){
-    // Langsung tampilkan skeleton, baru load data
-    const el=document.getElementById('dataList');
-    if(el&&!allRows.length){
-      el.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
-    }
     loadData();
   }
   else if(p==='tabungan'&&document.getElementById('tabContent').style.display!=='none')loadTabungan();
@@ -316,6 +311,10 @@ async function loadData(){
   try{
     // Selalu tampilkan skeleton dulu (animasi konsisten dengan menu lain)
     el.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
+    // Kasih jeda kecil biar skeleton sempat ke-render ke layar dulu —
+    // tanpa ini, kalau allRows udah ke-cache, renderCards() jalan instan
+    // di tick yang sama dan skeleton-nya ketimpa sebelum sempat kelihatan.
+    await new Promise(r=>setTimeout(r,220));
     if(!allRows.length)allRows=await fetchAllData();
     renderCards(allRows);
     syncFilterBulan();
