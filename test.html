@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Test Kirim WhatsApp - SE_REAL</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 480px; margin: 20px auto; padding: 16px; }
+  input, textarea { width: 100%; padding: 10px; margin: 6px 0 14px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; }
+  button { width: 100%; padding: 14px; background: #25D366; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; }
+  button:disabled { background: #aaa; }
+  #result { margin-top: 16px; padding: 12px; border-radius: 8px; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
+  .ok { background: #d4f7dc; }
+  .err { background: #fbdada; }
+  label { font-weight: bold; font-size: 14px; }
+  small { color: #666; }
+</style>
+</head>
+<body>
+  <h2>🧪 Test Kirim WhatsApp (SE_REAL)</h2>
+  <p><small>Halaman ini HANYA untuk testing di device kamu sendiri. Jangan upload/deploy ke publik karena token dimasukkan langsung di sini.</small></p>
+
+  <label>Phone Number ID</label>
+  <input id="phoneId" value="1284728964721151">
+
+  <label>Access Token (System User "Sereal")</label>
+  <input id="token" type="password" placeholder="Paste token EAATf0jZBAx...">
+
+  <label>Nomor Tujuan (format: 62812xxxxxxx, tanpa + atau 0 depan)</label>
+  <input id="to" placeholder="62812xxxxxxx">
+
+  <label>Isi Pesan</label>
+  <textarea id="msg" rows="3">Tes dari SE_REAL 🎉</textarea>
+
+  <button id="sendBtn" onclick="sendMessage()">Kirim Pesan</button>
+
+  <div id="result"></div>
+
+<script>
+async function sendMessage() {
+  const phoneId = document.getElementById('phoneId').value.trim();
+  const token = document.getElementById('token').value.trim();
+  const to = document.getElementById('to').value.trim();
+  const msg = document.getElementById('msg').value.trim();
+  const resultEl = document.getElementById('result');
+  const btn = document.getElementById('sendBtn');
+
+  if (!phoneId || !token || !to || !msg) {
+    resultEl.className = 'err';
+    resultEl.textContent = 'Semua field wajib diisi.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Mengirim...';
+  resultEl.className = '';
+  resultEl.textContent = '';
+
+  try {
+    const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to,
+        type: 'text',
+        text: { body: msg },
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      resultEl.className = 'ok';
+      resultEl.textContent = '✅ BERHASIL!\n\n' + JSON.stringify(data, null, 2);
+    } else {
+      resultEl.className = 'err';
+      resultEl.textContent = '❌ GAGAL (HTTP ' + res.status + ')\n\n' + JSON.stringify(data, null, 2);
+    }
+  } catch (err) {
+    resultEl.className = 'err';
+    resultEl.textContent = '❌ ERROR JARINGAN\n\n' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Kirim Pesan';
+  }
+}
+</script>
+</body>
+</html>
